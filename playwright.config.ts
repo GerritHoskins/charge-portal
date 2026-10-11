@@ -7,5 +7,7 @@ export default defineConfig({
   webServer: [
     { command: 'npm run legacy', url: 'http://localhost:8080/api/v1/stations', reuseExistingServer: true },
     { command: 'npx nuxt dev --port 3000', url: 'http://localhost:3000/portal/stations', reuseExistingServer: true, timeout: 120_000 },
+    // Static Storybook build, served for the design-system a11y tests.
+    { command: 'npm run build-storybook && npx vite preview --outDir storybook-static --port 6006 --strictPort', url: 'http://localhost:6006/iframe.html', reuseExistingServer: true, timeout: 180_000, env: { STORYBOOK_DISABLE_TELEMETRY: '1' } },
   ],
 })

@@ -33,18 +33,24 @@ Honest limits: the "legacy monolith" is a ~50-line Node server rendering deliber
 |---|---|
 | Incremental migration of an SSR frontend coupled to a monolithic backend to a Vue architecture | Strangler proxy in `nuxt.config.ts`, ADR 0001 |
 | Define boundaries and contracts between frontend and backend | `shared/contracts/` (zod), parsed in `server/api/stations.get.ts`, contract tests |
-| Frontend standards: UI consistency, accessibility, testing, performance, code quality | Tokens, axe E2E per migrated route, `AGENTS.md`, strict TS; performance budgets are still open (see roadmap) |
-| Reusable component library and design-system integration | `app/components/ds/` consuming `tokens.css`; Storybook is on the roadmap |
+| Frontend standards: UI consistency, accessibility, testing, performance, code quality | Tokens, axe E2E per migrated route, `AGENTS.md`, strict TS; bundle-size budget in `scripts/check-bundle-size.mjs` |
+| Reusable component library and design-system integration | `app/components/ds/` consuming `tokens.css`, documented in Storybook with per-tenant axe checks |
 | White-label frontends in customer branding | `data-tenant` token overrides, AA checked per tenant |
 | Vue, Nuxt, TypeScript | Nuxt 4, Vue 3 `<script setup>`, strict TS |
 | Unit and E2E tests, WCAG | Vitest + Vue Test Utils, Playwright + axe (WCAG 2.2 AA tags) |
 | AI in daily engineering with risks controlled | `AGENTS.md`: tests first, human review of every diff |
 
+## Design system and performance
+
+- `npm run storybook` starts Storybook (Vue 3 + Vite) with a toolbar to switch the white-label tenant. Stories live next to components (`*.stories.ts`).
+- `tests/e2e/storybook.spec.ts` runs axe against every story in every tenant theme, so a token change that breaks contrast fails before it reaches a page.
+- `npm run budget` builds and fails if gzipped client JS exceeds `JS_BUDGET_KB` (default 120). It measures bundle size only; it is not a Lighthouse or Core Web Vitals check.
+- `.github/workflows/ci.yml` runs `npm run check` (typecheck, unit, E2E incl. Storybook a11y, budget). It has not been run on GitHub yet.
+
 ## Roadmap
 
 1. Migrate `/portal/sessions` (list + detail) and delete its proxy rule: the commit history becomes the migration story.
-2. Storybook for `ds/` components, with an axe addon.
-3. Performance budget in CI (Lighthouse CI or bundle-size check).
-4. A Direct-Payment/receipt style flow with accessible form validation.
-5. Auth hand-over between legacy and Nuxt (cookie session) as a second ADR.
-6. Optional: replace the Node stand-in with real PHP in Docker.
+2. Real-user-style performance checks (Lighthouse CI) on top of the bundle budget.
+3. A Direct-Payment/receipt style flow with accessible form validation.
+4. Auth hand-over between legacy and Nuxt (cookie session) as a second ADR.
+5. Optional: replace the Node stand-in with real PHP in Docker.
