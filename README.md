@@ -20,10 +20,12 @@ Open <http://localhost:3000/portal/stations>. Try `?tenant=stadtwerke-demo` or `
 | Route | Served by | Status |
 |---|---|---|
 | `/portal/stations` | Nuxt page (`app/pages/portal/stations`) | migrated |
-| `/portal/sessions` | legacy, proxied via `routeRules` | not migrated |
+| `/portal/sessions` | Nuxt page (`app/pages/portal/sessions`) | migrated (see git history: proxy rule removed, legacy HTML page decommissioned) |
 | `/portal/invoices` | legacy, proxied via `routeRules` | not migrated |
 
 Decision record: [`docs/adr/0001-strangler-migration.md`](docs/adr/0001-strangler-migration.md).
+
+Gotcha: Playwright reuses servers already listening on :3000/:8080/:6006. A stale legacy process serving old endpoints makes tests fail confusingly; stop it first.
 
 Honest limits: the "legacy monolith" is a ~50-line Node server rendering deliberately dated HTML, standing in for a PHP application. Auth, real data and a shared layout between legacy and Nuxt pages are not modelled.
 
@@ -49,7 +51,7 @@ Honest limits: the "legacy monolith" is a ~50-line Node server rendering deliber
 
 ## Roadmap
 
-1. Migrate `/portal/sessions` (list + detail) and delete its proxy rule: the commit history becomes the migration story.
+1. Migrate `/portal/invoices` (billing-affecting, so last and with the most tests).
 2. Real-user-style performance checks (Lighthouse CI) on top of the bundle budget.
 3. A Direct-Payment/receipt style flow with accessible form validation.
 4. Auth hand-over between legacy and Nuxt (cookie session) as a second ADR.

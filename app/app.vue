@@ -16,8 +16,8 @@ useHead({
     <nav aria-label="Hauptnavigation">
       <ul>
         <li><NuxtLink to="/portal/stations">Stationen</NuxtLink></li>
-        <!-- Not yet migrated: full page loads served by the legacy backend. -->
-        <li><a href="/portal/sessions">Ladevorgänge</a></li>
+        <li><NuxtLink to="/portal/sessions">Ladevorgänge</NuxtLink></li>
+        <!-- Not yet migrated: full page load served by the legacy backend. -->
         <li><a href="/portal/invoices">Rechnungen</a></li>
       </ul>
     </nav>

@@ -15,7 +15,6 @@ export default defineNuxtConfig({
   // proxied to the legacy server-rendered monolith. Migrating a route means
   // adding a page under app/pages/ and deleting its line here.
   routeRules: {
-    '/portal/sessions/**': { proxy: `${LEGACY_ORIGIN}/portal/sessions/**` },
     '/portal/invoices/**': { proxy: `${LEGACY_ORIGIN}/portal/invoices/**` },
   },
 

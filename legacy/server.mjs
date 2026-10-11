@@ -16,14 +16,7 @@ ${body}
 </body></html>`
 
 const pages = {
-  '/portal/sessions': () =>
-    layout(
-      'Sessions (legacy)',
-      `<table border="1">
-<tr><td>ID</td><td>Station</td><td>Started</td><td>kWh</td><td>Status</td></tr>
-${sessions.map((s) => `<tr><td>${s.id}</td><td>${s.stationId}</td><td>${s.startedAt}</td><td>${s.energyKwh}</td><td>${s.status}</td></tr>`).join('\n')}
-</table>`,
-    ),
+  // /portal/sessions was migrated to Nuxt; its HTML page is decommissioned here.
   '/portal/invoices': () => layout('Invoices (legacy)', '<p>No invoices in the demo data.</p>'),
 }
 
@@ -37,6 +30,7 @@ createServer((req, res) => {
   const path = pathname.replace(/\/$/, '')
 
   if (path === '/api/v1/stations') return json(res, 200, { data: stations })
+  if (path === '/api/v1/sessions') return json(res, 200, { data: sessions })
   if (pages[path]) {
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
     return res.end(pages[path]())
