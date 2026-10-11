@@ -15,6 +15,11 @@ export default defineNuxtConfig({
   // proxied to the legacy server-rendered monolith. Migrating a route means
   // adding a page under app/pages/ and deleting its line here.
   routeRules: {
+    // Login and logout stay with the legacy session owner for now (ADR 0002).
+    // `redirect: 'manual'`: pass legacy's 302 (and its Set-Cookie) to the browser
+    // instead of following it server-side, which would swallow the cookie.
+    '/login': { proxy: { to: `${LEGACY_ORIGIN}/login`, fetchOptions: { redirect: 'manual' } } },
+    '/logout': { proxy: { to: `${LEGACY_ORIGIN}/logout`, fetchOptions: { redirect: 'manual' } } },
     '/portal/invoices/**': { proxy: `${LEGACY_ORIGIN}/portal/invoices/**` },
   },
 

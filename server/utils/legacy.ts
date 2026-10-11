@@ -1,13 +1,25 @@
+import type { H3Event } from 'h3'
 import type { z } from 'zod'
 
-// Single place where legacy responses enter the app: fetch, then enforce the
-// contract. Drift or an outage becomes a 502 at the edge, not a broken component.
-export const fetchLegacy = async <T extends z.ZodType>(path: string, schema: T): Promise<z.infer<T>> => {
+// Single place where legacy responses enter the app: forward the browser's
+// session cookie, fetch, then enforce the contract. Outage or drift becomes a
+// 502 at the edge, an expired session a 401; neither reaches a component.
+export const fetchLegacy = async <T extends z.ZodType>(
+  event: H3Event,
+  path: string,
+  schema: T,
+): Promise<z.infer<T>> => {
   const { legacyOrigin } = useRuntimeConfig()
+  const cookie = getRequestHeader(event, 'cookie')
 
-  const raw = await $fetch<unknown>(`${legacyOrigin}${path}`).catch(() => {
-    throw createError({ statusCode: 502, statusMessage: 'Legacy backend unreachable' })
-  })
+  const raw = await $fetch<unknown>(`${legacyOrigin}${path}`, { headers: cookie ? { cookie } : {} }).catch(
+    (error: { response?: { status?: number } }) => {
+      if (error.response?.status === 401) {
+        throw createError({ statusCode: 401, statusMessage: 'Not authenticated' })
+      }
+      throw createError({ statusCode: 502, statusMessage: 'Legacy backend unreachable' })
+    },
+  )
 
   const parsed = schema.safeParse(raw)
   if (!parsed.success) {

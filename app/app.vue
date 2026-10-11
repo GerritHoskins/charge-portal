@@ -1,6 +1,8 @@
 <script setup lang="ts">
 const { tenant } = useTenant()
 
+const { data: me } = await useFetch('/api/me')
+
 // Lets E2E tests wait for hydration before interacting with SSR-rendered controls.
 onMounted(() => document.documentElement.setAttribute('data-hydrated', ''))
 
@@ -20,6 +22,11 @@ useHead({
         <!-- Not yet migrated: full page load served by the legacy backend. -->
         <li><a href="/portal/invoices">Rechnungen</a></li>
       </ul>
+      <!-- Plain POST form: logout is handled by the legacy session owner. -->
+      <form v-if="me" class="session" method="post" action="/logout">
+        <span>Angemeldet als {{ me.name }}</span>
+        <button type="submit">Abmelden</button>
+      </form>
     </nav>
   </header>
   <main id="main" tabindex="-1">
@@ -31,6 +38,17 @@ useHead({
 .app-header {
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
+}
+.app-header nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-right: var(--space-3);
+}
+.app-header .session {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
 }
 .app-header ul {
   display: flex;
