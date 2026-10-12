@@ -1,0 +1,80 @@
+{
+  "common": {
+    "required": "(Pflichtfeld)",
+    "errorPrefix": "Fehler: "
+  },
+  "nav": {
+    "skip": "Zum Inhalt springen",
+    "main": "Hauptnavigation",
+    "stations": "Stationen",
+    "sessions": "Ladevorgänge",
+    "invoices": "Rechnungen",
+    "signedInAs": "Angemeldet als {name}",
+    "logout": "Abmelden",
+    "language": "Sprache"
+  },
+  "login": {
+    "title": "Anmelden",
+    "username": "Benutzername",
+    "password": "Passwort",
+    "submit": "Anmelden",
+    "errors": {
+      "invalid": "Benutzername oder Passwort ungültig.",
+      "csrf": "Die Sitzung des Formulars ist abgelaufen. Bitte erneut versuchen.",
+      "rate_limited": "Zu viele fehlgeschlagene Versuche. Bitte später erneut versuchen."
+    }
+  },
+  "stations": {
+    "title": "Stationen",
+    "caption": "Ladestationen mit Status und Leistung",
+    "filter": "Status",
+    "all": "Alle",
+    "loadError": "Die Stationen konnten nicht geladen werden.",
+    "shown": "{n} Stationen angezeigt",
+    "empty": "Keine Stationen für diesen Filter.",
+    "col": { "name": "Name", "city": "Ort", "status": "Status", "connectors": "Anschlüsse", "power": "Max. Leistung" },
+    "status": { "available": "Verfügbar", "charging": "Lädt", "faulted": "Störung", "offline": "Offline" }
+  },
+  "sessions": {
+    "title": "Ladevorgänge",
+    "caption": "Ladevorgänge mit Station, Startzeit, Energie und Status",
+    "loadError": "Die Ladevorgänge konnten nicht geladen werden.",
+    "empty": "Keine Ladevorgänge vorhanden.",
+    "col": { "id": "Vorgang", "station": "Station", "start": "Start", "energy": "Energie", "status": "Status" },
+    "status": { "running": "Läuft", "completed": "Abgeschlossen" }
+  },
+  "invoices": {
+    "title": "Rechnungen",
+    "caption": "Rechnungen mit Nummer, Datum, Betrag und Status",
+    "loadError": "Die Rechnungen konnten nicht geladen werden.",
+    "empty": "Keine Rechnungen vorhanden.",
+    "col": { "number": "Rechnung", "date": "Datum", "amount": "Betrag", "status": "Status", "action": "Aktion" },
+    "status": { "open": "Offen", "paid": "Bezahlt", "disputed": "In Klärung" },
+    "dispute": "Beanstanden",
+    "disputeFor": " Rechnung {number}",
+    "noAction": "Keine Aktion verfügbar"
+  },
+  "dispute": {
+    "pageTitle": "Rechnung beanstanden",
+    "notFound": "Rechnung nicht gefunden oder nicht beanstandbar",
+    "heading": "Rechnung {number} beanstanden",
+    "doneTitle": "Beanstandung eingegangen",
+    "doneText": "Wir prüfen Rechnung {number} und melden uns bei Ihnen.",
+    "back": "Zurück zu den Rechnungen",
+    "failed": "Die Beanstandung konnte nicht gesendet werden. Bitte versuchen Sie es erneut.",
+    "fixOne": "Bitte korrigieren Sie ein Feld",
+    "fixMany": "Bitte korrigieren Sie {n} Felder",
+    "reasonLegend": "Grund der Beanstandung",
+    "reasons": {
+      "wrong-amount": "Der Betrag ist falsch",
+      "not-my-session": "Ein Ladevorgang stammt nicht von mir",
+      "duplicate": "Die Rechnung wurde doppelt gestellt",
+      "other": "Anderer Grund"
+    },
+    "message": "Beschreibung",
+    "hint": "Mindestens 10, höchstens {max} Zeichen. Bitte keine Zahlungsdaten angeben.",
+    "submit": "Beanstandung senden",
+    "submitting": "Wird gesendet …",
+    "cancel": "Abbrechen"
+  }
+}

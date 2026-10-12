@@ -6,21 +6,13 @@ import { createServer } from 'node:http'
 import { clearCookie, COOKIE, createAuth, parseCookies, safeNext, sessionCookie } from './auth.mjs'
 import { invoices, resetInvoices, sessions, stations } from './data.mjs'
 import { createDispute } from './invoices.mjs'
+import { layout, pages } from './pages.mjs'
 
 const PORT = Number(process.env.LEGACY_PORT ?? 8080)
 const SECURE = process.env.COOKIE_SECURE === '1'
 const auth = createAuth()
 
 const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
-
-const layout = (title, body) => `<!DOCTYPE html>
-<html><head><title>${title}</title></head>
-<body bgcolor="#eeeeee">
-<font size="2"><a href="/portal/stations">Stations</a> | <a href="/portal/sessions">Sessions</a> | <a href="/portal/invoices">Invoices</a></font>
-<h2>${title}</h2>
-${body}
-<!-- legacy-rendered -->
-</body></html>`
 
 const loginPage = (next, error) =>
   layout(
@@ -33,9 +25,6 @@ const loginPage = (next, error) =>
 <p><input type="submit" value="Log in"></p>
 </form>`,
   )
-
-// No legacy HTML pages left: stations, sessions and invoices are all served by Nuxt.
-const pages = {}
 
 const json = (res, status, data) => {
   res.writeHead(status, { 'content-type': 'application/json' })

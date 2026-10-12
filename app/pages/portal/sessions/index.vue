@@ -1,54 +1,41 @@
 <script setup lang="ts">
-import type { ChargingSession, SessionStatus } from '#shared/contracts/session'
+import type { ChargingSession } from '#shared/contracts/session'
 import type { Station } from '#shared/contracts/station'
 
-useHead({ title: 'Ladevorgänge' })
+const { t } = useI18n()
+const fmt = useFormatters()
+useHead({ title: () => t('sessions.title') })
 
 const { data: sessions, error } = await useFetch<ChargingSession[]>('/api/sessions', { default: () => [] })
 const { data: stations } = await useFetch<Station[]>('/api/stations', { default: () => [] })
 
 const stationName = (id: string) => stations.value.find((s) => s.id === id)?.name ?? id
-
-// Fixed locale and time zone: server and client must render identical text.
-const dateFormat = new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/Berlin' })
-const kwhFormat = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
-
-const statusLabels: Record<SessionStatus, string> = { running: 'Läuft', completed: 'Abgeschlossen' }
 </script>
 
 <template>
   <section aria-labelledby="sessions-heading">
-    <h1 id="sessions-heading">Ladevorgänge</h1>
+    <h1 id="sessions-heading">{{ t('sessions.title') }}</h1>
 
-    <p v-if="error" role="alert">Die Ladevorgänge konnten nicht geladen werden.</p>
+    <DsAlert v-if="error"><p>{{ t('sessions.loadError') }}</p></DsAlert>
 
-    <table v-else-if="sessions.length">
-      <caption class="sr-only">Ladevorgänge mit Station, Startzeit, Energie und Status</caption>
-      <thead>
+    <DsDataTable v-else-if="sessions.length" :caption="t('sessions.caption')">
+      <template #head>
         <tr>
-          <th scope="col">Vorgang</th>
-          <th scope="col">Station</th>
-          <th scope="col">Start</th>
-          <th scope="col">Energie</th>
-          <th scope="col">Status</th>
+          <th scope="col">{{ t('sessions.col.id') }}</th>
+          <th scope="col">{{ t('sessions.col.station') }}</th>
+          <th scope="col">{{ t('sessions.col.start') }}</th>
+          <th scope="col">{{ t('sessions.col.energy') }}</th>
+          <th scope="col">{{ t('sessions.col.status') }}</th>
         </tr>
-      </thead>
-      <tbody>
-        <tr v-for="s in sessions" :key="s.id">
-          <th scope="row">{{ s.id }}</th>
-          <td>{{ stationName(s.stationId) }}</td>
-          <td><time :datetime="s.startedAt">{{ dateFormat.format(new Date(s.startedAt)) }}</time></td>
-          <td>{{ kwhFormat.format(s.energyKwh) }} kWh</td>
-          <td>{{ statusLabels[s.status] }}</td>
-        </tr>
-      </tbody>
-    </table>
-    <p v-else>Keine Ladevorgänge vorhanden.</p>
+      </template>
+      <tr v-for="s in sessions" :key="s.id">
+        <th scope="row">{{ s.id }}</th>
+        <td>{{ stationName(s.stationId) }}</td>
+        <td><time :datetime="s.startedAt">{{ fmt.dateTime(s.startedAt) }}</time></td>
+        <td>{{ fmt.kwh(s.energyKwh) }} kWh</td>
+        <td>{{ t(`sessions.status.${s.status}`) }}</td>
+      </tr>
+    </DsDataTable>
+    <p v-else>{{ t('sessions.empty') }}</p>
   </section>
 </template>
-
-<style scoped>
-table { width: 100%; border-collapse: collapse; }
-th, td { text-align: left; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--color-border); }
-thead th { background: var(--color-surface); }
-</style>

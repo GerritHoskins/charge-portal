@@ -1,0 +1,80 @@
+{
+  "common": {
+    "required": "(required)",
+    "errorPrefix": "Error: "
+  },
+  "nav": {
+    "skip": "Skip to content",
+    "main": "Main navigation",
+    "stations": "Stations",
+    "sessions": "Charging sessions",
+    "invoices": "Invoices",
+    "signedInAs": "Signed in as {name}",
+    "logout": "Sign out",
+    "language": "Language"
+  },
+  "login": {
+    "title": "Sign in",
+    "username": "Username",
+    "password": "Password",
+    "submit": "Sign in",
+    "errors": {
+      "invalid": "Invalid username or password.",
+      "csrf": "The form has expired. Please try again.",
+      "rate_limited": "Too many failed attempts. Please try again later."
+    }
+  },
+  "stations": {
+    "title": "Stations",
+    "caption": "Charging stations with status and power",
+    "filter": "Status",
+    "all": "All",
+    "loadError": "The stations could not be loaded.",
+    "shown": "{n} stations shown",
+    "empty": "No stations for this filter.",
+    "col": { "name": "Name", "city": "City", "status": "Status", "connectors": "Connectors", "power": "Max. power" },
+    "status": { "available": "Available", "charging": "Charging", "faulted": "Fault", "offline": "Offline" }
+  },
+  "sessions": {
+    "title": "Charging sessions",
+    "caption": "Charging sessions with station, start time, energy and status",
+    "loadError": "The charging sessions could not be loaded.",
+    "empty": "No charging sessions.",
+    "col": { "id": "Session", "station": "Station", "start": "Start", "energy": "Energy", "status": "Status" },
+    "status": { "running": "Running", "completed": "Completed" }
+  },
+  "invoices": {
+    "title": "Invoices",
+    "caption": "Invoices with number, date, amount and status",
+    "loadError": "The invoices could not be loaded.",
+    "empty": "No invoices.",
+    "col": { "number": "Invoice", "date": "Date", "amount": "Amount", "status": "Status", "action": "Action" },
+    "status": { "open": "Open", "paid": "Paid", "disputed": "Under review" },
+    "dispute": "Dispute",
+    "disputeFor": " invoice {number}",
+    "noAction": "No action available"
+  },
+  "dispute": {
+    "pageTitle": "Dispute invoice",
+    "notFound": "Invoice not found or not disputable",
+    "heading": "Dispute invoice {number}",
+    "doneTitle": "Dispute received",
+    "doneText": "We are reviewing invoice {number} and will get back to you.",
+    "back": "Back to invoices",
+    "failed": "The dispute could not be sent. Please try again.",
+    "fixOne": "Please correct one field",
+    "fixMany": "Please correct {n} fields",
+    "reasonLegend": "Reason for the dispute",
+    "reasons": {
+      "wrong-amount": "The amount is wrong",
+      "not-my-session": "A charging session is not mine",
+      "duplicate": "The invoice was issued twice",
+      "other": "Other reason"
+    },
+    "message": "Description",
+    "hint": "At least 10, at most {max} characters. Please do not enter payment details.",
+    "submit": "Send dispute",
+    "submitting": "Sending …",
+    "cancel": "Cancel"
+  }
+}

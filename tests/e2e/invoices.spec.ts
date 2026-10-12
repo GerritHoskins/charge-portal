@@ -1,12 +1,13 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
+import { LEGACY_PORT } from '../../playwright.config'
 
 const WCAG = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 
 // Disputing changes legacy state, so every test starts from the seed data.
 test.beforeEach(async ({ request }) => {
-  const res = await request.post('http://localhost:8080/__test/reset')
-  expect(res.ok(), 'legacy must run with LEGACY_ALLOW_RESET=1 (stop a stale server on :8080)').toBe(true)
+  const res = await request.post(`http://localhost:${LEGACY_PORT}/__test/reset`)
+  expect(res.ok(), 'legacy must run with LEGACY_ALLOW_RESET=1 (stop a stale server on the legacy port)').toBe(true)
 })
 
 const openForm = async (page: Page) => {
@@ -74,7 +75,7 @@ test.describe('dispute form: accessible validation flow', () => {
 
     const heading = page.getByRole('heading', { level: 1, name: 'Beanstandung eingegangen' })
     await expect(heading).toBeFocused()
-    await expect(page.getByRole('status')).toContainText('RE-2026-0042')
+    await expect(page.locator('main').getByRole('status')).toContainText('RE-2026-0042')
     expect((await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations).toEqual([])
   })
 

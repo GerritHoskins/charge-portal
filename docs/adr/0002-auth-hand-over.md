@@ -1,6 +1,6 @@
 # ADR 0002: Auth hand-over, legacy stays the session owner
 
-**Status:** accepted (demo)
+**Status:** accepted (demo). Decision 2 and the CSRF/rate-limit gaps were superseded by ADR 0004.
 
 ## Context
 
@@ -50,3 +50,8 @@ riskiest thing to move: a mistake is a security incident, not a visual bug.
 ## Not decided yet
 
 Moving login/logout into Nuxt; SSO; rate limiting and lockout on `/login`; CSRF tokens.
+
+## User and business value
+
+One login across old and new pages, and no protected data shown to anonymous visitors: a failure here is a security
+incident and a trust problem with customers, which is why auth was handed over deliberately and tested server-side.

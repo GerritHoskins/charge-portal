@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import type { StationStatus } from '#shared/contracts/station'
 
-defineProps<{ status: StationStatus }>()
+defineProps<{
+  status: StationStatus
+  /** Overrides the German default, e.g. a translated label. */
+  label?: string
+}>()
 
 // Status is conveyed by text, not colour alone (WCAG 1.4.1).
 const labels: Record<StationStatus, string> = {
@@ -13,7 +17,7 @@ const labels: Record<StationStatus, string> = {
 </script>
 
 <template>
-  <span class="ds-badge" :class="`ds-badge--${status}`">{{ labels[status] }}</span>
+  <span class="ds-badge" :class="`ds-badge--${status}`">{{ label ?? labels[status] }}</span>
 </template>
 
 <style scoped>

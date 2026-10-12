@@ -1,6 +1,6 @@
 # ADR 0001: Incremental migration with a strangler proxy
 
-**Status:** accepted (demo)
+**Status:** accepted (demo). Decision 1 is refined by ADR 0005 (runtime rollout switch instead of editing `routeRules`); decision 4 by the generated token pipeline (`tokens/tokens.json`).
 
 ## Context
 
@@ -38,3 +38,8 @@ Put Nuxt in front of the monolith on the same origin.
 
 Auth hand-over, shared layout chrome between legacy and Nuxt pages, and cache
 rules on proxied routes.
+
+## User and business value
+
+Feature work continues during the migration and every step is releasable and reversible, so users never see a frozen
+product or a big-bang cut-over, and the business never carries the whole rewrite risk at once.

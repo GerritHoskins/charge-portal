@@ -1,0 +1,20 @@
+# Runs the app against the PHP twin of the legacy stand-in:
+#   docker compose up --build            # PHP legacy on :8080, Nuxt (dev) on :3000
+#   E2E_LEGACY_ORIGIN=http://localhost:8080 npx playwright test --project=contract
+# The contract suite is what proves the PHP implementation matches the Node one.
+services:
+  legacy:
+    build: ./legacy-php
+    ports: ["8080:8080"]
+    environment:
+      LEGACY_ALLOW_RESET: "1" # test hook, never in production
+  nuxt:
+    image: node:24-alpine
+    working_dir: /app
+    command: sh -c "npm ci && npx nuxt dev --host 0.0.0.0 --port 3000"
+    ports: ["3000:3000"]
+    # The anonymous volumes keep the container from deleting/overwriting the host node_modules and .nuxt.
+    volumes: [".:/app", "/app/node_modules", "/app/.nuxt"]
+    environment:
+      LEGACY_ORIGIN: http://legacy:8080
+    depends_on: [legacy]
