@@ -49,10 +49,10 @@ Honest limits: the "legacy monolith" is a ~50-line Node server rendering deliber
 - `npm run storybook` starts Storybook (Vue 3 + Vite) with a toolbar to switch the white-label tenant. Stories live next to components (`*.stories.ts`).
 - `tests/e2e/storybook.spec.ts` runs axe against every story in every tenant theme, so a token change that breaks contrast fails before it reaches a page.
 - `npm run budget` builds and fails if gzipped client JS exceeds `JS_BUDGET_KB` (default 120). It measures bundle size only; it is not a Lighthouse or Core Web Vitals check.
-- `.github/workflows/ci.yml` runs `npm run check` (typecheck, unit, E2E incl. Storybook a11y, budget). It runs green on GitHub.
+- `npm run lighthouse` runs Lighthouse CI against the production build, logged in, for four routes (3 runs each, median asserted): performance >= 90, accessibility = 100, best practices >= 90, LCP <= 2.5 s, CLS <= 0.1, TBT <= 300 ms, on Lighthouse's default mobile emulation with simulated throttling. These are lab numbers on a demo app, not field data. It caught a real regression class here: with no compression, LCP was ~2.55 s on the dispute page (fixed with `compressPublicAssets`, now ~1.8 s).
+- `.github/workflows/ci.yml` runs `npm run check` (typecheck, unit, E2E incl. Storybook a11y, budget) and then Lighthouse CI. It runs green on GitHub.
 
 ## Roadmap
 
-1. Real-user-style performance checks (Lighthouse CI) on top of the bundle budget.
-2. Move login/logout into Nuxt (second migration of the session owner), with CSRF token and rate limiting.
-3. Optional: replace the Node stand-in with real PHP in Docker.
+1. Move login/logout into Nuxt (second migration of the session owner), with CSRF token and rate limiting.
+2. Optional: replace the Node stand-in with real PHP in Docker.

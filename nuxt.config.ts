@@ -23,5 +23,10 @@ export default defineNuxtConfig({
     '/logout': { proxy: { to: `${LEGACY_ORIGIN}/logout`, fetchOptions: { redirect: 'manual' } } },
   },
 
+  // Precompress JS/CSS (gzip + brotli) at build time. Lighthouse flagged ~600 ms of
+  // "uses-text-compression" on throttled mobile before this; behind a real CDN/proxy
+  // this is usually done there instead.
+  nitro: { compressPublicAssets: true },
+
   typescript: { strict: true },
 })

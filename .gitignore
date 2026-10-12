@@ -11,3 +11,4 @@ playwright-report
 .env
 storybook-static
 tests/.auth
+.lighthouseci
