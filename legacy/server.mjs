@@ -4,7 +4,8 @@
 // markup: it is the thing being migrated.
 import { createServer } from 'node:http'
 import { clearCookie, COOKIE, createAuth, parseCookies, safeNext, sessionCookie } from './auth.mjs'
-import { sessions, stations } from './data.mjs'
+import { invoices, resetInvoices, sessions, stations } from './data.mjs'
+import { createDispute } from './invoices.mjs'
 
 const PORT = Number(process.env.LEGACY_PORT ?? 8080)
 const SECURE = process.env.COOKIE_SECURE === '1'
@@ -33,10 +34,8 @@ const loginPage = (next, error) =>
 </form>`,
   )
 
-const pages = {
-  // /portal/sessions was migrated to Nuxt; its HTML page is decommissioned here.
-  '/portal/invoices': () => layout('Invoices (legacy)', '<p>No invoices in the demo data.</p>'),
-}
+// No legacy HTML pages left: stations, sessions and invoices are all served by Nuxt.
+const pages = {}
 
 const json = (res, status, data) => {
   res.writeHead(status, { 'content-type': 'application/json' })
@@ -50,6 +49,21 @@ const redirect = (res, location, headers = {}) => {
   res.writeHead(302, { location, ...headers })
   res.end()
 }
+
+const MAX_BODY = 10_000
+const readBody = (req) =>
+  new Promise((resolve, reject) => {
+    let body = ''
+    req.on('data', (chunk) => {
+      body += chunk
+      if (body.length > MAX_BODY) {
+        reject(new Error('body too large'))
+        req.destroy()
+      }
+    })
+    req.on('end', () => resolve(body))
+    req.on('error', reject)
+  })
 
 const readForm = (req) =>
   new Promise((resolve, reject) => {
@@ -89,12 +103,28 @@ createServer(async (req, res) => {
     return redirect(res, '/login', { 'set-cookie': clearCookie({ secure: SECURE }) })
   }
 
+  // Test hook, only when explicitly enabled (Playwright config). Not part of the API.
+  if (path === '/__test/reset' && req.method === 'POST' && process.env.LEGACY_ALLOW_RESET === '1') {
+    resetInvoices()
+    return json(res, 200, { ok: true })
+  }
+
   // Everything below requires a session.
   if (path.startsWith('/api/')) {
     if (!user) return json(res, 401, { error: 'unauthenticated' })
     if (path === '/api/v1/me') return json(res, 200, { data: user })
     if (path === '/api/v1/stations') return json(res, 200, { data: stations })
     if (path === '/api/v1/sessions') return json(res, 200, { data: sessions })
+    if (path === '/api/v1/invoices') return json(res, 200, { data: invoices })
+    const dispute = path.match(/^\/api\/v1\/invoices\/([A-Za-z0-9-]+)\/disputes$/)
+    if (dispute && req.method === 'POST') {
+      // JSON only: a cross-site HTML form cannot send this content type without a CORS preflight.
+      if (!String(req.headers['content-type']).startsWith('application/json')) return json(res, 415, { error: 'json_required' })
+      const input = await readBody(req).then(JSON.parse).catch(() => undefined)
+      if (input === undefined) return json(res, 400, { error: 'bad_json' })
+      const { status, body } = createDispute(dispute[1], input)
+      return json(res, status, body)
+    }
     return json(res, 404, { error: 'not_found' })
   }
 

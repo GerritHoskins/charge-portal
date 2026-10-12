@@ -24,9 +24,14 @@ test.describe('auth hand-over between legacy and Nuxt (logged-out browser)', () 
   })
 
   test('BFF endpoints answer 401 without a session', async ({ request }) => {
-    for (const path of ['/api/stations', '/api/sessions', '/api/me']) {
+    for (const path of ['/api/stations', '/api/sessions', '/api/invoices', '/api/me']) {
       expect((await request.get(path)).status(), path).toBe(401)
     }
+  })
+
+  test('a logged-out client cannot submit a dispute (write endpoints are guarded too)', async ({ request }) => {
+    const res = await request.post('/api/invoices/inv-0042/disputes', { data: { reason: 'other', message: 'Ohne Anmeldung.' } })
+    expect(res.status()).toBe(401)
   })
 
   test('wrong password shows an error and keeps the user logged out', async ({ page }) => {
@@ -37,12 +42,12 @@ test.describe('auth hand-over between legacy and Nuxt (logged-out browser)', () 
     await expect(page).toHaveURL(/\/login/)
   })
 
-  test('one login covers migrated and legacy pages (shared cookie)', async ({ page }) => {
+  test('the legacy-issued cookie is accepted by every migrated page (shared cookie)', async ({ page }) => {
     await page.goto('/login?next=/portal/stations')
     await logIn(page)
     await expect(page.getByRole('heading', { level: 1, name: 'Stationen' })).toBeVisible()
-    await page.goto('/portal/invoices') // legacy-rendered, no second login
-    await expect(page.getByRole('heading', { name: 'Invoices (legacy)' })).toBeVisible()
+    await page.getByRole('link', { name: 'Rechnungen' }).click() // no second login
+    await expect(page.getByRole('heading', { level: 1, name: 'Rechnungen' })).toBeVisible()
   })
 
   test('the session cookie is HttpOnly and SameSite=Lax', async ({ page, context }) => {

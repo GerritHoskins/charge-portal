@@ -21,14 +21,14 @@ Open <http://localhost:3000/portal/stations> and log in with the synthetic demo 
 |---|---|---|
 | `/portal/stations` | Nuxt page (`app/pages/portal/stations`) | migrated |
 | `/portal/sessions` | Nuxt page (`app/pages/portal/sessions`) | migrated (see git history: proxy rule removed, legacy HTML page decommissioned) |
-| `/portal/invoices` | legacy, proxied via `routeRules` | not migrated |
+| `/portal/invoices`, `/portal/invoices/:id/dispute` | Nuxt pages + BFF `POST` (`server/api/invoices/`) | migrated: list plus an accessible dispute form (ADR 0003) |
 | `/login`, `/logout` | legacy (session owner), proxied | not migrated (ADR 0002) |
 
-Decision records: [0001 strangler migration](docs/adr/0001-strangler-migration.md), [0002 auth hand-over](docs/adr/0002-auth-hand-over.md).
+Decision records: [0001 strangler migration](docs/adr/0001-strangler-migration.md), [0002 auth hand-over](docs/adr/0002-auth-hand-over.md), [0003 accessible dispute form](docs/adr/0003-accessible-dispute-form.md).
 
 Gotcha: Playwright reuses servers already listening on :3000/:8080/:6006. A stale legacy process serving old endpoints makes tests fail confusingly; stop it first.
 
-Honest limits: the "legacy monolith" is a ~50-line Node server rendering deliberately dated HTML, standing in for a PHP application. Auth is modelled minimally (in-memory sessions, one demo account, no CSRF token, no rate limiting; see ADR 0002). Real data and a shared layout between legacy and Nuxt pages are not modelled.
+Honest limits: the "legacy monolith" is a ~50-line Node server rendering deliberately dated HTML, standing in for a PHP application. Auth is modelled minimally (in-memory sessions, one demo account, no CSRF token, no rate limiting; see ADR 0002). Invoices are synthetic and the dispute is only recorded in memory (no payment, no PDF). Real data and a shared layout between legacy and Nuxt pages are not modelled.
 
 ## Mapping to the role
 
@@ -49,12 +49,10 @@ Honest limits: the "legacy monolith" is a ~50-line Node server rendering deliber
 - `npm run storybook` starts Storybook (Vue 3 + Vite) with a toolbar to switch the white-label tenant. Stories live next to components (`*.stories.ts`).
 - `tests/e2e/storybook.spec.ts` runs axe against every story in every tenant theme, so a token change that breaks contrast fails before it reaches a page.
 - `npm run budget` builds and fails if gzipped client JS exceeds `JS_BUDGET_KB` (default 120). It measures bundle size only; it is not a Lighthouse or Core Web Vitals check.
-- `.github/workflows/ci.yml` runs `npm run check` (typecheck, unit, E2E incl. Storybook a11y, budget). It has not been run on GitHub yet.
+- `.github/workflows/ci.yml` runs `npm run check` (typecheck, unit, E2E incl. Storybook a11y, budget). It runs green on GitHub.
 
 ## Roadmap
 
-1. Migrate `/portal/invoices` (billing-affecting, so last and with the most tests).
-2. Real-user-style performance checks (Lighthouse CI) on top of the bundle budget.
-3. A Direct-Payment/receipt style flow with accessible form validation.
-4. Move login/logout into Nuxt (second migration of the session owner), with CSRF token and rate limiting.
-5. Optional: replace the Node stand-in with real PHP in Docker.
+1. Real-user-style performance checks (Lighthouse CI) on top of the bundle budget.
+2. Move login/logout into Nuxt (second migration of the session owner), with CSRF token and rate limiting.
+3. Optional: replace the Node stand-in with real PHP in Docker.

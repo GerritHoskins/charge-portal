@@ -12,3 +12,17 @@ export const sessions = [
   { id: 'se-1000', stationId: 'st-001', startedAt: '2026-10-09T16:40:00Z', energyKwh: 42.1, status: 'completed' },
   { id: 'se-0999', stationId: 'st-004', startedAt: '2026-10-09T09:05:00Z', energyKwh: 63.8, status: 'completed' },
 ]
+
+const seedInvoices = () => [
+  { id: 'inv-0042', number: 'RE-2026-0042', issuedAt: '2026-10-01T00:00:00Z', amountCents: 4210, currency: 'EUR', status: 'open' },
+  { id: 'inv-0041', number: 'RE-2026-0041', issuedAt: '2026-09-01T00:00:00Z', amountCents: 12875, currency: 'EUR', status: 'paid' },
+  { id: 'inv-0040', number: 'RE-2026-0040', issuedAt: '2026-08-01T00:00:00Z', amountCents: 9980, currency: 'EUR', status: 'open' },
+]
+
+// Mutable on purpose: disputing an invoice changes its status.
+export let invoices = seedInvoices()
+export const disputes = []
+export const resetInvoices = () => {
+  invoices = seedInvoices()
+  disputes.length = 0
+}

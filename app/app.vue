@@ -19,8 +19,7 @@ useHead({
       <ul>
         <li><NuxtLink to="/portal/stations">Stationen</NuxtLink></li>
         <li><NuxtLink to="/portal/sessions">Ladevorgänge</NuxtLink></li>
-        <!-- Not yet migrated: full page load served by the legacy backend. -->
-        <li><a href="/portal/invoices">Rechnungen</a></li>
+        <li><NuxtLink to="/portal/invoices">Rechnungen</NuxtLink></li>
       </ul>
       <!-- Plain POST form: logout is handled by the legacy session owner. -->
       <form v-if="me" class="session" method="post" action="/logout">

@@ -10,7 +10,7 @@ export default defineConfig({
     { name: 'setup', testMatch: /auth\.setup\.ts/ },
     {
       name: 'app',
-      testMatch: /portal\.spec\.ts/,
+      testMatch: /(portal|invoices)\.spec\.ts/,
       dependencies: ['setup'],
       use: { storageState: AUTH_STATE },
     },
@@ -20,7 +20,7 @@ export default defineConfig({
   ],
   // Both processes are needed: the legacy stand-in and the Nuxt app in front of it.
   webServer: [
-    { command: 'npm run legacy', url: 'http://localhost:8080/login', reuseExistingServer: true },
+    { command: 'npm run legacy', url: 'http://localhost:8080/login', reuseExistingServer: true, env: { LEGACY_ALLOW_RESET: '1' } },
     { command: 'npx nuxt dev --port 3000', url: 'http://localhost:3000/login', reuseExistingServer: true, timeout: 120_000 },
     // Static Storybook build, served for the design-system a11y tests.
     { command: 'npm run build-storybook && npx vite preview --outDir storybook-static --port 6006 --strictPort', url: 'http://localhost:6006/iframe.html', reuseExistingServer: true, timeout: 180_000, env: { STORYBOOK_DISABLE_TELEMETRY: '1' } },

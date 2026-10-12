@@ -76,12 +76,3 @@ test.describe('migrated route: /portal/sessions (Nuxt)', () => {
     expect(await page.evaluate(() => (window as unknown as { __spa?: boolean }).__spa)).toBe(true)
   })
 })
-
-test.describe('not yet migrated: /portal/invoices (legacy via proxy)', () => {
-  test('is still served by the legacy backend behind the same origin', async ({ page }) => {
-    await page.goto('/portal/invoices')
-    await expect(page.getByRole('heading', { name: 'Invoices (legacy)' })).toBeVisible()
-    expect(new URL(page.url()).port).toBe('3000')
-    expect(await page.content()).toContain('legacy-rendered')
-  })
-})
