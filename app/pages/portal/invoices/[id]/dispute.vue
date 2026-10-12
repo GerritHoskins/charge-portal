@@ -1,10 +1,6 @@
 <script setup lang="ts">
-import {
-  DISPUTE_MESSAGE_MAX,
-  disputeInputSchema,
-  type DisputeReason,
-  type Invoice,
-} from '#shared/contracts/invoice'
+import { DISPUTE_MESSAGE_MAX, type DisputeReason, validateDispute } from '#shared/contracts/dispute-rules'
+import type { Invoice } from '#shared/contracts/invoice'
 
 useHead({ title: 'Rechnung beanstanden' })
 
@@ -48,17 +44,15 @@ const focusSummary = async () => {
 
 const submit = async () => {
   failed.value = false
-  const parsed = disputeInputSchema.safeParse({ reason: reason.value, message: message.value })
-  if (!parsed.success) {
-    errors.value = Object.fromEntries(parsed.error.issues.map((i) => [String(i.path[0]), i.message]))
-    // zod's enum message is English; the reason field gets a German one.
-    if (errors.value.reason) errors.value.reason = 'Bitte wählen Sie einen Grund.'
+  const checked = validateDispute({ reason: reason.value, message: message.value })
+  if (!checked.value) {
+    errors.value = checked.fields
     return focusSummary()
   }
   errors.value = {}
   submitting.value = true
   try {
-    await $fetch(`/api/invoices/${id}/disputes`, { method: 'POST', body: parsed.data })
+    await $fetch(`/api/invoices/${id}/disputes`, { method: 'POST', body: checked.value })
     done.value = true
     await nextTick()
     doneEl.value?.focus()

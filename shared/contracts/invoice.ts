@@ -1,4 +1,7 @@
 import { z } from 'zod'
+import { DISPUTE_MESSAGES, DISPUTE_MESSAGE_MAX, DISPUTE_MESSAGE_MIN, DISPUTE_REASONS } from './dispute-rules'
+
+export { DISPUTE_MESSAGE_MAX, DISPUTE_MESSAGE_MIN }
 
 export const invoiceStatusSchema = z.enum(['open', 'paid', 'disputed'])
 
@@ -13,10 +16,7 @@ export const invoiceSchema = z.object({
 
 export const invoiceListResponseSchema = z.object({ data: z.array(invoiceSchema) })
 
-export const disputeReasonSchema = z.enum(['wrong-amount', 'not-my-session', 'duplicate', 'other'])
-
-export const DISPUTE_MESSAGE_MIN = 10
-export const DISPUTE_MESSAGE_MAX = 500
+export const disputeReasonSchema = z.enum(DISPUTE_REASONS, { error: DISPUTE_MESSAGES.reason })
 
 // Input rules live in one place and run in the browser (instant feedback), the
 // BFF and the legacy backend (which stays the authority).
@@ -25,8 +25,8 @@ export const disputeInputSchema = z.object({
   message: z
     .string()
     .trim()
-    .min(DISPUTE_MESSAGE_MIN, `Bitte beschreiben Sie das Problem mit mindestens ${DISPUTE_MESSAGE_MIN} Zeichen.`)
-    .max(DISPUTE_MESSAGE_MAX, `Bitte höchstens ${DISPUTE_MESSAGE_MAX} Zeichen.`),
+    .min(DISPUTE_MESSAGE_MIN, DISPUTE_MESSAGES.tooShort)
+    .max(DISPUTE_MESSAGE_MAX, DISPUTE_MESSAGES.tooLong),
 })
 
 export const disputeResponseSchema = z.object({
@@ -41,6 +41,6 @@ export const validationErrorSchema = z.object({
 
 export type Invoice = z.infer<typeof invoiceSchema>
 export type InvoiceStatus = z.infer<typeof invoiceStatusSchema>
-export type DisputeReason = z.infer<typeof disputeReasonSchema>
+export type { DisputeReason } from './dispute-rules'
 export type DisputeInput = z.infer<typeof disputeInputSchema>
 export type DisputeResponse = z.infer<typeof disputeResponseSchema>
