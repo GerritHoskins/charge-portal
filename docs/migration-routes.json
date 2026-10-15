@@ -1,0 +1,13 @@
+{
+  "$comment": "Route inventory of the strangler migration. `status`: migrated (Nuxt owns it), legacy (still to migrate), stays-legacy (deliberately not migrated, e.g. the JSON API the BFF consumes). `files` are the Nuxt files that implement a migrated route; `npm run migration:status -- --check` fails when one is missing or when a page under app/pages is not listed here.",
+  "routes": [
+    { "path": "/portal/stations", "status": "migrated", "adr": "0001", "files": ["app/pages/portal/stations/index.vue"] },
+    { "path": "/portal/sessions", "status": "migrated", "adr": "0001", "files": ["app/pages/portal/sessions/index.vue"] },
+    { "path": "/portal/invoices", "status": "migrated", "adr": "0003", "files": ["app/pages/portal/invoices/index.vue"] },
+    { "path": "/portal/invoices/:id/dispute", "status": "migrated", "adr": "0003", "files": ["app/pages/portal/invoices/[id]/dispute.vue", "server/api/invoices/[id]/disputes.post.ts"] },
+    { "path": "/login", "status": "migrated", "adr": "0004", "files": ["app/pages/login.vue", "server/routes/login.post.ts"] },
+    { "path": "/logout", "status": "migrated", "adr": "0004", "files": ["server/routes/logout.post.ts", "server/routes/logout.get.ts"] },
+    { "path": "/", "status": "migrated", "adr": "0001", "files": ["app/pages/index.vue"] },
+    { "path": "/api/v1/*", "status": "stays-legacy", "adr": "0002", "note": "Session owner and system of record. The BFF consumes it through shared/contracts." }
+  ]
+}

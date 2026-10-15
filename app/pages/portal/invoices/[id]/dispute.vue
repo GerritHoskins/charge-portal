@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { DISPUTE_MESSAGE_MAX, type DisputeReason, validateDispute } from '#shared/contracts/dispute-rules'
+import { DISPUTE_MESSAGE_MAX, DISPUTE_REASONS, type DisputeReason, validateDispute } from '#shared/contracts/dispute-rules'
 import type { Invoice } from '#shared/contracts/invoice'
 
-useHead({ title: 'Rechnung beanstanden' })
+const { t } = useI18n()
+useHead({ title: () => t('dispute.pageTitle') })
 
 const route = useRoute()
 const id = String(route.params.id)
@@ -10,15 +11,8 @@ const { data: invoices } = await useFetch<Invoice[]>('/api/invoices', { default:
 const invoice = computed(() => invoices.value.find((i) => i.id === id))
 
 if (!invoice.value || invoice.value.status !== 'open') {
-  throw createError({ statusCode: 404, statusMessage: 'Rechnung nicht gefunden oder nicht beanstandbar', fatal: true })
+  throw createError({ statusCode: 404, statusMessage: t('dispute.notFound'), fatal: true })
 }
-
-const reasons: { value: DisputeReason; label: string }[] = [
-  { value: 'wrong-amount', label: 'Der Betrag ist falsch' },
-  { value: 'not-my-session', label: 'Ein Ladevorgang stammt nicht von mir' },
-  { value: 'duplicate', label: 'Die Rechnung wurde doppelt gestellt' },
-  { value: 'other', label: 'Anderer Grund' },
-]
 
 const reason = ref<DisputeReason | ''>('')
 const message = ref('')
@@ -27,7 +21,7 @@ const submitting = ref(false)
 const failed = ref(false)
 const done = ref(false)
 
-const summaryEl = useTemplateRef<HTMLElement>('summary')
+const summaryEl = useTemplateRef<{ focus: () => void }>('summary')
 const doneEl = useTemplateRef<HTMLElement>('doneHeading')
 
 // Field order drives the summary order. The first radio carries the group's anchor id.
@@ -69,54 +63,52 @@ const submit = async () => {
 
 <template>
   <section v-if="done" aria-labelledby="done-heading">
-    <h1 id="done-heading" ref="doneHeading" tabindex="-1">Beanstandung eingegangen</h1>
-    <p role="status">Wir prüfen Rechnung {{ invoice?.number }} und melden uns bei Ihnen.</p>
-    <p><NuxtLink to="/portal/invoices">Zurück zu den Rechnungen</NuxtLink></p>
+    <h1 id="done-heading" ref="doneHeading" tabindex="-1">{{ t('dispute.doneTitle') }}</h1>
+    <p role="status">{{ t('dispute.doneText', { number: invoice?.number }) }}</p>
+    <p><NuxtLink to="/portal/invoices">{{ t('dispute.back') }}</NuxtLink></p>
   </section>
 
   <section v-else aria-labelledby="dispute-heading">
-    <h1 id="dispute-heading">Rechnung {{ invoice?.number }} beanstanden</h1>
+    <h1 id="dispute-heading">{{ t('dispute.heading', { number: invoice?.number }) }}</h1>
 
     <!-- Error summary: focused after a failed submit, links to each invalid field. -->
-    <div v-if="errorList.length || failed" ref="summary" class="error-summary" role="alert" tabindex="-1">
-      <p v-if="failed">Die Beanstandung konnte nicht gesendet werden. Bitte versuchen Sie es erneut.</p>
+    <DsAlert v-if="errorList.length || failed" ref="summary">
+      <p v-if="failed">{{ t('dispute.failed') }}</p>
       <template v-else>
-        <h2>Bitte korrigieren Sie {{ errorList.length === 1 ? 'ein Feld' : `${errorList.length} Felder` }}</h2>
+        <h2>{{ errorList.length === 1 ? t('dispute.fixOne') : t('dispute.fixMany', { n: errorList.length }) }}</h2>
         <ul>
           <li v-for="key in errorList" :key="key">
             <a :href="`#${fieldIds[key]}`" @click.prevent="focusField(key)">{{ errors[key] }}</a>
           </li>
         </ul>
       </template>
-    </div>
+    </DsAlert>
 
     <!-- novalidate: validation is ours, so messages are consistent and accessible. -->
     <form novalidate @submit.prevent="submit">
       <fieldset :aria-describedby="errors.reason ? 'reason-error' : undefined">
-        <legend>Grund der Beanstandung <span class="req">(Pflichtfeld)</span></legend>
-        <p v-if="errors.reason" id="reason-error" class="field-error"><span class="sr-only">Fehler: </span>{{ errors.reason }}</p>
-        <div v-for="(r, i) in reasons" :key="r.value" class="radio">
-          <input :id="i === 0 ? 'reason-first' : `reason-${r.value}`" v-model="reason" type="radio" name="reason" :value="r.value" />
-          <label :for="i === 0 ? 'reason-first' : `reason-${r.value}`">{{ r.label }}</label>
+        <legend>{{ t('dispute.reasonLegend') }} <span class="req">{{ t('common.required') }}</span></legend>
+        <p v-if="errors.reason" id="reason-error" class="field-error"><span class="sr-only">{{ t('common.errorPrefix') }}</span>{{ errors.reason }}</p>
+        <div v-for="(r, i) in DISPUTE_REASONS" :key="r" class="radio">
+          <input :id="i === 0 ? 'reason-first' : `reason-${r}`" v-model="reason" type="radio" name="reason" :value="r" />
+          <label :for="i === 0 ? 'reason-first' : `reason-${r}`">{{ t(`dispute.reasons.${r}`) }}</label>
         </div>
       </fieldset>
 
-      <div class="field">
-        <label for="message">Beschreibung <span class="req">(Pflichtfeld)</span></label>
-        <p id="message-hint" class="hint">Mindestens 10, höchstens {{ DISPUTE_MESSAGE_MAX }} Zeichen. Bitte keine Zahlungsdaten angeben.</p>
-        <p v-if="errors.message" id="message-error" class="field-error"><span class="sr-only">Fehler: </span>{{ errors.message }}</p>
-        <textarea
-          id="message"
-          v-model="message"
-          rows="5"
-          required
-          :aria-invalid="errors.message ? 'true' : undefined"
-          :aria-describedby="errors.message ? 'message-hint message-error' : 'message-hint'"
-        />
-      </div>
+      <DsTextField
+        id="message"
+        v-model="message"
+        multiline
+        required
+        :label="t('dispute.message')"
+        :required-text="t('common.required')"
+        :hint="t('dispute.hint', { max: DISPUTE_MESSAGE_MAX })"
+        :error="errors.message"
+        :error-prefix="t('common.errorPrefix')"
+      />
 
-      <button type="submit" :disabled="submitting">{{ submitting ? 'Wird gesendet …' : 'Beanstandung senden' }}</button>
-      <NuxtLink class="cancel" to="/portal/invoices">Abbrechen</NuxtLink>
+      <DsButton type="submit" :disabled="submitting">{{ submitting ? t('dispute.submitting') : t('dispute.submit') }}</DsButton>
+      <NuxtLink class="cancel" to="/portal/invoices">{{ t('dispute.cancel') }}</NuxtLink>
     </form>
   </section>
 </template>
@@ -126,18 +118,8 @@ form { max-width: 40rem; }
 fieldset { border: 1px solid var(--color-border); border-radius: var(--radius); padding: var(--space-3); margin: 0 0 var(--space-4); }
 legend { font-weight: 600; padding: 0 var(--space-1); }
 .req { font-weight: 400; color: var(--color-text-muted); }
-.radio { display: flex; gap: var(--space-2); align-items: center; padding: var(--space-1) 0; }
+.radio { display: flex; gap: var(--space-2); align-items: center; min-height: var(--control-min-height); }
 .radio input { width: 1.25rem; height: 1.25rem; }
-.field { margin-bottom: var(--space-4); }
-.field label { display: block; font-weight: 600; }
-.hint { margin: 0 0 var(--space-1); color: var(--color-text-muted); }
-textarea { width: 100%; font: inherit; padding: var(--space-2); border: 2px solid var(--color-border); border-radius: var(--radius); }
-textarea[aria-invalid='true'] { border-color: var(--color-error); }
 .field-error { margin: 0 0 var(--space-1); color: var(--color-error); font-weight: 600; }
-.error-summary { border: 2px solid var(--color-error); border-radius: var(--radius); padding: var(--space-3); margin-bottom: var(--space-4); max-width: 40rem; }
-.error-summary h2 { margin: 0 0 var(--space-2); font-size: 1.125rem; color: var(--color-error); }
-.error-summary ul { margin: 0; padding-left: var(--space-4); }
-button { font: inherit; padding: var(--space-2) var(--space-4); background: var(--color-brand); color: var(--color-brand-contrast); border: 0; border-radius: var(--radius); cursor: pointer; }
-button:disabled { opacity: 0.7; cursor: progress; }
 .cancel { margin-left: var(--space-3); }
 </style>

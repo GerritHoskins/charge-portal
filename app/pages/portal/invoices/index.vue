@@ -1,54 +1,42 @@
 <script setup lang="ts">
-import type { Invoice, InvoiceStatus } from '#shared/contracts/invoice'
+import type { Invoice } from '#shared/contracts/invoice'
 
-useHead({ title: 'Rechnungen' })
+const { t } = useI18n()
+const fmt = useFormatters()
+useHead({ title: () => t('invoices.title') })
 
 const { data: invoices, error } = await useFetch<Invoice[]>('/api/invoices', { default: () => [] })
-
-const dateFormat = new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium', timeZone: 'Europe/Berlin' })
-const moneyFormat = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' })
-
-const statusLabels: Record<InvoiceStatus, string> = { open: 'Offen', paid: 'Bezahlt', disputed: 'In Klärung' }
 </script>
 
 <template>
   <section aria-labelledby="invoices-heading">
-    <h1 id="invoices-heading">Rechnungen</h1>
+    <h1 id="invoices-heading">{{ t('invoices.title') }}</h1>
 
-    <p v-if="error" role="alert">Die Rechnungen konnten nicht geladen werden.</p>
+    <DsAlert v-if="error"><p>{{ t('invoices.loadError') }}</p></DsAlert>
 
-    <table v-else-if="invoices.length">
-      <caption class="sr-only">Rechnungen mit Nummer, Datum, Betrag und Status</caption>
-      <thead>
+    <DsDataTable v-else-if="invoices.length" :caption="t('invoices.caption')">
+      <template #head>
         <tr>
-          <th scope="col">Rechnung</th>
-          <th scope="col">Datum</th>
-          <th scope="col">Betrag</th>
-          <th scope="col">Status</th>
-          <th scope="col">Aktion</th>
+          <th scope="col">{{ t('invoices.col.number') }}</th>
+          <th scope="col">{{ t('invoices.col.date') }}</th>
+          <th scope="col">{{ t('invoices.col.amount') }}</th>
+          <th scope="col">{{ t('invoices.col.status') }}</th>
+          <th scope="col">{{ t('invoices.col.action') }}</th>
         </tr>
-      </thead>
-      <tbody>
-        <tr v-for="inv in invoices" :key="inv.id">
-          <th scope="row">{{ inv.number }}</th>
-          <td><time :datetime="inv.issuedAt">{{ dateFormat.format(new Date(inv.issuedAt)) }}</time></td>
-          <td>{{ moneyFormat.format(inv.amountCents / 100) }}</td>
-          <td>{{ statusLabels[inv.status] }}</td>
-          <td>
-            <NuxtLink v-if="inv.status === 'open'" :to="`/portal/invoices/${inv.id}/dispute`">
-              Beanstanden<span class="sr-only"> Rechnung {{ inv.number }}</span>
-            </NuxtLink>
-            <span v-else class="sr-only">Keine Aktion verfügbar</span>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-    <p v-else>Keine Rechnungen vorhanden.</p>
+      </template>
+      <tr v-for="inv in invoices" :key="inv.id">
+        <th scope="row">{{ inv.number }}</th>
+        <td><time :datetime="inv.issuedAt">{{ fmt.date(inv.issuedAt) }}</time></td>
+        <td>{{ fmt.money(inv.amountCents) }}</td>
+        <td>{{ t(`invoices.status.${inv.status}`) }}</td>
+        <td>
+          <NuxtLink v-if="inv.status === 'open'" :to="`/portal/invoices/${inv.id}/dispute`">
+            {{ t('invoices.dispute') }}<span class="sr-only">{{ t('invoices.disputeFor', { number: inv.number }) }}</span>
+          </NuxtLink>
+          <span v-else class="sr-only">{{ t('invoices.noAction') }}</span>
+        </td>
+      </tr>
+    </DsDataTable>
+    <p v-else>{{ t('invoices.empty') }}</p>
   </section>
 </template>
-
-<style scoped>
-table { width: 100%; border-collapse: collapse; }
-th, td { text-align: left; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--color-border); }
-thead th { background: var(--color-surface); }
-</style>

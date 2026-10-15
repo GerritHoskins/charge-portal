@@ -1,6 +1,6 @@
 # ADR 0003: Invoices migration and the accessible dispute form
 
-**Status:** accepted (demo)
+**Status:** accepted (demo). The form now uses the design-system `DsTextField`/`DsAlert`/`DsButton` with unchanged ids and ARIA wiring, and strings come from the i18n catalogues (ADR 0006).
 
 ## Context
 
@@ -39,8 +39,14 @@ so the proxy table shrinks to login/logout.
 
 ## Consequences
 
-- No legacy HTML pages remain; the stand-in only owns sessions and the JSON API.
+- Legacy HTML pages were removed here, and later reinstated as rollback fallbacks (ADR 0005); the stand-in owns sessions and the JSON API.
 - The form works only with JavaScript (client-side submit). Progressive enhancement
   (a native `POST` fallback) is not implemented.
 - The audit trail, idempotency keys and double-submit protection beyond a disabled
   button are not modelled; legacy's 409 prevents a second dispute on the same invoice.
+
+## User and business value
+
+Customers can dispute an invoice with a keyboard or a screen reader and get precise, announced feedback; the operator
+receives structured disputes instead of support emails. A form that silently fails or cannot be used is lost trust on
+the most sensitive page (money).

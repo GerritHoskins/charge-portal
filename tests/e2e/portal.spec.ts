@@ -11,9 +11,9 @@ test.describe('migrated route: /portal/stations (Nuxt)', () => {
   test('filters by status and announces the result', async ({ page }) => {
     await page.goto('/portal/stations')
     await expect(page.locator('html')).toHaveAttribute('data-hydrated', '')
-    await page.getByLabel('Status').selectOption('faulted')
+    await page.getByLabel('Status', { exact: true }).selectOption('faulted')
     await expect(page.getByRole('row')).toHaveCount(2)
-    await expect(page.getByRole('status')).toHaveText('1 Stationen angezeigt')
+    await expect(page.locator('main').getByRole('status')).toHaveText('1 Stationen angezeigt')
   })
 
   test('has no WCAG 2.2 AA violations detectable by axe', async ({ page }) => {
