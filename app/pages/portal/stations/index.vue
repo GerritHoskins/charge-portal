@@ -59,5 +59,5 @@ const options = computed(() => [
 
 <style scoped>
 .filter { display: flex; gap: var(--space-2); align-items: center; margin-bottom: var(--space-3); }
-select { padding: var(--space-1) var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius); }
+select { min-height: var(--control-min-height); padding: var(--space-1) var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius); }
 </style>

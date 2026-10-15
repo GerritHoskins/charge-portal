@@ -118,7 +118,7 @@ form { max-width: 40rem; }
 fieldset { border: 1px solid var(--color-border); border-radius: var(--radius); padding: var(--space-3); margin: 0 0 var(--space-4); }
 legend { font-weight: 600; padding: 0 var(--space-1); }
 .req { font-weight: 400; color: var(--color-text-muted); }
-.radio { display: flex; gap: var(--space-2); align-items: center; padding: var(--space-1) 0; }
+.radio { display: flex; gap: var(--space-2); align-items: center; min-height: var(--control-min-height); }
 .radio input { width: 1.25rem; height: 1.25rem; }
 .field-error { margin: 0 0 var(--space-1); color: var(--color-error); font-weight: 600; }
 .cancel { margin-left: var(--space-3); }

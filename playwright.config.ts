@@ -17,7 +17,7 @@ export default defineConfig({
     { name: 'setup', testMatch: /auth\.setup\.ts/ },
     {
       name: 'app',
-      testMatch: /(portal|invoices)\.spec\.ts/,
+      testMatch: /(portal|invoices|mobile)\.spec\.ts/,
       dependencies: ['setup'],
       use: { storageState: AUTH_STATE },
     },

@@ -30,7 +30,7 @@ const describedBy = computed(() => [hintId.value, errorId.value].filter(Boolean)
 
 <template>
   <div class="ds-field">
-    <label :for="id">{{ label }}<template v-if="requiredText"> <span class="ds-field__req">{{ requiredText }}</span></template></label>
+    <label :for="id">{{ label }}{{ requiredText ? ' ' : '' }}<span v-if="requiredText" class="ds-field__req">{{ requiredText }}</span></label>
     <p v-if="hint" :id="hintId" class="ds-field__hint">{{ hint }}</p>
     <p v-if="error" :id="errorId" class="ds-field__error"><span class="sr-only">{{ errorPrefix }}</span>{{ error }}</p>
     <textarea
@@ -77,7 +77,8 @@ label {
 input,
 textarea {
   width: 100%;
-  font: inherit;
+  min-height: var(--control-min-height);
+  font: inherit; /* 16px: iOS does not zoom into the field on focus */
   padding: var(--space-2);
   border: 2px solid var(--color-border);
   border-radius: var(--radius);

@@ -41,6 +41,7 @@ Gotcha: Playwright reuses servers already listening on its ports. A stale legacy
 - Accessibility: automated checks only (axe, contrast unit tests, keyboard tests). **No manual screen-reader pass has been done**; the checklist in `docs/accessibility-checks.md` is the plan, with every row marked "not performed".
 - i18n covers all pages; validation messages from legacy stay German (ADR 0006).
 - Rollout has no metrics dashboard or automatic rollback, and legacy pages do not share the Nuxt header (ADR 0005).
+- Mobile: responsive with plain CSS and tested at 320/375 px in headless Chromium only; no real-device run. Wide tables scroll horizontally inside their region instead of reflowing into cards, so on a phone some columns need a sideways swipe (there is no scroll hint). The posting names no UI library, so none was added.
 - Design tokens are generated from `tokens/tokens.json`; a Figma/Tokens Studio sync into that file is not implemented.
 - No visual-regression testing (screenshot baselines differ per OS and would be flaky between Windows and the Linux CI).
 - Invoices are synthetic and the dispute is only recorded in memory (no payment, no PDF).

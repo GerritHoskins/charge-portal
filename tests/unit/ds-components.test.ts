@@ -68,7 +68,7 @@ describe('DsTextField', () => {
   })
 
   it('marks required fields with text, not colour', () => {
-    expect(mount(DsTextField, { props: { id: 'r', label: 'R', requiredText: '(Pflichtfeld)' } }).text()).toContain('(Pflichtfeld)')
+    expect(mount(DsTextField, { props: { id: 'r', label: 'R', requiredText: '(Pflichtfeld)' } }).find('label').text()).toBe('R (Pflichtfeld)')
   })
 })
 

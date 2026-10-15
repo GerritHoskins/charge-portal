@@ -19,6 +19,7 @@ withDefaults(
 .ds-button {
   font: inherit;
   font-weight: 600;
+  min-height: var(--control-min-height); /* >= 44px touch target */
   padding: var(--space-2) var(--space-4);
   border: 2px solid var(--color-brand);
   border-radius: var(--radius);
