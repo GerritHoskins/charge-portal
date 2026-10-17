@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-12 client-side cart (WP-10/WP-11 implementation complete; aggregate-budget verification deferred to WP-13)
+Current step: WP-12 client-side cart implementation complete; verification deferred solely to WP-13's aggregate-budget replacement
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-16
-Next step: implement WP-12, then WP-13 replaces the invalid aggregate JS gate and unlocks Review for WP-10/WP-11/WP-12
+Next step: WP-13 replaces the invalid aggregate JS gate and unlocks Review for WP-10/WP-11/WP-12
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -264,6 +264,30 @@ Next step: implement WP-12, then WP-13 replaces the invalid aggregate JS gate an
   **120.9 KB gz / 120 KB**. WP-13 explicitly replaces that structurally invalid sum after WP-12 so
   all shop routes can be baselined together. No budget was weakened and no later optimization was
   pulled forward. Human acceptance is still required after the deferred full gate is green.
+
+## WP-12 — Client-side cart (2026-10-17, detached from `8c5f4b9`)
+- Status: Implementation complete; verification deferred solely to WP-13's planned replacement of
+  the aggregate JS budget. Keep out of Review until the resulting `npm run check` is green. Added
+  immutable pure cart operations (duplicate merge, quantity clamp/removal, item count, integer-cent
+  total), a shared Nuxt client cart with guarded localStorage persistence, a hydrated-only header
+  count, product-page add/announcement behavior, and an accessible `/shop/cart` table with quantity,
+  removal, total, change announcements, empty state, and the explicit no-checkout notice. SSR and
+  the first client render deliberately omit the persisted count; it appears after `onMounted` loads
+  storage so hydration remains stable.
+- Tests first: the unit suite failed on the missing `#shared/cart` module after ignored Nuxt types
+  were generated, and both cart E2E cases failed on the absent dynamic count and cart route. After
+  implementation, focused cart unit tests passed **7/7** and focused keyboard/axe E2E passed **2/2**.
+  The keyboard journey covers listing → product → add with retained focus → persisted reload → cart
+  → quantity/total update → remove → empty state; axe is clean with and without items.
+- Verification: complete `shop` project **23/23 passed**; `npm run test:coverage` **258/258 passed**
+  (96.55% statements, 90.85% branches, 98.63% functions, 96.98% lines); lint, typecheck, and
+  `npm run migration:status -- --check` passed with 4 Nuxt-native routes. The full `npm run check`
+  passed lint, typecheck, token/inventory checks, coverage, Playwright **137/137**, and production
+  build, then reached the planned aggregate-budget limitation at **122.9 KB gz / 120 KB**. The
+  budget was not raised or weakened and no WP-13 work was pulled into this package.
+- Package scope: `shared/cart.ts`, `app/composables/useCart.ts`, `app/pages/shop/cart.vue`,
+  `app/pages/shop/[slug].vue`, `app/layouts/shop.vue`, `docs/migration-routes.json`, the two new
+  cart test files, and this log. No locale change or Codex advisor consultation was needed.
 
 ## Completed Changes
 - WP-00: setup + measurement only, no application code changes. `package.json` + `package-lock.json` modified by the two installs (uncommitted at time of writing; a human commits every diff).
