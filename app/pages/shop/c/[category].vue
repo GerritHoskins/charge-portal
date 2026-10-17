@@ -14,6 +14,9 @@ const route = useRoute()
 const { t } = useI18n()
 const fmt = useFormatters()
 const requestUrl = useRequestURL()
+const { track } = useShopEvents()
+
+onMounted(() => track('listing_view'))
 
 const queryValue = (value: string | (string | null)[] | null | undefined) => {
   const first = Array.isArray(value) ? value[0] : value

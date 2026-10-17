@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-18 ready to start
+Current step: WP-18 conversion funnel events — Review on `codex/wp18-funnel-events`
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-26
-Next step: execute WP-18 funnel events
+Next step: integrate the verified WP-18 commit, inspect the diff, and obtain human acceptance
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -278,6 +278,34 @@ Next step: execute WP-18 funnel events
   build/token/inventory gates, and all seven unchanged route budgets. Final sizes were
   **118.085 KB** for stations/sessions, **120.862 KB** for invoices/dispute, **124.882 KB** for
   listing, **126.932 KB** for product, and **121.574 KB** for cart.
+
+## WP-18 — Conversion funnel events (2026-10-17, `codex/wp18-funnel-events` @ `70ea536`)
+- Status: Review. Tests were written first: the focused unit suite failed because the events
+  contract did not exist, and the focused browser test timed out waiting for the absent
+  `listing_view` request. After implementation the unit suite passed **5/5**, the focused browser
+  funnel passed **1/1**, and the complete shop project passed **29/29**.
+- The pure funnel counts raw events while conversion numerators count each distinct tab once only
+  when the next step occurs later in array order. A cart-only event increments `addToCarts` but not
+  the product-to-cart numerator; repeated events increase raw totals but not rate membership; zero
+  denominators return `null`. Unit coverage includes all three decisions and schema boundaries.
+- Added the public, in-memory event endpoint and aggregate route with the WP-17 2 KB body/content-
+  type pattern, schema validation, a 120/min per-IP limiter respecting `trustProxy`, a 5,000-event
+  cap, and 204 responses. The client composable keeps a random UUID in `sessionStorage`, sends no
+  identity or cookie value, uses `sendBeacon` then a cookie-free keepalive fetch, and tracks the
+  listing mount, valid product mount, and cart-add handler. The E2E observes all three POST 204s
+  before asserting positive aggregate counts and conversion rates in one fresh tab.
+- Verification: lint and typecheck passed; coverage **289/289** (95.78% statements, 90.63%
+  branches, 98.87% functions, 96.14% lines). The full `npm run check` passed with both isolated
+  legacy-port overrides on 18083: coverage **289/289**, Playwright **143/143**, build,
+  token/inventory checks, and all seven route budgets. Final route sizes were **118.086 KB** for
+  stations/sessions, **120.864 KB** for invoices/dispute, **125.202 KB** for listing,
+  **127.299 KB** for product, and **121.575 KB** for cart.
+- An immediate first full-shop run encountered a Playwright server-lifecycle race: existing routes
+  returned 404 and then port 3000 refused connections. After confirming ports 3000/18083 were free,
+  the unchanged suite passed **29/29**; the telemetry limiter did not throttle the complete shop
+  volume. The package-named vitals plugin had moved in the accepted base, so its beacon pattern was
+  read from `ShopVitals.client.vue`. Changes remain limited to the eight authorized files and this
+  workflow log. No Codex advisor consultation was needed.
 
 ## WP-11 — Product detail page `/shop/[slug]` (2026-10-17, detached from `5333120`)
 - Status: Done (human-accepted 2026-10-17). WP-13 replaced the aggregate JS gate and the

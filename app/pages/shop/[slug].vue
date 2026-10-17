@@ -9,6 +9,7 @@ const { t } = useI18n()
 const fmt = useFormatters()
 const announcement = ref('')
 const { addItem } = useCart()
+const { track } = useShopEvents()
 const requestUrl = useRequestURL()
 
 const slug = computed(() => String(route.params.slug))
@@ -21,6 +22,10 @@ if (import.meta.server && notFound.value) {
   const event = useRequestEvent()
   if (event) setResponseStatus(event, 404)
 }
+
+onMounted(() => {
+  if (product.value) track('product_view')
+})
 
 // The narrow ShopProduct contract has no category field. For this synthetic two-category
 // catalogue, powerKw identifies wallboxes; everything else belongs to accessories.
@@ -96,6 +101,7 @@ const onAddToCart = async () => {
     name: product.value.name,
     priceCents: product.value.priceCents,
   })
+  track('add_to_cart')
   announcement.value = ''
   await nextTick()
   announcement.value = t('shop.product.added')
