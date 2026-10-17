@@ -6,6 +6,7 @@ Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, 
 Next step: complete WP-21 layout-stability assessment and independent WP-22 cache safety and measurements
 
 ## Decisions
+- 2026-10-17: Human explicitly approved WP-22's additional `server/plugins/shop-cache-safety.ts` runtime hook, outside its original file list, to remove only the shop i18n response cookie before cache capture while preserving locale detection and portal/other cookies. Cache variant and no-cookie tests remain required.
 - 2026-10-17: Human accepted WP-20 at integrated commit `32532be`; continue the authorized backlog with GPT-6 Luna high subagents. Measurement/build gates remain serialized between isolated worktrees.
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
 - Execution: one work package per fresh session, see `docs/instructions/storefront-performance/packages/README.md`.
