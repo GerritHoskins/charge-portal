@@ -54,6 +54,70 @@ test.describe('public shop product page', () => {
     await expect(related.getByRole('link', { name: product.name })).toHaveCount(0)
   })
 
+  test('server-renders related products with native links and no client refetches', async ({ page, request }) => {
+    const listing = await loadCategory(request)
+    const product = requireProduct(listing, ({ customFields }) => typeof customFields.powerKw === 'number')
+    const relatedProduct = requireProduct(listing, ({ slug }) => slug !== product.slug)
+    const productPath = `/shop/${product.slug}`
+    const relatedHref = `/shop/${relatedProduct.slug}`
+
+    const ssr = await request.get(productPath)
+    expect(ssr.ok()).toBe(true)
+    const html = await ssr.text()
+    expect(html).toMatch(new RegExp(`<a\\b[^>]*href="${relatedHref}"`))
+
+    const clientDataRequests: string[] = []
+    page.on('request', (browserRequest) => {
+      const { pathname } = new URL(browserRequest.url())
+      if (pathname.startsWith('/api/shop/products/') || pathname.startsWith('/api/shop/listing/')) {
+        clientDataRequests.push(pathname)
+      }
+    })
+    await page.setViewportSize({ width: 390, height: 600 })
+    await page.goto(productPath)
+    await expect(page.locator('html')).toHaveAttribute('data-hydrated', '')
+    await page.waitForLoadState('networkidle', { timeout: 5_000 })
+
+    const related = page.locator('section[aria-labelledby="related-heading"]')
+    await expect(related).toBeVisible()
+    const relatedLink = related.getByRole('link', { name: relatedProduct.name, exact: true })
+    await expect(relatedLink).toHaveAttribute('href', relatedHref)
+    expect(clientDataRequests).toEqual([])
+  })
+
+  test('related product labels and formatting follow the selected English locale', async ({ page, request }) => {
+    const listing = await loadCategory(request)
+    const product = requireProduct(listing, ({ customFields }) => typeof customFields.powerKw === 'number')
+    const relatedProduct = requireProduct(listing, ({ slug }) => slug !== product.slug)
+    const clientDataRequests: string[] = []
+    page.on('request', (browserRequest) => {
+      const { pathname } = new URL(browserRequest.url())
+      if (pathname.startsWith('/api/shop/products/') || pathname.startsWith('/api/shop/listing/')) {
+        clientDataRequests.push(pathname)
+      }
+    })
+
+    await page.setViewportSize({ width: 390, height: 600 })
+    await page.goto(`/shop/${product.slug}`)
+    await expect(page.locator('html')).toHaveAttribute('data-hydrated', '')
+    await page.getByLabel('Sprache').selectOption('en')
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+
+    const related = page.locator('section[aria-labelledby="related-heading"]')
+    await expect(related).toBeVisible()
+    await related.scrollIntoViewIfNeeded()
+    await expect(related.getByRole('heading', { level: 2, name: 'Products' })).toBeVisible()
+    const relatedLink = related.getByRole('link', { name: relatedProduct.name, exact: true })
+    await expect(relatedLink).toHaveAttribute('href', `/shop/${relatedProduct.slug}`)
+    const relatedItem = related.locator('li').filter({ hasText: relatedProduct.name })
+    const expectedPrice = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' })
+      .format(relatedProduct.priceCents / 100)
+    await expect(relatedItem.getByText(expectedPrice, { exact: true })).toBeVisible()
+    await expect(relatedItem.getByText(relatedProduct.inStock ? 'In stock' : 'Out of stock', { exact: true })).toBeVisible()
+    await page.waitForLoadState('networkidle', { timeout: 5_000 })
+    expect(clientDataRequests).toEqual([])
+  })
+
   test('returns a 404 response with a not-found heading for an unknown slug', async ({ page }) => {
     const response = await page.goto('/shop/nicht-vorhandenes-produkt')
 

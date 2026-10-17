@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-21 Done (human-accepted); WP-22 and WP-23 In progress in isolated worktrees
+Current step: WP-21 Done (human-accepted); WP-23 Review; WP-22 In progress in its isolated worktree
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-21, WP-26
-Next step: finish WP-23 verification and WP-22 cache safety/sampler compatibility; runtime/build gates remain serialized
+Next step: human review of WP-23; finish WP-22 cache safety/sampler compatibility with serialized runtime/build gates
 
 ## Decisions
 - 2026-10-18: Human accepted WP-21 at integrated and pushed commit `48b9714`.
@@ -695,9 +695,51 @@ Next step: finish WP-23 verification and WP-22 cache safety/sampler compatibilit
 | 2026-10-17 | a370cef + WP-19 dirty | /shop/c/:category | `RUM_LEGACY_PORT=18085 npm run rum:sample -- --runs 30` | 30 | 232 ms | 0.000 (n=30) | n/a | 16 ms (n=1) | n/a | n/a | synthetic RUM baseline 2/2; LCP spread 8 ms; INP sample too small |
 | 2026-10-17 | a370cef + WP-19 dirty | /shop/:slug | `RUM_LEGACY_PORT=18085 npm run rum:sample -- --runs 30` | 30 | 156 ms | 0.000 (n=30) | n/a | 24 ms (n=2) | n/a | n/a | synthetic RUM baseline 2/2; LCP spread 8 ms; INP sample too small |
 | 2026-10-17 | a370cef + WP-19 dirty | /shop/cart | `RUM_LEGACY_PORT=18085 npm run rum:sample -- --runs 30` | 30 | 232 ms | 0.000 (n=30) | n/a | n/a (n=0) | n/a | n/a | synthetic RUM baseline 2/2; LCP spread 4 ms; no INP sample |
+| 2026-10-18 | 352625e (WP-20 accepted source) | /shop/c/wallboxes | `ROUTE_BUDGET_LEGACY_PORT=18089 npm run budget` | 1 | n/a | n/a | n/a | n/a | 125.583 KB (budget 126 KB) | n/a | WP-23 before candidate; exit 0 |
+| 2026-10-18 | 352625e (WP-20 accepted source) | /shop/wallbox-home-7-4 | `ROUTE_BUDGET_LEGACY_PORT=18089 npm run budget` | 1 | n/a | n/a | n/a | n/a | 127.947 KB (budget 128 KB) | n/a | WP-23 before candidate; exit 0 |
+| 2026-10-18 | 352625e (WP-20 accepted source) | /shop/cart | `ROUTE_BUDGET_LEGACY_PORT=18089 npm run budget` | 1 | n/a | n/a | n/a | n/a | 121.579 KB (budget 123 KB) | n/a | WP-23 before candidate; exit 0 |
+| 2026-10-18 | 352625e + WP-23 candidate | /shop/c/wallboxes | `ROUTE_BUDGET_LEGACY_PORT=18089 npm run budget` | 1 | n/a | n/a | not measured | not measured | 126.574 KB (budget 126 KB) | n/a | candidate rejected; command exit 1; no Lighthouse/RUM |
+| 2026-10-18 | 352625e + WP-23 candidate | /shop/wallbox-home-7-4 | `ROUTE_BUDGET_LEGACY_PORT=18089 npm run budget` | 1 | n/a | n/a | not measured | not measured | 129.842 KB (budget 128 KB) | n/a | candidate rejected; command exit 1; no Lighthouse/RUM |
+| 2026-10-18 | 352625e + WP-23 candidate | /shop/cart | `ROUTE_BUDGET_LEGACY_PORT=18089 npm run budget` | 1 | n/a | n/a | not measured | not measured | 122.448 KB (budget 123 KB) | n/a | within cap; candidate still rejected on listing/product failures |
+| 2026-10-18 | 352625e + WP-23 reverted | /shop/c/wallboxes | `E2E_LEGACY_PORT=18089 ROUTE_BUDGET_LEGACY_PORT=18089 npm run check` | 1 | n/a | n/a | n/a | n/a | 125.583 KB (budget 126 KB) | n/a | final retained eager source; check exit 0; route budget passed |
+| 2026-10-18 | 352625e + WP-23 reverted | /shop/wallbox-home-7-4 | `E2E_LEGACY_PORT=18089 ROUTE_BUDGET_LEGACY_PORT=18089 npm run check` | 1 | n/a | n/a | n/a | n/a | 127.947 KB (budget 128 KB) | n/a | final retained eager source; check exit 0; route budget passed |
+| 2026-10-18 | 352625e + WP-23 reverted | /shop/cart | `E2E_LEGACY_PORT=18089 ROUTE_BUDGET_LEGACY_PORT=18089 npm run check` | 1 | n/a | n/a | n/a | n/a | 121.579 KB (budget 123 KB) | n/a | final retained eager source; check exit 0; route budget passed |
 
 Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) reports of the 2026-10-17 runs; TTFB is the `server-response-time` audit on the local warm server (no cold/warm split yet); all numbers lab (mobile emulation, simulated throttling).
 
 ## Open questions
 - WP-04: `legacy-php/` remains intentionally unchanged; it is the never-executed twin called
   out by the package and does not expose the new Store API routes.
+
+## WP-23 — Lazy hydration (Review; 2026-10-18)
+- Worktree: `codex/wp23-lazy-hydration` at `352625e`. Installed Nuxt is `4.6.1`; delayed
+  hydration is supported since Nuxt `3.16` via lazy components and `hydrate-on-visible`.
+- Baseline route-budget check passed before implementation (`ROUTE_BUDGET_LEGACY_PORT=18089
+  npm run budget`): listing **125.583/126 KB**, product **127.947/128 KB**, cart
+  **121.579/123 KB**. Budgets are already tight and remain unchanged pending after evidence;
+  do not increase them.
+- Candidate tests first: a focused shop E2E failed at the expected post-scroll hydration
+  marker (14 polls / 5s; SSR link markup, initial visibility, and href checks passed). The
+  candidate was a related-grid extraction using `hydrate-on-visible`; product/list data stayed
+  on the eager page. Installed Vue/Nuxt source loads the async component before observing
+  visibility, so transfer savings were uncertain.
+- Candidate build succeeded, but `ROUTE_BUDGET_LEGACY_PORT=18089 npm run budget` exited **1**:
+  listing **126.574/126 KB** (+0.991 KB over baseline), product **129.842/128 KB** (+1.895 KB),
+  cart **122.448/123 KB** (within budget); all four portal routes passed. The hard listing and
+  product caps disqualified the candidate. The extraction, story, hydration marker, and
+  hydration-only test assertions were reverted. Candidate TBT/INP were **not measured**;
+  Lighthouse and RUM were skipped because the JS regression already failed hard budgets.
+- Retained tests cover related-product SSR markup/native href/no browser data refetch and
+  English heading, currency and stock-label updates using the existing eager rendering. The
+  browser request listener observed no client product/listing API requests; this does not
+  establish the exact number of server-side fetches.
+- Route-budget values and provisional flags remain unchanged because no optimization was
+  retained. An initial shop + Storybook run exited 1 (73/74) because the locale test's price
+  locator did not select the nested card. After targeting the list item by product name, the
+  isolated locale test passed 1/1 and `E2E_LEGACY_PORT=18089 npx playwright test --project=shop
+  --project=storybook` passed **74/74**. `E2E_LEGACY_PORT=18089 ROUTE_BUDGET_LEGACY_PORT=18089
+  npm run check` passed (exit 0): lint, typecheck, tokens, migration inventory, coverage
+  **289/289** (95.78% statements), Playwright **146/146**, build, and all route budgets,
+  including final listing **125.583/126 KB**, product **127.947/128 KB**, cart **121.579/123 KB**.
+  Budgets remain provisional because no performance optimization was retained. No dependencies
+  or lockfiles changed; no push.
