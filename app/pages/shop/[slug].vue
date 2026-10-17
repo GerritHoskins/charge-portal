@@ -6,7 +6,7 @@ definePageMeta({ layout: 'shop' })
 const route = useRoute()
 const { t } = useI18n()
 const fmt = useFormatters()
-const added = ref(false)
+const announcement = ref('')
 const { addItem } = useCart()
 
 const slug = computed(() => String(route.params.slug))
@@ -49,14 +49,16 @@ const connectorType = computed(() => {
 
 useHead({ title: () => product.value?.name ?? t('shop.product.notFound') })
 
-const onAddToCart = () => {
+const onAddToCart = async () => {
   if (!product.value) return
   addItem({
     slug: product.value.slug,
     name: product.value.name,
     priceCents: product.value.priceCents,
   })
-  added.value = true
+  announcement.value = ''
+  await nextTick()
+  announcement.value = t('shop.product.added')
 }
 </script>
 
@@ -99,7 +101,7 @@ const onAddToCart = () => {
     >
       {{ t('shop.product.addToCart') }}
     </DsButton>
-    <p v-if="added" role="status" aria-live="polite">{{ t('shop.product.added') }}</p>
+    <p role="status" aria-live="polite">{{ announcement }}</p>
 
     <section v-if="relatedProducts.length" aria-labelledby="related-heading">
       <h2 id="related-heading">{{ t('shop.listing.heading') }}</h2>

@@ -25,7 +25,7 @@ test.describe('client-side shop cart', () => {
   test('supports the complete cart journey with a keyboard and persists the item', async ({ page, request }) => {
     const product = await loadFirstPageProduct(request)
     const expectedTotal = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' })
-      .format(product.priceCents * 2 / 100)
+      .format(product.priceCents * 3 / 100)
 
     await page.goto('/shop/c/wallboxes')
     await expect(page.locator('html')).toHaveAttribute('data-hydrated', '')
@@ -43,9 +43,25 @@ test.describe('client-side shop cart', () => {
     await expect(page.getByRole('status')).toHaveText('Zum Warenkorb hinzugefügt')
     await expect(page.getByRole('link', { name: /Warenkorb.*1 Artikel/ })).toBeVisible()
 
+    await page.evaluate(() => {
+      const region = document.querySelector('[role="status"]')
+      if (!(region instanceof HTMLElement)) throw new Error('product status region is missing')
+      const values: string[] = []
+      ;(window as typeof window & { __announcementMutations?: string[] }).__announcementMutations = values
+      new MutationObserver(() => values.push(region.textContent ?? ''))
+        .observe(region, { childList: true, characterData: true, subtree: true })
+    })
+
+    await page.keyboard.press('Space')
+    await expect(addButton).toBeFocused()
+    await expect.poll(() => page.evaluate(() => (
+      (window as typeof window & { __announcementMutations?: string[] }).__announcementMutations
+    ))).toEqual(['', 'Zum Warenkorb hinzugefügt'])
+    await expect(page.getByRole('link', { name: /Warenkorb.*2 Artikel/ })).toBeVisible()
+
     await page.reload()
     await expect(page.locator('html')).toHaveAttribute('data-hydrated', '')
-    const cartLink = page.getByRole('link', { name: /Warenkorb.*1 Artikel/ })
+    const cartLink = page.getByRole('link', { name: /Warenkorb.*2 Artikel/ })
     await tabTo(page, cartLink)
     await page.keyboard.press('Enter')
     await expect(page).toHaveURL('/shop/cart')
@@ -53,10 +69,10 @@ test.describe('client-side shop cart', () => {
     const quantity = page.getByLabel(`Menge ${product.name}`)
     await tabTo(page, quantity)
     await page.keyboard.press('Control+A')
-    await page.keyboard.type('2')
+    await page.keyboard.type('3')
     await page.keyboard.press('Tab')
 
-    await expect(page.getByRole('link', { name: /Warenkorb.*2 Artikel/ })).toBeVisible()
+    await expect(page.getByRole('link', { name: /Warenkorb.*3 Artikel/ })).toBeVisible()
     await expect(page.getByText(expectedTotal, { exact: true })).toBeVisible()
 
     const results = await new AxeBuilder({ page }).withTags(WCAG).analyze()

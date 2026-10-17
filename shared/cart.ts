@@ -9,7 +9,11 @@ export type CartProduct = Omit<CartItem, 'quantity'>
 
 const MAX_QUANTITY = 10
 
-const boundedQuantity = (quantity: number) => Math.min(MAX_QUANTITY, Math.max(0, Math.trunc(quantity)))
+const boundedQuantity = (quantity: number) => (
+  Number.isFinite(quantity)
+    ? Math.min(MAX_QUANTITY, Math.max(0, Math.trunc(quantity)))
+    : 0
+)
 
 export const addItem = (items: CartItem[], product: CartProduct): CartItem[] => {
   const existing = items.find(({ slug }) => slug === product.slug)

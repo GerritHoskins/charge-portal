@@ -51,6 +51,15 @@ describe('cart item updates', () => {
     expect(setQuantity(cart, wallbox.slug, -1)).toEqual([])
   })
 
+  it.each([Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
+    'removes an item instead of emitting the non-finite quantity %s',
+    (quantity) => {
+      const cart = [{ ...wallbox, quantity: 2 }]
+
+      expect(setQuantity(cart, wallbox.slug, quantity)).toEqual([])
+    },
+  )
+
   it('removes only the selected item', () => {
     const cart = [{ ...wallbox, quantity: 1 }, { ...cable, quantity: 2 }]
 

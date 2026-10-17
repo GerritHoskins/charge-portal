@@ -288,6 +288,12 @@ Next step: WP-13 replaces the invalid aggregate JS gate and unlocks Review for W
 - Package scope: `shared/cart.ts`, `app/composables/useCart.ts`, `app/pages/shop/cart.vue`,
   `app/pages/shop/[slug].vue`, `app/layouts/shop.vue`, `docs/migration-routes.json`, the two new
   cart test files, and this log. No locale change or Codex advisor consultation was needed.
+- Review fixes: repeated keyboard activation now clears and resets the same persistent polite
+  live-region node across `nextTick`, producing a fresh content mutation while button focus remains
+  in place and the count reaches two. Non-finite quantities (`NaN`, positive/negative infinity)
+  deterministically map to zero and remove the item instead of entering cart state. Tests first
+  reproduced both defects; focused cart unit **10/10**, product/cart E2E **8/8**, lint, and
+  typecheck all pass after the correction.
 
 ## Completed Changes
 - WP-00: setup + measurement only, no application code changes. `package.json` + `package-lock.json` modified by the two installs (uncommitted at time of writing; a human commits every diff).
