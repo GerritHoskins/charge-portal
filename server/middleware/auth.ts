@@ -1,4 +1,5 @@
 import { meResponseSchema } from '#shared/contracts/me'
+import { isPublicApi } from '../utils/public-api'
 
 // Auth guard for everything the Nuxt app serves under /portal and /api.
 // Runs on the server before any page renders, so an unauthenticated request
@@ -7,6 +8,8 @@ import { meResponseSchema } from '#shared/contracts/me'
 // belongs to. `/login` and `/logout` are proxied to legacy and not guarded here.
 export default defineEventHandler(async (event) => {
   const { pathname } = getRequestURL(event)
+  if (isPublicApi(pathname)) return
+
   const isApi = pathname.startsWith('/api/')
   if (!isApi && !pathname.startsWith('/portal')) return
 

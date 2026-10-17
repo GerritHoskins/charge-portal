@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-04 — Stand-in Store API endpoints (Review)
+Current step: WP-05 — Public API allowlist (Review)
 Completed steps: WP-00, WP-01, WP-02, WP-03
-Next step: WP-05
+Next step: dependency-safe parallel lane selection
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -77,6 +77,25 @@ Next step: WP-05
 - Handoff: package diff is limited to `legacy/catalog.mjs`, `legacy/server.mjs`, the two
   specified test files, and this log. Unrelated concurrent working-tree changes in
   `package.json` and `.claude/launch.json` were preserved and excluded.
+- State: committed and pushed to `main` as `fb4d9e7`.
+
+## WP-05 — Public API allowlist (2026-10-17, on `main` @ `fb4d9e7`)
+- Status: Review. Added framework-free `isPublicApi()` with exact matches for vitals/events
+  and a slash-delimited `/api/shop/` prefix. `/api/shop` deliberately stays private, and
+  ambiguous names, case variants, deeper exact-route suffixes, malformed encodings, and dot
+  segments do not cross the boundary.
+- Tests first: the new unit suite failed on the missing module, then passed all 15 positive
+  and negative boundary cases. The auth middleware now returns early only for that helper.
+- Added the logged-out Playwright `shop` project and its first security regression: `/api/me`
+  still returns 401 without a session.
+- Verification: `npx vitest run tests/unit/public-api.test.ts` **15/15 passed**;
+  `npx playwright test --project=shop` **1/1 passed**; `npm run test:coverage` **221/221**
+  with 96.85% statements / 93.91% branches / 97.87% functions / 96.68% lines; lint and
+  typecheck passed; `npm run check` **green** (Playwright 115/115, bundle 115.8 KB gz of
+  120 KB).
+- Handoff: package changes are limited to the six allowed implementation/test/config files
+  and this log. The unrelated `package.json` and `.claude/launch.json` changes remain
+  unstaged and untouched.
 
 ## Completed Changes
 - WP-00: setup + measurement only, no application code changes. `package.json` + `package-lock.json` modified by the two installs (uncommitted at time of writing; a human commits every diff).

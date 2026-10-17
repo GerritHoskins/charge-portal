@@ -23,6 +23,8 @@ export default defineConfig({
     },
     // Auth behaviour itself is tested from a logged-out browser.
     { name: 'auth', testMatch: /auth\.spec\.ts/ },
+    // Public shop routes and APIs are tested without a saved login state.
+    { name: 'shop', testMatch: /shop.*\.spec\.ts/ },
     { name: 'storybook', testMatch: /storybook\.spec\.ts/ },
     // Real legacy responses parsed with the shared contracts (also runnable against another legacy).
     // It mutates legacy state (one dispute), so it runs after the specs that reset that state.
