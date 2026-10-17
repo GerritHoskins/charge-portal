@@ -3,7 +3,12 @@ import { readFileSync } from 'node:fs'
 import { isAbsolute, relative, resolve, sep } from 'node:path'
 import { gzipSync } from 'node:zlib'
 import { chromium } from '@playwright/test'
-import { evaluate, parseBudgets } from './lib/route-budget.mjs'
+import {
+  evaluate,
+  parseBudgets,
+  REQUIRED_ROUTES,
+  validateBudgetCoverage,
+} from './lib/route-budget.mjs'
 
 const LEGACY = 'http://localhost:8080'
 const APP = 'http://localhost:3000'
@@ -113,7 +118,7 @@ let browser
 let exitCode = 1
 try {
   const budgets = parseBudgets(readFileSync(BUDGET_FILE, 'utf8'))
-  if (Object.keys(budgets).length === 0) throw new Error('No route budgets configured')
+  validateBudgetCoverage(budgets)
 
   for (const url of [LEGACY, APP]) {
     if (await responds(url)) {
@@ -128,14 +133,14 @@ try {
   const cookies = await sessionCookies()
   browser = await chromium.launch()
   const measurements = []
-  for (const route of Object.keys(budgets)) {
+  for (const route of REQUIRED_ROUTES) {
     measurements.push(await measureRoute(browser, route, cookies))
   }
 
   const results = evaluate(measurements, budgets)
   for (const result of results) {
     const budget = result.budgetKb === null ? 'missing' : `${result.budgetKb.toFixed(1)} KB`
-    const provisional = budgets[result.route].provisional ? ', provisional' : ''
+    const provisional = budgets[result.route]?.provisional ? ', provisional' : ''
     console.log(`${result.ok ? 'PASS' : 'FAIL'} ${result.route}: ${result.kb.toFixed(3)} KB gz (budget ${budget}${provisional})`)
   }
   exitCode = results.every(({ ok }) => ok) ? 0 : 1

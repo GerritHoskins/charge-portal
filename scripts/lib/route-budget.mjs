@@ -1,3 +1,13 @@
+export const REQUIRED_ROUTES = Object.freeze([
+  '/portal/stations',
+  '/portal/sessions',
+  '/portal/invoices',
+  '/portal/invoices/inv-0042/dispute',
+  '/shop/c/wallboxes',
+  '/shop/wallbox-home-7-4',
+  '/shop/cart',
+])
+
 const normalizeBudget = (route, value) => {
   if (!route.startsWith('/')) throw new Error(`Route budget key must start with "/": ${route}`)
 
@@ -30,6 +40,17 @@ export const parseBudgets = (envOrJson) => {
   return Object.fromEntries(
     Object.entries(input).map(([route, value]) => [route, normalizeBudget(route, value)]),
   )
+}
+
+export const validateBudgetCoverage = (budgets) => {
+  const parsedBudgets = parseBudgets(budgets)
+  const required = new Set(REQUIRED_ROUTES)
+  const extras = Object.keys(parsedBudgets)
+    .filter((route) => !required.has(route))
+    .sort()
+  if (extras.length > 0) throw new Error(`Unexpected route budgets: ${extras.join(', ')}`)
+
+  return REQUIRED_ROUTES.filter((route) => parsedBudgets[route] === undefined)
 }
 
 export const evaluate = (measurements, budgets) => {

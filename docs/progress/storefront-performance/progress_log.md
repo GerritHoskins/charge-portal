@@ -1,7 +1,7 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-13 per-route JavaScript budget — Review (implementation and required checks complete)
+Current step: WP-13 per-route JavaScript budget — Review (required-route coverage fix verified)
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-16
 Next step: Human review/integration of WP-13, then WP-14 documents the accepted budget model in ADR 0007
 
@@ -316,8 +316,18 @@ Next step: Human review/integration of WP-13, then WP-14 documents the accepted 
   `npm run budget` passed. Full `npm run check` passed lint, typecheck, token and migration checks,
   coverage, Playwright **137/137**, production build, informational aggregate output, and all seven
   hard per-route gates. No Codex advisor consultation was needed.
-- Handoff: local implementation is contained in this commit, based on `6bdc1fa`, on the detached
-  WP-13 worktree; package scope
+- Review fix: the seven representative routes are now an exported immutable list independent of
+  threshold configuration, and the production driver always measures that list before evaluation.
+  A missing threshold remains in the deterministic report as `budget missing`; stale extra keys
+  are rejected in sorted order before servers start. Tests first failed because the new route list
+  and coverage validator were absent, then the focused suite passed **11/11**. A deliberate
+  production run with `/portal/sessions` removed still measured all seven routes and failed only
+  that route for its missing budget. After restoring the unchanged thresholds, lint, typecheck,
+  `npm run budget`, and full `npm run check` passed: coverage **272/272** (95.12% statements,
+  89.42% branches, 98.76% functions, 95.5% lines), Playwright **137/137**, build, aggregate
+  information, and all seven per-route gates.
+- Handoff: initial implementation commit `781c577`; its required-route review fix is contained in
+  this follow-up commit. Both are based on `6bdc1fa` on the detached WP-13 worktree; package scope
   is limited to `scripts/lib/route-budget.mjs`, `scripts/check-route-budget.mjs`,
   `scripts/route-budgets.json`, `scripts/check-bundle-size.mjs`, `package.json`,
   `tests/unit/route-budget.test.ts`, and this log. Human acceptance is still required.
