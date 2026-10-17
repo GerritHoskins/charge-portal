@@ -78,6 +78,24 @@ const metricCell = (metric, name) => {
   return `${value} / ${metric.count}`
 }
 
+const readVitals = async (origin) => {
+  const response = await fetch(`${origin}/api/vitals/summary`, { signal: AbortSignal.timeout(10_000) })
+  if (!response.ok) throw new Error(`Vitals summary returned HTTP ${response.status}`)
+  return response.json()
+}
+
+const metricKey = ({ route, name }) => {
+  const path = route.split(/[?#]/, 1)[0]
+  const group = /^\/shop\/c\/[^/]+\/?$/.test(path) ? '/shop/c/:category'
+    : /^\/shop\/cart\/?$/.test(path) ? '/shop/cart'
+      : /^\/shop\/[^/]+\/?$/.test(path) ? '/shop/:slug' : path.replace(/\/$/, '')
+  return `${group}|${name}`
+}
+
+const metricCounts = (summary) => new Map(Object.entries(summary).flatMap(([route, metrics]) => (
+  Object.entries(metrics).map(([name, metric]) => [`${route}|${name}`, metric.count])
+)))
+
 const printSummary = (summary, funnel) => {
   console.log('\nSynthetic RUM p75 by lifecycle route (ms except CLS; p75 / samples)')
   console.log('Route                 LCP             INP             CLS')
@@ -90,6 +108,7 @@ const printSummary = (summary, funnel) => {
 }
 
 let code = 1
+let partialResult
 try {
   const options = parseArgs(process.argv.slice(2))
   const base = new URL(options.base)
@@ -121,17 +140,24 @@ try {
   const eventResponses = []
   const interactionDiagnostics = []
   const failedTelemetryRequests = []
+  const serverConfirmedBeacons = []
+  partialResult = { options, completedRuns: 0, beaconResponses, eventResponses, failedTelemetryRequests, serverConfirmedBeacons }
   try {
     const origin = base.origin
     for (let run = 0; run < options.runs; run += 1) {
       // The fixed 6-second start interval keeps up to ten reports per tab below the endpoint's
       // 120/min IP limit; it is rate-limit pacing, not a random user delay.
       if (run > 0) await new Promise((resolveResult) => setTimeout(resolveResult, RUN_INTERVAL_MS))
+      const initialCounts = options.noStart ? null : metricCounts(await readVitals(origin))
+      const requestedBeacons = []
       const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, deviceScaleFactor: 1, locale: 'de-DE' })
       const page = await context.newPage()
       const pendingTelemetry = new Map()
       const trackTelemetryRequest = (request) => {
         if (!/\/api\/(?:vitals|events)(?:\/|$)/.test(new URL(request.url()).pathname)) return
+        if (new URL(request.url()).pathname === '/api/vitals' && request.method() === 'POST') {
+          requestedBeacons.push(JSON.parse(request.postData() ?? 'null'))
+        }
         let finish
         const settled = new Promise((resolveResult) => { finish = resolveResult })
         pendingTelemetry.set(request, { settled, finish })
@@ -208,11 +234,49 @@ try {
         await page.waitForLoadState('networkidle')
         await page.goto('about:blank')
         await page.waitForLoadState('load')
+        if (initialCounts) {
+          // A fresh, driver-owned server has no competing traffic. Its per-metric count
+          // deltas prove receipt even when Chromium omits a navigated beacon's response event.
+          // Never use aggregate deltas to acknowledge requests against a shared --no-start server.
+          const deadline = Date.now() + 10_000
+          while (true) {
+            const expected = new Map()
+            for (const beacon of requestedBeacons) {
+              const key = metricKey(beacon)
+              expected.set(key, (expected.get(key) ?? 0) + 1)
+            }
+            const actual = metricCounts(await readVitals(origin))
+            partialResult.currentReceipt = {
+              run: run + 1,
+              initial: Object.fromEntries(initialCounts),
+              requested: Object.fromEntries(expected),
+              actual: Object.fromEntries(actual),
+              pending: [...pendingTelemetry.keys()].map((request) => ({ method: request.method(), path: new URL(request.url()).pathname })),
+            }
+            if (expected.size === 0) throw new Error(`Run ${run + 1}: no vitals requests were observed`)
+            const missing = [...expected].filter(([key, count]) => (
+              (actual.get(key) ?? 0) - (initialCounts.get(key) ?? 0) < count
+            ))
+            if (expected.size > 0 && missing.length === 0) {
+              for (const request of [...pendingTelemetry.keys()]) {
+                if (new URL(request.url()).pathname !== '/api/vitals' || request.method() !== 'POST') continue
+                const beacon = JSON.parse(request.postData() ?? 'null')
+                serverConfirmedBeacons.push({ run: run + 1, metric: metricKey(beacon) })
+                finishTelemetryRequest(request)
+              }
+              break
+            }
+            if (Date.now() >= deadline) {
+              throw new Error(`Run ${run + 1}: vitals receipt unproven: ${JSON.stringify(missing)}; requested=${requestedBeacons.length}`)
+            }
+            await new Promise((resolveResult) => setTimeout(resolveResult, 100))
+          }
+        }
         const pending = Promise.all([...pendingTelemetry.values()].map(({ settled }) => settled))
         let timeout
         try {
           await Promise.race([pending, new Promise((_, reject) => {
-            timeout = setTimeout(() => reject(new Error('Telemetry requests did not settle after navigating to about:blank')), 10_000)
+            timeout = setTimeout(() => reject(new Error(`Telemetry requests did not settle: ${[...pendingTelemetry.keys()].map((request) => new URL(request.url()).pathname).join(', ')}`)), 10_000)
           })])
         } finally {
           clearTimeout(timeout)
@@ -227,6 +291,7 @@ try {
         throw new Error(`Run ${run + 1}: expected three accepted funnel event responses, received ${runStatuses.join(', ') || 'none'}`)
       }
       console.log(`Completed run ${run + 1}/${options.runs}`)
+      partialResult.completedRuns = run + 1
     }
   } finally {
     await browser.close()
@@ -261,6 +326,7 @@ try {
     beaconResponses: { accepted: beaconResponses.filter((status) => status >= 200 && status < 300).length, rejected429: rejected, otherStatuses: beaconResponses.filter((status) => status < 200 || status >= 300).filter((status) => status !== 429) },
     eventResponses: { accepted: eventResponses.filter((status) => status >= 200 && status < 300).length, rejected429: eventResponses.filter((status) => status === 429).length },
     failedTelemetryRequests,
+    serverConfirmedBeacons,
     coverageIssues,
     interactionDiagnostics: {
       eventEntrySupported: interactionDiagnostics.some(({ eventEntrySupported }) => eventEntrySupported),
@@ -273,6 +339,7 @@ try {
   }
   printSummary(vitals, funnel)
   console.log(`Vitals POSTs: ${result.beaconResponses.accepted} accepted, ${rejected} rate-limited, ${result.beaconResponses.otherStatuses.length} other failures`)
+  console.log(`Vitals with server receipt proof but no browser response event: ${serverConfirmedBeacons.length}`)
   console.log(`Funnel POSTs: ${result.eventResponses.accepted} accepted, ${result.eventResponses.rejected429} rate-limited`)
   console.log(`Interaction entries: supported=${result.interactionDiagnostics.eventEntrySupported} entries=${result.interactionDiagnostics.eventEntries} interactions=${result.interactionDiagnostics.interactions} first-input=${result.interactionDiagnostics.firstInputEntries}`)
   if (coverageIssues.length) console.error(`Insufficient expected vital coverage: ${coverageIssues.join(', ')}`)
@@ -283,7 +350,17 @@ try {
   }
   code = coverageIssues.length ? 1 : 0
 } catch (error) {
-  console.error(error instanceof Error ? error.message : error)
+  const message = error instanceof Error ? error.message : String(error)
+  console.error(message)
+  if (partialResult?.options.json) {
+    try {
+      const origin = new URL(partialResult.options.base).origin
+      const vitals = await readVitals(origin).catch(() => null)
+      await writeFile(resolve(partialResult.options.json), `${JSON.stringify({ ...partialResult, status: 'incomplete', error: message, vitals }, null, 2)}\n`, 'utf8')
+    } catch (writeError) {
+      console.error(`Could not preserve partial report: ${writeError.message}`)
+    }
+  }
 } finally {
   stop()
 }

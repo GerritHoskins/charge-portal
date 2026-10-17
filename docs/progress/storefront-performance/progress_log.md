@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-20 image optimization — Ready
+Current step: WP-19 sampler receipt repair — In progress; WP-20 verification complete in delegated worktree
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-26
-Next step: measure and implement WP-20 images/LCP
+Next step: integrate WP-20 and run the combined check gate
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -341,6 +341,17 @@ Next step: measure and implement WP-20 images/LCP
   **125.205 KB** listing, **127.302 KB** product, and **121.577 KB** cart. Six-second deterministic
   pacing kept the synthetic run below the telemetry rate limit. Raw captures are preserved in the
   ignored `.lighthouseci-shop/rum-baseline-1.json` and `rum-baseline-2.json` files.
+- Reliability follow-up during WP-20: two after-sample attempts failed on a missing browser
+  beacon completion event (run 1, then run 19). The bounded WP-19 driver repair snapshots the
+  owned server's per-route/per-metric counts before each journey and proves receipt of observed
+  POSTs from count deltas after page hide. This reconciliation is disabled for shared
+  `--no-start` servers. Unobserved responses are reported separately, never fabricated as 204s.
+  Runtime failures now preserve incomplete JSON with current receipt counts and pending paths.
+  Syntax/lint and independent review passed. A one-run trial and the complete 30-run WP-20 after
+  sample passed; an in-memory missing-response-event regression passed with 8 server-confirmed
+  beacons, and an in-memory intercepted-request regression failed as intended despite browser
+  204s, preserving partial diagnostics. No product source changed for this repair. Combined
+  integration `npm run check` remains pending.
 
 ## WP-11 — Product detail page `/shop/[slug]` (2026-10-17, detached from `5333120`)
 - Status: Done (human-accepted 2026-10-17). WP-13 replaced the aggregate JS gate and the
