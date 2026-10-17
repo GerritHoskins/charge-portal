@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-09 — Listing page
+Current step: WP-09 — Listing page (Review)
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-16
-Next step: implement WP-09 from the verified integration head (WP-17 also waits for WP-12)
+Next step: human review and acceptance of WP-09, then select the next ready package
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -174,6 +174,31 @@ Next step: implement WP-09 from the verified integration head (WP-17 also waits 
   checkout and `true`; Git diff/status required escalated worktree access from the root and
   the final diff was reviewed there. No Codex advisor consultation was needed and there is no
   implementation blocker.
+
+## WP-09 — Listing page `/shop` and `/shop/c/[category]` (2026-10-17, detached @ `0dfe80b`)
+- Status: Review. Added the permanent `/shop` → `/shop/c/wallboxes` redirect and an SSR category
+  listing on the public shop layout. The category page requests 12 items so each accepted 24-product
+  fixture has two real pages; it renders a semantic list, translated heading/count/error/stock text,
+  locale-aware euro prices, accessible pagination, and no portal navigation.
+- Tests first: `tests/e2e/shop-listing.spec.ts` initially failed **5/5** because the routes and UI did
+  not exist. After implementation, the focused suite passed **5/5** and the complete logged-out shop
+  project passed **9/9**, covering the two-step Nuxt canonical `/shop` → `/shop/` → category redirect,
+  12+12 pagination, prices and textual stock, absence of the portal navigation, and axe checks for the
+  default and `stadtwerke-demo` themes.
+- Added `ShopProductCard.vue` and two stories. The card deliberately uses a plain `<a>` because the
+  current Storybook preview has no `NuxtLink` stub; this trades client-side card navigation for a story
+  that renders without Nuxt. It uses tokens only and keeps the exact WP-09 baseline comment on a plain,
+  eager largest-source `<img>` with alt text and no width/height/lazy-loading optimization. The page-level
+  axe tests exercise the card; the existing Storybook E2E registry is hard-coded to design-system stories,
+  so the new story is built but not auto-enumerated by that unchanged out-of-scope test.
+- Inventory: `/shop` and `/shop/c/:category` are registered as `nuxt-native` with ADR `0007` and their
+  implementing files. `npm run migration:status -- --check` passed with 7/7 migrated, 1 stays-legacy,
+  and 2 Nuxt-native routes.
+- Verification: lint and typecheck passed; `npm run budget` passed at **118.4 KB gz / 120 KB**.
+  `npm run check` passed fully: tokens and inventory clean, **19 unit files / 251 tests**, coverage
+  96.22% statements / 91.66% branches / 98.36% functions / 96.74% lines, Playwright **123/123**, and
+  the repeated production budget **118.4 KB gz / 120 KB**. No budget increase, route rule, image
+  optimization, dependency, or generated shop-asset change was made. No Codex advisor was needed.
 
 ## WP-16 — Field metrics schema and aggregation logic (2026-10-17, detached from `5343b48`)
 - Status: Done (human-accepted 2026-10-17). Added the shop-only vitals beacon
