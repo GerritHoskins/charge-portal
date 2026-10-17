@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-18 conversion funnel events — Review on `codex/wp18-funnel-events`
+Current step: WP-18 conversion funnel events — integrated Review; human acceptance pending
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-26
-Next step: integrate the verified WP-18 commit, inspect the diff, and obtain human acceptance
+Next step: obtain human acceptance for WP-18, then execute WP-19 RUM sample
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -306,6 +306,11 @@ Next step: integrate the verified WP-18 commit, inspect the diff, and obtain hum
   volume. The package-named vitals plugin had moved in the accepted base, so its beacon pattern was
   read from `ShopVitals.client.vue`. Changes remain limited to the eight authorized files and this
   workflow log. No Codex advisor consultation was needed.
+- Integration review found that parallel browser telemetry could make aggregate positive-rate
+  assertions pass even if the per-tab UUID changed between steps. The E2E now also parses the
+  three accepted request bodies and proves one non-empty, bounded `tabId` is reused across listing,
+  product, and cart events. The strengthened focused E2E passed **1/1** and lint passed on the
+  integration branch.
 
 ## WP-11 — Product detail page `/shop/[slug]` (2026-10-17, detached from `5333120`)
 - Status: Done (human-accepted 2026-10-17). WP-13 replaced the aggregate JS gate and the

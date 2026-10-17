@@ -1,6 +1,6 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 import type { ShopListing, ShopProduct } from '../../shared/contracts/catalog'
-import type { FunnelSummary } from '../../shared/contracts/events'
+import type { FunnelSummary, ShopEvent } from '../../shared/contracts/events'
 
 const loadInStockProduct = async (request: APIRequestContext): Promise<ShopProduct> => {
   const response = await request.get('/api/shop/listing/wallboxes?limit=12')
@@ -27,16 +27,27 @@ test('records a complete shop funnel in one fresh tab', async ({ page, request }
   const listingEvent = waitForShopEvent(page, 'listing_view')
   await page.goto('/shop/c/wallboxes')
   await expect(page.locator('html')).toHaveAttribute('data-hydrated', '')
-  expect((await listingEvent).status()).toBe(204)
+  const listingResponse = await listingEvent
+  expect(listingResponse.status()).toBe(204)
 
   const productEvent = waitForShopEvent(page, 'product_view')
   await page.getByRole('link', { name: new RegExp(product.name) }).click()
   await expect(page.getByRole('heading', { level: 1, name: product.name })).toBeVisible()
-  expect((await productEvent).status()).toBe(204)
+  const productResponse = await productEvent
+  expect(productResponse.status()).toBe(204)
 
   const cartEvent = waitForShopEvent(page, 'add_to_cart')
   await page.getByRole('button', { name: 'In den Warenkorb' }).click()
-  expect((await cartEvent).status()).toBe(204)
+  const cartResponse = await cartEvent
+  expect(cartResponse.status()).toBe(204)
+
+  const postedEvents = [listingResponse, productResponse, cartResponse].map((response) => (
+    JSON.parse(response.request().postData() ?? '') as ShopEvent
+  ))
+  const tabIds = new Set(postedEvents.map(({ tabId }) => tabId))
+  expect(tabIds.size).toBe(1)
+  expect(postedEvents[0]?.tabId).toMatch(/\S/)
+  expect(postedEvents[0]?.tabId.length).toBeLessThanOrEqual(64)
 
   await expect.poll(async () => {
     const response = await request.get('/api/events/funnel')
