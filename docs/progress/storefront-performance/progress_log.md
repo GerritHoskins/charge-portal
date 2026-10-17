@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-10 + WP-11 parallel wave
+Current step: WP-10 — Listing filters and sorting (ready for integration verification; WP-11 runs in parallel)
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-16
-Next step: implement WP-10 and WP-11 in isolated worktrees; serialize browser and full gates
+Next step: integrate WP-10 and WP-11, then run the combined `npm run check` gate before human review
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -199,6 +199,28 @@ Next step: implement WP-10 and WP-11 in isolated worktrees; serialize browser an
   96.22% statements / 91.66% branches / 98.36% functions / 96.74% lines, Playwright **123/123**, and
   the repeated production budget **118.4 KB gz / 120 KB**. No budget increase, route rule, image
   optimization, dependency, or generated shop-asset change was made. No Codex advisor was needed.
+
+## WP-10 — Listing filters and sorting (2026-10-17, detached @ `5333120`)
+- Status: Ready for integration verification; human review and the combined full gate remain pending.
+- Tests first: the expanded listing spec initially ran **6 passed / 5 failed**. The new connector,
+  minimum-power, price-ordering, direct SSR, and keyboard cases failed against the unfiltered page,
+  while the filtered axe case already passed. The first implementation exposed a test-timing issue:
+  Playwright could change the server-rendered controls before Vue hydration attached the `input`
+  listeners. The tests now follow the repository convention of waiting for `data-hydrated` before
+  client interaction; direct no-JavaScript SSR remains a separate pre-hydration assertion.
+- Added a semantic GET filter form with a translated fieldset/legend, visible labelled controls,
+  real query names, and a keyboard-reachable submit button. `minPower`, `connector`, and `order`
+  are validated from the URL, forwarded to the BFF, preserved across pagination, and immediately
+  navigate on every hydrated input event while resetting pagination. The exact WP-10 no-debounce
+  baseline comment is retained, and all new styling uses design tokens.
+- Verification: focused hydrated-interaction grep **4/4 passed**; full
+  `tests/e2e/shop-listing.spec.ts` **11/11 passed**; complete shop project **15/15 passed**;
+  `npm run lint` passed; `npm run typecheck` passed. The full `npm run check` was deliberately
+  deferred for the root integration branch after WP-11, as scheduled. Existing `/shop/cart`
+  missing-route warnings were emitted by the shop shell but did not fail any gate.
+- Package scope: `app/pages/shop/c/[category].vue`, `tests/e2e/shop-listing.spec.ts`, and this log.
+  No dependency, route-rule, locale, generated-asset, or budget change was made. No Codex advisor
+  consultation was needed.
 
 ## WP-16 — Field metrics schema and aggregation logic (2026-10-17, detached from `5343b48`)
 - Status: Done (human-accepted 2026-10-17). Added the shop-only vitals beacon

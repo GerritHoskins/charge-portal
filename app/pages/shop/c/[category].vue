@@ -4,9 +4,19 @@ import type { ShopListing } from '#shared/contracts/catalog'
 definePageMeta({ layout: 'shop' })
 
 const PAGE_SIZE = 12
+const CONNECTORS = ['type2', 'ccs', 'card'] as const
+const ORDERS = ['price-asc', 'price-desc', 'name-asc'] as const
+type Connector = typeof CONNECTORS[number]
+type Order = typeof ORDERS[number]
+
 const route = useRoute()
 const { t } = useI18n()
 const fmt = useFormatters()
+
+const queryValue = (value: string | (string | null)[] | null | undefined) => {
+  const first = Array.isArray(value) ? value[0] : value
+  return first ?? ''
+}
 
 const category = computed(() => String(route.params.category))
 const categoryName = computed(() => {
@@ -19,25 +29,96 @@ const pageNumber = computed(() => {
   const parsed = Number(raw ?? 1)
   return Number.isInteger(parsed) && parsed > 0 ? parsed : 1
 })
+const minPower = computed(() => {
+  const value = queryValue(route.query.minPower)
+  const parsed = Number(value)
+  return value !== '' && Number.isFinite(parsed) && parsed >= 0 ? value : ''
+})
+const connector = computed<Connector | ''>(() => {
+  const value = queryValue(route.query.connector)
+  return CONNECTORS.includes(value as Connector) ? value as Connector : ''
+})
+const order = computed<Order>(() => {
+  const value = queryValue(route.query.order)
+  return ORDERS.includes(value as Order) ? value as Order : 'name-asc'
+})
+const tenant = computed(() => queryValue(route.query.tenant))
+const activeQuery = computed(() => ({
+  ...(minPower.value ? { minPower: minPower.value } : {}),
+  ...(connector.value ? { connector: connector.value } : {}),
+  ...(order.value === 'name-asc' ? {} : { order: order.value }),
+  ...(tenant.value ? { tenant: tenant.value } : {}),
+}))
 
 useHead({ title: () => categoryName.value })
 
 const { data: listing, error } = await useFetch<ShopListing>(
   () => `/api/shop/listing/${encodeURIComponent(category.value)}`,
   {
-    query: computed(() => ({ page: pageNumber.value, limit: PAGE_SIZE })),
+    query: computed(() => ({
+      page: pageNumber.value,
+      limit: PAGE_SIZE,
+      order: order.value,
+      ...(minPower.value ? { minPower: minPower.value } : {}),
+      ...(connector.value ? { connector: connector.value } : {}),
+    })),
     default: () => ({ total: 0, page: pageNumber.value, limit: PAGE_SIZE, items: [] }),
   },
 )
 
 const totalPages = computed(() => Math.max(1, Math.ceil(listing.value.total / listing.value.limit)))
 const pages = computed(() => Array.from({ length: totalPages.value }, (_, index) => index + 1))
-const pageTarget = (page: number) => ({ path: `/shop/c/${category.value}`, query: { page } })
+const pageTarget = (page: number) => ({ path: `/shop/c/${category.value}`, query: { ...activeQuery.value, page } })
+
+// baseline (WP-10): no debounce on purpose, see WP-24
+const onFilterInput = (event: Event) => {
+  const control = event.currentTarget as HTMLInputElement | HTMLSelectElement
+  if (!['minPower', 'connector', 'order'].includes(control.name)) return
+
+  const query: Record<string, string> = { ...activeQuery.value }
+  delete query[control.name]
+  if (control.value && !(control.name === 'order' && control.value === 'name-asc')) {
+    query[control.name] = control.value
+  }
+  void navigateTo({ path: route.path, query })
+}
 </script>
 
 <template>
   <section aria-labelledby="category-heading">
     <h1 id="category-heading">{{ categoryName }}</h1>
+
+    <form class="filters" method="get" :action="route.path">
+      <fieldset>
+        <legend>{{ t('shop.filter.heading') }}</legend>
+
+        <div class="filter-control">
+          <label for="min-power">{{ t('shop.filter.minPower') }} (kW)</label>
+          <input id="min-power" name="minPower" type="number" min="0" step="1" :value="minPower" @input="onFilterInput">
+        </div>
+
+        <div class="filter-control">
+          <label for="connector">{{ t('shop.filter.connector') }}</label>
+          <select id="connector" name="connector" :value="connector" @input="onFilterInput">
+            <option value="">{{ t('shop.filter.connectorAll') }}</option>
+            <option value="ccs">{{ t('shop.filter.connectorType.ccs') }}</option>
+            <option value="type2">{{ t('shop.filter.connectorType.type2') }}</option>
+            <option value="card">{{ t('shop.filter.connectorType.card') }}</option>
+          </select>
+        </div>
+
+        <div class="filter-control">
+          <label for="order">{{ t('shop.sort.label') }}</label>
+          <select id="order" name="order" :value="order" @input="onFilterInput">
+            <option value="name-asc">{{ t('shop.sort.nameAsc') }}</option>
+            <option value="price-asc">{{ t('shop.sort.priceAsc') }}</option>
+            <option value="price-desc">{{ t('shop.sort.priceDesc') }}</option>
+          </select>
+        </div>
+      </fieldset>
+      <input v-if="tenant" type="hidden" name="tenant" :value="tenant">
+      <DsButton type="submit">{{ t('shop.filter.heading') }}</DsButton>
+    </form>
 
     <DsAlert v-if="error"><p>{{ t('shop.listing.loadError') }}</p></DsAlert>
 
@@ -68,6 +149,36 @@ const pageTarget = (page: number) => ({ path: `/shop/c/${category.value}`, query
 </template>
 
 <style scoped>
+.filters {
+  margin-bottom: var(--space-4);
+}
+.filters fieldset {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(var(--bp-md) / 3)), 1fr));
+  gap: var(--space-3);
+  margin: 0 0 var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+.filters legend {
+  padding: 0 var(--space-1);
+  font-weight: 600;
+}
+.filter-control {
+  display: grid;
+  gap: var(--space-1);
+}
+.filter-control input,
+.filter-control select {
+  min-height: var(--control-min-height);
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+}
 .product-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(var(--bp-md) / 2)), 1fr));
