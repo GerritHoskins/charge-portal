@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-06 + WP-16 parallel wave (WP-16 targeted checks passed; integration gate pending)
+Current step: WP-06 + WP-16 parallel wave (WP-16 Review; WP-06 scope decision pending)
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-07, WP-08
-Next step: implement WP-06 and WP-16 in isolated worktrees, then integrate and verify
+Next step: resolve the WP-06 fixture mismatch, integrate it, and run the combined full gate
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -140,7 +140,7 @@ Next step: implement WP-06 and WP-16 in isolated worktrees, then integrate and v
   implementation blocker.
 
 ## WP-16 — Field metrics schema and aggregation logic (2026-10-17, detached from `5343b48`)
-- Status: Review-ready for the serialized integration gate. Added the shop-only vitals beacon
+- Status: Review. Added the shop-only vitals beacon
   contract, route normalization, nearest-rank percentile calculation, and a fixed-capacity in-memory
   ring buffer that reports p75 and rating counts per normalized route and metric.
 - Tests first: after generating the ignored Nuxt type scaffolding, the new targeted suite failed on
@@ -151,9 +151,8 @@ Next step: implement WP-06 and WP-16 in isolated worktrees, then integrate and v
   `npm run test:coverage` **240/240 passed** with 96.48% statements / 92.2% branches /
   98.3% functions / 97.08% lines; `npm run lint` and `npm run typecheck` passed.
 - Handoff: changes are limited to the four WP-16 implementation/test/config files and this log.
-  `npm run check` was deliberately deferred while WP-06 owns the shared-port suite. Next action:
-  integrate the package commit, run the serialized full gate, and move WP-16 to Review if green;
-  human acceptance is still required for Done.
+  The integrated `npm run check` passed: **240/240 unit tests**, Playwright **115/115**, and
+  client JS **116.6 KB gz of 120 KB**. Human acceptance is still required for Done.
 
 ## Completed Changes
 - WP-00: setup + measurement only, no application code changes. `package.json` + `package-lock.json` modified by the two installs (uncommitted at time of writing; a human commits every diff).
