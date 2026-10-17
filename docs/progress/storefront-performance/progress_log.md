@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-20 Done (human-accepted); WP-21, WP-22 and WP-23 In progress in isolated worktrees
+Current step: WP-21 Review; WP-20 Done (human-accepted); WP-22 and WP-23 In progress in isolated worktrees
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-26
-Next step: finish WP-21 verification, verify WP-22's payload-aware sorting regression, and measure WP-23 delayed hydration; runtime/build gates are serialized
+Next step: human review of WP-21; finish WP-22 cache safety and WP-23 lazy-hydration measurements; runtime/build gates remain serialized
 
 ## Decisions
 - 2026-10-18: Human explicitly approved WP-22 extending `tests/e2e/shop-listing.spec.ts`: accept the API or query-aware Nuxt payload transport while verifying the complete sorted result. A cache-on diagnostic showed all 12 prices correctly descending; the old API-only wait was incompatible with Nuxt's cached-route payload loading.
@@ -583,6 +583,67 @@ Next step: finish WP-21 verification, verify WP-22's payload-aware sorting regre
 - Status: Review. The bounded RUM sampler repair is a separate WP-19 integration change and is
   not part of the WP-20 source diff. No package or lockfile changes; no push.
 
+## WP-21 — CLS and font stability (2026-10-18, worktree branch `codex/wp21-cls-fonts`)
+- Status: Review. Scope stayed in the shop layout, its approved persisted-cart E2E regression,
+  and this progress log. No font files/loaders were added: the shop uses system fonts, the
+  Lighthouse font audit reported no shift, and WP-20's lab and RUM CLS baselines were already 0.
+- Finding and tests first: on the stable product route, pausing initial scripts isolated the
+  persisted-cart header change from cart-page content restoration. Before the fix, restoring
+  count 1/12 moved the desktop cart/tools group left by 69.34/78.23 px at desktop widths; the
+  product main content did not move. The regression was first run against the baseline layout
+  and failed on these real header bounds. The approved permanent test checks geometry, live
+  localized count, and horizontal overflow for de/en, widths 320/390/650/1280, and counts
+  0/1/12/480; the 999-item CSS reserve is a sizing hint for ordinary counts, not an enforced
+  maximum. Its two hidden reserve strings intentionally mirror the supported de/en
+  `shop.cartCount` messages. The cart-link selector is scoped under the current shop header.
+- Implementation: the shop cart link reserves the localized three-digit count's intrinsic
+  width before hydration and overlays the live count in that grid cell after persisted state is
+  restored. The accessible live count remains omitted from SSR and appears only after mount.
+  No clipping/truncation or count validation was introduced; larger values expand naturally.
+- Focused verification: the final 32-case geometry matrix passed (32/32, exit 0) with the
+  Playwright baseURL fixture used for locale cookies. Full `npm run check` passed (exit 0) with
+  `E2E_LEGACY_PORT=18088` and `ROUTE_BUDGET_LEGACY_PORT=18088`: lint, typecheck, token and
+  migration checks; 289/289 unit tests (95.78% statements); Playwright 176/176; build; and all
+  seven route budgets. Product initial JS is 127.953/128.0 KB gz (about 48 bytes headroom).
+- Lab after: 20 Lighthouse reports (five runs × four routes), Lighthouse 12.6.1, mobile
+  simulation, CLS 0 on all 20, and accessibility 1.00 on every route. Use the manifest-selected
+  representative values: listing LCP/TBT 2689.892/210.764 ms; filtered listing
+  2646.200/206 ms; product 2839.858/201.096 ms; cart 2023.654/102.587 ms. No aggregate lab
+  CLS improvement is claimed because the accepted WP-20 baseline was also 0. WP-21 raw
+  manifest/reports: ignored `.lighthouseci-shop/` in this worktree; WP-20 comparison artifacts
+  remain in `.lighthouseci-shop-after/` in the WP-20 worktree.
+- TBT environment check: the full WP-20-to-WP-21 report ranges had non-overlapping TBT and
+  benchmarkIndex distributions, so that cross-run change is not treated as noise or attributed
+  to this layout-only CSS. A same-window five-run product control (same route, Lighthouse
+  12.6.1 and throttling) then measured baseline TBT 118.500–226 ms (benchmarkIndex
+  1463.5–1716.5) and WP-21 TBT 147.500–162.718 ms (benchmarkIndex 1568–1704); the ranges
+  overlap. LCP ranges were 2622–2933 ms baseline and 2616–2857 ms WP-21. All 10 control reports
+  had CLS 0 and accessibility 1.00. This matched single-route result does not exonerate the
+  source across other routes; the earlier cross-run differences remain environment-sensitive
+  and causality is unproven. Raw controls: `.lighthouseci-shop/wp21-tbt-control-before/` and
+  `.lighthouseci-shop/wp21-tbt-control-after/`.
+- Synthetic RUM after: the command's raw sampler label remains WP-19, but this 30-run sample
+  used the WP-21 after build and isolated port 18088. Category p75 LCP/INP/CLS:
+  464 ms / 32 ms (n=20) / 0 (n=30); product 296 ms / 32 ms (n=1) / 0 (n=30); cart
+  452 ms / no INP sample / 0 (n=30). Funnel totals 30/30/30, with 100% observed conversion.
+  It observed 198 browser-response vitals POSTs and 90 event POSTs; 8 separately recorded
+  server-confirmed beacons (6 listing LCP, 2 cart FCP/TTFB) are confirmations, not additional
+  browser-observed responses. No failed requests or 429s. INP coverage is sparse; no RUM CLS
+  improvement is claimed versus WP-20's zero baseline. Raw JSON:
+  `.lighthouseci-shop/rum-wp21-after.json`.
+- Retained experiment history: the first hidden-wrapper reserve exceeded the product route
+  budget (128.053/128 KB); a smaller anonymous-text candidate fit the budget but failed the
+  header-height/locale geometry assertion and was discarded. One initial permanent-test
+  harness attempt timed out at its 5-second hydration wait under harness contention; the
+  bounded 15-second wait then passed. An earlier full check exited 1 with Storybook reporting
+  `Axe is already running` (no axe violation); the isolated three-story check passed 3/3 and
+  the final full check passed 176/176 E2E. These attempts are preserved here rather than
+  presented as green runs.
+- Runtime overrides for these WP-21 runs: `E2E_LEGACY_PORT=18088`,
+  `ROUTE_BUDGET_LEGACY_PORT=18088`, `LIGHTHOUSE_LEGACY_PORT=18088`, and
+  `RUM_LEGACY_PORT=18088`; app port 3000. User ports 8080/3001 were left untouched.
+- Source committed locally as `4c3fb1b`; human acceptance is pending. No package/lockfile changes.
+
 ## Completed Changes
 - WP-00: setup + measurement only, no application code changes. `package.json` + `package-lock.json` modified by the two installs (uncommitted at time of writing; a human commits every diff).
 - WP-02: `shared/contracts/catalog.ts` (zod contract + mapping, new), `tests/unit/catalog-contract.test.ts` (15 cases, new), progress log updated.
@@ -591,6 +652,16 @@ Next step: finish WP-21 verification, verify WP-22's payload-aware sorting regre
 
 | Date | Commit | Route | Command | Runs | LCP | CLS | TBT | INP p75 (RUM) | Initial JS (gz) | TTFB cold/warm | Note |
 |---|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-10-18 | 352625e + WP-21 dirty | /shop/c/wallboxes | `npm run lighthouse:shop` | 5 | 2689.892 ms (rep; range 2671.572–2944.248 ms) | 0 | 210.764 ms (rep; range 117.572–259.913 ms) | n/a | n/a | n/a | WP-21 after; raw manifest/reports `.lighthouseci-shop/` |
+| 2026-10-18 | 352625e + WP-21 dirty | /shop/c/wallboxes?connector=ccs | `npm run lighthouse:shop` | 5 | 2646.200 ms (rep; range 2611.092–2688.008 ms) | 0 | 206 ms (rep; range 144.636–230.611 ms) | n/a | n/a | n/a | WP-21 after; raw manifest/reports `.lighthouseci-shop/` |
+| 2026-10-18 | 352625e + WP-21 dirty | /shop/ladekabel-typ-1-10-m | `npm run lighthouse:shop` | 5 | 2839.858 ms (rep; range 2839.858–3130.030 ms) | 0 | 201.096 ms (rep; range 61–301.493 ms) | n/a | n/a | n/a | WP-21 after; raw manifest/reports `.lighthouseci-shop/` |
+| 2026-10-18 | 352625e + WP-21 dirty | /shop/cart | `npm run lighthouse:shop` | 5 | 2023.654 ms (rep; range 1887.322–2137.521 ms) | 0 | 102.587 ms (rep; range 81.246–162 ms) | n/a | n/a | n/a | WP-21 after; raw manifest/reports `.lighthouseci-shop/` |
+| 2026-10-18 | 352625e + WP-21 dirty | /shop/c/:category | `node scripts/rum-sample.mjs --runs 30 --json .lighthouseci-shop/rum-wp21-after.json` | 30 | 464 ms p75 (n=30) | 0 (n=30) | n/a | 32 ms p75 (n=20) | n/a | n/a | WP-21 after build; aggregate route label; 30/30/30 funnel |
+| 2026-10-18 | 352625e + WP-21 dirty | /shop/:slug | `node scripts/rum-sample.mjs --runs 30 --json .lighthouseci-shop/rum-wp21-after.json` | 30 | 296 ms p75 (n=30) | 0 (n=30) | n/a | 32 ms p75 (n=1) | n/a | n/a | WP-21 after build; dynamically selected product; sparse INP |
+| 2026-10-18 | 352625e + WP-21 dirty | /shop/cart | `node scripts/rum-sample.mjs --runs 30 --json .lighthouseci-shop/rum-wp21-after.json` | 30 | 452 ms p75 (n=30) | 0 (n=30) | n/a | no sample | n/a | n/a | WP-21 after build; no cart INP sample |
+| 2026-10-18 | 352625e + WP-21 dirty | /shop/wallbox-home-7-4 | `npm run budget` (also final `npm run check`) | 2, identical | n/a | n/a | n/a | n/a | 127.953 KB (budget 128.0 KB) | n/a | WP-21 final source; all seven route budgets pass; approximately 48 B headroom |
+| 2026-10-18 | 352625e (accepted baseline layout) | /shop/ladekabel-typ-1-10-m | `node scripts/lighthouse.mjs --config .lighthouseci-shop/wp21-tbt-config.cjs --public` | 5 | 2858.300 ms (rep; range 2622.145–2932.800 ms) | 0 | 145 ms (rep; range 118.5–226 ms) | n/a | n/a | n/a | Same-window WP-21 control; raw `.lighthouseci-shop/wp21-tbt-control-before/`; benchmarkIndex 1463.5–1716.5 |
+| 2026-10-18 | 352625e + WP-21 dirty | /shop/ladekabel-typ-1-10-m | `node scripts/lighthouse.mjs --config .lighthouseci-shop/wp21-tbt-config.cjs --public` | 5 | 2856.512 ms (rep; range 2615.950–2856.512 ms) | 0 | 147.5 ms (rep; range 147.5–162.718 ms) | n/a | n/a | n/a | Same-window WP-21 control; raw `.lighthouseci-shop/wp21-tbt-control-after/`; benchmarkIndex 1568–1704 |
 | 2026-10-17 | e34d009 | /portal/stations | `npm run lighthouse` | 3, median | 1957 ms | 0 | 39 ms | n/a (WP-19) | n/a (per-route tooling WP-13) | 20 ms (warm, local) | lab; portal baseline, WP-00 |
 | 2026-10-17 | e34d009 | /portal/sessions | `npm run lighthouse` | 3, median | 1967 ms | 0 | 57 ms | n/a (WP-19) | n/a (per-route tooling WP-13) | 13 ms (warm, local) | lab; portal baseline, WP-00 |
 | 2026-10-17 | e34d009 | /portal/invoices | `npm run lighthouse` | 3, median | 1956 ms | 0 | 34 ms | n/a (WP-19) | n/a (per-route tooling WP-13) | 12 ms (warm, local) | lab; portal baseline, WP-00 |
