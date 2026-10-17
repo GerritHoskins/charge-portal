@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-05 — Public API allowlist (Review)
+Current step: WP-07 — Portal and shop layouts (Review)
 Completed steps: WP-00, WP-01, WP-02, WP-03
-Next step: dependency-safe parallel lane selection
+Next step: integrate the parallel WP-07/WP-08 wave and rerun the combined full gate
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -96,6 +96,23 @@ Next step: dependency-safe parallel lane selection
 - Handoff: package changes are limited to the six allowed implementation/test/config files
   and this log. The unrelated `package.json` and `.claude/launch.json` changes remain
   unstaged and untouched.
+
+## WP-07 — Portal and shop layouts (2026-10-17, detached worktree @ `9408eca`)
+- Status: Review. The WP-05 full check on this base supplied the pre-refactor baseline;
+  root then ran the focused and full post-refactor gates in this worktree.
+- Refactored `app/app.vue` to retain only the skip link, document metadata, hydration marker,
+  and `<NuxtLayout><NuxtPage /></NuxtLayout>` shell. The default layout now owns the unchanged
+  portal header, `/api/me` request, CSRF token, logout form, and rollout state initialization.
+- Added a public shop layout with no session request, CSRF token, or rollout state. Both layouts
+  keep the `#main` skip-link target and reuse the extracted `AppLocaleSwitcher`.
+- Verification: lint and typecheck passed; `npx playwright test --project=app --project=auth
+  --project=rollout` **61/61 passed**; `npm run check` **green** (221/221 unit tests,
+  Playwright 115/115, bundle 116.6 KB gz of 120 KB). No package-specific unit test is required
+  for this behavior-preserving refactor.
+- Dirty files: `app/app.vue`, `app/components/AppLocaleSwitcher.vue`,
+  `app/layouts/default.vue`, `app/layouts/shop.vue`, and this progress log only.
+- Next action: integrate with WP-08, reconcile this shared log, and rerun `npm run check` on
+  the combined head. No Codex advice was needed.
 
 ## Completed Changes
 - WP-00: setup + measurement only, no application code changes. `package.json` + `package-lock.json` modified by the two installs (uncommitted at time of writing; a human commits every diff).
