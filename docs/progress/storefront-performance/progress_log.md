@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-06 + WP-16 parallel wave (Review)
-Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-07, WP-08
-Next step: human review/acceptance; then start WP-09 from the integrated head (WP-17 also waits for WP-12)
+Current step: WP-09 — Listing page
+Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-16
+Next step: implement WP-09 from the verified integration head (WP-17 also waits for WP-12)
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -98,7 +98,7 @@ Next step: human review/acceptance; then start WP-09 from the integrated head (W
   unstaged and untouched.
 
 ## WP-06 — BFF shop endpoints (2026-10-17, detached worktree based on `5343b48`)
-- Status: Review. Implementation and the neutral-path integration gate are complete.
+- Status: Done (human-accepted 2026-10-17). Implementation and the neutral-path integration gate are complete.
 - Tests first: the new contract/query/mapping tests initially failed 8 cases because the shop schemas and
   mappers did not exist; the public BFF E2E initially failed 3 cases with 404 routes. After the BFF was
   implemented, the listing correctly returned the accepted catalogue's 20 products, exposing the package's
@@ -176,7 +176,7 @@ Next step: human review/acceptance; then start WP-09 from the integrated head (W
   implementation blocker.
 
 ## WP-16 — Field metrics schema and aggregation logic (2026-10-17, detached from `5343b48`)
-- Status: Review. Added the shop-only vitals beacon
+- Status: Done (human-accepted 2026-10-17). Added the shop-only vitals beacon
   contract, route normalization, nearest-rank percentile calculation, and a fixed-capacity in-memory
   ring buffer that reports p75 and rating counts per normalized route and metric.
 - Tests first: after generating the ignored Nuxt type scaffolding, the new targeted suite failed on
