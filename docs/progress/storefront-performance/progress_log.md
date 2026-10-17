@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-06 + WP-16 parallel wave (WP-16 Review; WP-06 integration verification pending)
+Current step: WP-06 + WP-16 parallel wave (Review)
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-07, WP-08
-Next step: run the combined full gate, then move WP-06 to Review for human acceptance
+Next step: human review/acceptance; then start WP-09 and WP-17 from the integrated head
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -98,8 +98,7 @@ Next step: run the combined full gate, then move WP-06 to Review for human accep
   unstaged and untouched.
 
 ## WP-06 — BFF shop endpoints (2026-10-17, detached worktree based on `5343b48`)
-- Status: implementation complete and ready for root integration verification; not marked Review until
-  `npm run check` is rerun from an integration path that does not contain `shop`.
+- Status: Review. Implementation and the neutral-path integration gate are complete.
 - Tests first: the new contract/query/mapping tests initially failed 8 cases because the shop schemas and
   mappers did not exist; the public BFF E2E initially failed 3 cases with 404 routes. After the BFF was
   implemented, the listing correctly returned the accepted catalogue's 20 products, exposing the package's
@@ -125,8 +124,10 @@ Next step: run the combined full gate, then move WP-06 to Review for human accep
 - Full-gate environment note: Playwright selected 231 tests because the shop project's
   `/shop.*\\.spec\\.ts/` regex also matched the absolute worktree directory `wp06-bff-shop`; unrelated signed-in
   specs therefore ran a second time under the logged-out shop project. That invalid duplicate run ended with
-  214 passed / 17 failed, all 17 from unrelated `invoices`, `mobile`, or `portal` specs under `[shop]`. Root will
-  rerun the unchanged full gate after integration from a path without `shop` in its pathname.
+  214 passed / 17 failed, all 17 from unrelated `invoices`, `mobile`, or `portal` specs under `[shop]`.
+- Integrated verification: the neutral-path `npm run check` passed with **251/251 unit tests**,
+  Playwright **118/118**, and client JS **116.6 KB gz of 120 KB**. The CCS E2E assertion was
+  strengthened during review to require a non-empty result whose products all carry `connectorType: 'CCS'`.
 - Package scope: `legacy/catalog.mjs`, `legacy/server.mjs`, `nuxt.config.ts`,
   `server/utils/legacy.ts`, `shared/contracts/catalog.ts`, the two new shop API handlers,
   `tests/unit/catalog-contract.test.ts`, `tests/unit/legacy-catalog.test.ts`,
