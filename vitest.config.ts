@@ -22,7 +22,7 @@ export default defineConfig({
       include: [
         'app/components/ds/**/*.vue',
         'shared/**/*.ts',
-        'server/utils/{csrf-token,rate-limit,login-throttle,public-api}.ts',
+        'server/utils/{csrf-token,rate-limit,login-throttle,public-api,vitals-store}.ts',
         'scripts/lib/**/*.mjs',
       ],
       // A floor, not a target: it exists to make a drop visible in review.

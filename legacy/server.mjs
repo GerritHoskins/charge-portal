@@ -4,7 +4,7 @@
 // markup: it is the thing being migrated.
 import { createServer } from 'node:http'
 import { clearCookie, COOKIE, createAuth, parseCookies, safeNext, sessionCookie } from './auth.mjs'
-import { findProduct, queryListing } from './catalog.mjs'
+import { categories, findProduct, products, queryListing } from './catalog.mjs'
 import { invoices, resetInvoices, sessions, stations } from './data.mjs'
 import { createDispute } from './invoices.mjs'
 import { layout, pages } from './pages.mjs'
@@ -102,8 +102,8 @@ createServer(async (req, res) => {
     return json(res, 200, { ok: true })
   }
 
-  const listingRoute = path.match(/^\/store-api\/product-listing\/([0-9a-f]+)$/)
-  const detailRoute = path.match(/^\/store-api\/product\/([0-9a-f]+)$/)
+  const listingRoute = path.match(/^\/store-api\/product-listing\/([a-z0-9-]+)$/)
+  const detailRoute = path.match(/^\/store-api\/product\/([a-z0-9-]+)$/)
   if (listingRoute || detailRoute) {
     if (req.headers['sw-access-key'] !== 'demo-access-key') return json(res, 401, { error: 'invalid_access_key' })
 
@@ -111,12 +111,14 @@ createServer(async (req, res) => {
     if (listingRoute && req.method === 'POST') {
       const input = await readBody(req).then(JSON.parse).catch(() => undefined)
       if (input === undefined) return json(res, 400, { error: 'bad_json' })
-      const listing = queryListing(listingRoute[1], input)
+      const categoryId = categories.find(({ id, slug }) => id === listingRoute[1] || slug === listingRoute[1])?.id
+      const listing = categoryId ? queryListing(categoryId, input) : undefined
       return listing ? json(res, 200, listing) : json(res, 404, { error: 'category_not_found' })
     }
 
     if (detailRoute && req.method === 'POST') {
-      const product = findProduct(detailRoute[1])
+      const productId = products.find(({ id, slug }) => id === detailRoute[1] || slug === detailRoute[1])?.id
+      const product = productId ? findProduct(productId) : undefined
       return product ? json(res, 200, { product }) : json(res, 404, { error: 'product_not_found' })
     }
 

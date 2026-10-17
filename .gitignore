@@ -12,3 +12,4 @@ playwright-report
 storybook-static
 tests/.auth
 .lighthouseci
+.lighthouseci-shop

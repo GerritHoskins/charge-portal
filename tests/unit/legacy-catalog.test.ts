@@ -9,7 +9,7 @@ const publicFile = (url: string) => path.resolve(process.cwd(), 'public', url.re
 
 describe('legacy catalogue (WP-03)', () => {
   it('parses every product with the Store API product schema', () => {
-    expect(products).toHaveLength(40)
+    expect(products).toHaveLength(48)
     for (const product of products) {
       const parsed = storeApiProductSchema.parse(product)
       expect(parsed).toMatchObject({ id: product.id, name: product.name })
@@ -38,6 +38,23 @@ describe('legacy catalogue (WP-03)', () => {
     }
   })
 
+  it('defines exactly 24 products per category for the default listing page', () => {
+    for (const category of categories) {
+      expect(products.filter((product) => product.categoryId === category.id), `category ${category.slug}`).toHaveLength(24)
+    }
+  })
+
+  it('reuses existing placeholder images for the eight added fixtures', () => {
+    const originalImageUrls = new Set(products.filter((product) => Number(product.productNumber.slice(3)) <= 1020).map((product) => product.cover.media.url))
+    const addedProducts = products.filter((product) => Number(product.productNumber.slice(3)) > 1020)
+
+    expect(addedProducts).toHaveLength(8)
+    for (const product of addedProducts) {
+      expect(originalImageUrls.has(product.cover.media.url), `${product.name} should reuse an existing image`).toBe(true)
+      expect(existsSync(publicFile(product.cover.media.url)), `missing reused image ${product.cover.media.url}`).toBe(true)
+    }
+  })
+
   it('links every product to one of the two categories', () => {
     const ids = new Set(categories.map((category) => category.id))
     for (const product of products) {
@@ -60,6 +77,16 @@ describe('queryListing (WP-04)', () => {
     expect(connector.elements.every((product) => product.customFields.connectorType === 'Typ 1')).toBe(true)
   })
 
+  it('returns a non-empty strict CCS subset for both categories', () => {
+    for (const category of [wallboxCategory, accessoryCategory]) {
+      const all = queryListing(category.id, { limit: 48 })
+      const ccs = queryListing(category.id, { connector: 'CCS', limit: 48 })
+      expect(ccs.total, `CCS fixtures for ${category.slug}`).toBeGreaterThan(0)
+      expect(ccs.total).toBeLessThan(all.total)
+      expect(ccs.elements.every((product) => product.customFields.connectorType === 'CCS')).toBe(true)
+    }
+  })
+
   it.each([
     ['price-asc', (product) => product.calculatedPrice.unitPrice],
     ['price-desc', (product) => -product.calculatedPrice.unitPrice],
@@ -75,7 +102,7 @@ describe('queryListing (WP-04)', () => {
 
   it('paginates after filtering and clamps page and limit bounds', () => {
     const first = queryListing(wallboxCategory.id, { page: -5, limit: 100, order: 'name-asc' })
-    expect(first).toMatchObject({ page: 1, limit: 48, total: 20 })
+    expect(first).toMatchObject({ page: 1, limit: 48, total: 24 })
 
     const second = queryListing(wallboxCategory.id, { page: 2, limit: 3, order: 'name-asc' })
     const all = queryListing(wallboxCategory.id, { limit: 48, order: 'name-asc' })

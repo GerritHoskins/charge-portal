@@ -5,6 +5,8 @@ import { validationErrorSchema } from '#shared/contracts/invoice'
 interface LegacyOptions {
   method?: 'GET' | 'POST'
   body?: Record<string, unknown>
+  forwardCookie?: boolean
+  headers?: Record<string, string>
 }
 
 // Single place where legacy responses enter the app: forward the browser's
@@ -19,12 +21,16 @@ export const fetchLegacy = async <T extends z.ZodType>(
   options: LegacyOptions = {},
 ): Promise<z.infer<T>> => {
   const { legacyOrigin } = useRuntimeConfig()
-  const cookie = getRequestHeader(event, 'cookie')
+  const cookie = options.forwardCookie === false ? undefined : getRequestHeader(event, 'cookie')
+  const headers = {
+    ...options.headers,
+    ...(cookie ? { cookie } : {}),
+  }
 
   const raw = await $fetch<unknown>(`${legacyOrigin}${path}`, {
     method: options.method ?? 'GET',
     body: options.body,
-    headers: cookie ? { cookie } : {},
+    headers,
   }).catch((error: { response?: { status?: number; _data?: unknown } }) => {
     const status = error.response?.status
     if (status === 401) throw createError({ statusCode: 401, statusMessage: 'Not authenticated' })

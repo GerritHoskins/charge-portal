@@ -45,8 +45,34 @@ for (const kw of WALLBOX_KW) {
 }
 wallboxEntries.push({ name: 'Wallbox Home 11 Duo', powerKw: 11 })
 wallboxEntries.push({ name: 'Wallbox Pro 22 Duo', powerKw: 22 })
+wallboxEntries.push({
+  name: 'Wallbox Fleet CCS 50',
+  powerKw: 50,
+  connectorType: 'CCS',
+  price: 899,
+  imageUrl: '/shop/wallbox-home-11-1600.jpg',
+})
+wallboxEntries.push({
+  name: 'Wallbox Depot CCS 75',
+  powerKw: 75,
+  connectorType: 'CCS',
+  price: 1099,
+  imageUrl: '/shop/wallbox-pro-22-1600.jpg',
+})
+wallboxEntries.push({
+  name: 'Wallbox Solar 11',
+  powerKw: 11,
+  price: 749,
+  imageUrl: '/shop/wallbox-plus-11-1600.jpg',
+})
+wallboxEntries.push({
+  name: 'Wallbox Urban 22',
+  powerKw: 22,
+  price: 999,
+  imageUrl: '/shop/wallbox-compact-22-1600.jpg',
+})
 
-const ACCESSORY_NAMES = [
+const ACCESSORY_ENTRIES = [
   'Ladekabel Typ 1, 5 m',
   'Ladekabel Typ 1, 10 m',
   'Ladekabel Typ 1, 20 m',
@@ -67,11 +93,41 @@ const ACCESSORY_NAMES = [
   'Wandleiste 4-fach',
   'Adapter 110 V - 230 V',
   'Verlängerungskabel 230 V, 5 m',
+  {
+    name: 'CCS-Schutzkappe',
+    kind: 'cover',
+    connectorType: 'CCS',
+    price: 34.9,
+    imageUrl: '/shop/ladecover-typ-2-1600.jpg',
+  },
+  {
+    name: 'CCS-Kabelhalter',
+    kind: 'holder',
+    connectorType: 'CCS',
+    price: 49.9,
+    imageUrl: '/shop/kabelhaken-typ-2-1600.jpg',
+  },
+  {
+    name: 'Transporttasche Ladekabel',
+    kind: 'case',
+    connectorType: 'Typ 2',
+    price: 59.9,
+    imageUrl: '/shop/ladekabel-typ-2-5-m-1600.jpg',
+  },
+  {
+    name: 'Wandhalterung Ladekabel',
+    kind: 'holder',
+    connectorType: 'Typ 1/Typ 2',
+    price: 44.9,
+    imageUrl: '/shop/steckeradapter-typ-1-auf-typ-2-1600.jpg',
+  },
 ]
 
 const ACCESSORY_SPECIALS = ['holder', 'ring', 'cover', 'splitter', 'inverter', 'cable']
 
-function accessoryFields(name, index) {
+function accessoryFields(entry, index) {
+  if (typeof entry !== 'string') return { kind: entry.kind, connectorType: entry.connectorType }
+  const name = entry
   if (index < 11) return { kind: 'cable', connectorType: name.includes('Typ 1') ? 'Typ 1' : 'Typ 2' }
   if (index < 14) return { kind: 'adapter', connectorType: ['CEE', 'Schuko', 'Typ 1/Typ 2'][index - 11] }
   return { kind: ACCESSORY_SPECIALS[index - 14] }
@@ -82,6 +138,8 @@ function makeProducts(category, prefix, entries, priceAt, fieldsAt) {
     const name = typeof entry === 'string' ? entry : entry.name
     const slug = slugify(name)
     const available = index % 9 !== 0
+    const price = typeof entry === 'string' ? undefined : entry.price
+    const imageUrl = typeof entry === 'string' ? undefined : entry.imageUrl
     return {
       categoryId: category.id,
       slug,
@@ -90,8 +148,8 @@ function makeProducts(category, prefix, entries, priceAt, fieldsAt) {
       name,
       available,
       availableStock: available ? 4 + ((index * 7) % 40) : 0,
-      calculatedPrice: { unitPrice: priceAt(index) },
-      cover: { media: { url: `/shop/${slug}-1600.jpg` } },
+      calculatedPrice: { unitPrice: price ?? priceAt(index) },
+      cover: { media: { url: imageUrl ?? `/shop/${slug}-1600.jpg` } },
       seoUrls: [{ seoPathInfo: slug }],
       customFields: fieldsAt(entry, index),
     }
@@ -108,15 +166,15 @@ export const wallboxes = makeProducts(
   'WB',
   wallboxEntries,
   (index) => round2(399 + index * 46.75),
-  (entry) => ({ powerKw: entry.powerKw, connectorType: 'Typ 2' }),
+  (entry) => ({ powerKw: entry.powerKw, connectorType: entry.connectorType ?? 'Typ 2' }),
 )
 
 export const accessories = makeProducts(
   categories[1],
   'AC',
-  ACCESSORY_NAMES,
+  ACCESSORY_ENTRIES,
   (index) => round2(24.9 + index * 8.35),
-  (name, index) => accessoryFields(name, index),
+  (entry, index) => accessoryFields(entry, index),
 )
 
 export const products = [...wallboxes, ...accessories]
