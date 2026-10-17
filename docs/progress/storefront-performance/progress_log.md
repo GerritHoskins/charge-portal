@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-13 per-route JavaScript budget — Review (required-route coverage fix verified)
+Current step: WP-10, WP-11, WP-12, and WP-13 — Review (implementation and required checks complete)
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-16
-Next step: Human review/integration of WP-13, then WP-14 documents the accepted budget model in ADR 0007
+Next step: Human acceptance of WP-10 through WP-13, then WP-14 documents the accepted budget model in ADR 0007
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -201,8 +201,8 @@ Next step: Human review/integration of WP-13, then WP-14 documents the accepted 
   optimization, dependency, or generated shop-asset change was made. No Codex advisor was needed.
 
 ## WP-10 — Listing filters and sorting (2026-10-17, detached @ `5333120`)
-- Status: Implementation complete; verification deferred solely to WP-13's planned replacement of
-  the aggregate JS budget. Keep out of Review until the resulting `npm run check` is green.
+- Status: Review. WP-13 replaced the aggregate JS gate and the resulting full `npm run check`
+  passed; implementation and required checks are complete, with human acceptance pending.
 - Tests first: the expanded listing spec initially ran **6 passed / 5 failed**. The new connector,
   minimum-power, price-ordering, direct SSR, and keyboard cases failed against the unfiltered page,
   while the filtered axe case already passed. The first implementation exposed a test-timing issue:
@@ -245,8 +245,8 @@ Next step: Human review/integration of WP-13, then WP-14 documents the accepted 
   client JS **116.6 KB gz of 120 KB**. Human acceptance was recorded on 2026-10-17.
 
 ## WP-11 — Product detail page `/shop/[slug]` (2026-10-17, detached from `5333120`)
-- Status: Implementation complete; verification deferred solely to WP-13's planned replacement of
-  the aggregate JS budget. Keep out of Review until the resulting `npm run check` is green. Added the SSR product route with a
+- Status: Review. WP-13 replaced the aggregate JS gate and the resulting full `npm run check`
+  passed; implementation and required checks are complete, with human acceptance pending. Added the SSR product route with a
   real 404 response and accessible not-found state, breadcrumb, deliberately naive hero, localized
   description/price/stock/specs, cart-button stub, and eight eagerly rendered related products.
 - Bounded interpretation: the narrow product contract exposes neither category nor description.
@@ -266,8 +266,8 @@ Next step: Human review/integration of WP-13, then WP-14 documents the accepted 
   pulled forward. Human acceptance is still required after the deferred full gate is green.
 
 ## WP-12 — Client-side cart (2026-10-17, detached from `8c5f4b9`)
-- Status: Implementation complete; verification deferred solely to WP-13's planned replacement of
-  the aggregate JS budget. Keep out of Review until the resulting `npm run check` is green. Added
+- Status: Review. WP-13 replaced the aggregate JS gate and the resulting full `npm run check`
+  passed; implementation and required checks are complete, with human acceptance pending. Added
   immutable pure cart operations (duplicate merge, quantity clamp/removal, item count, integer-cent
   total), a shared Nuxt client cart with guarded localStorage persistence, a hydrated-only header
   count, product-page add/announcement behavior, and an accessible `/shop/cart` table with quantity,
