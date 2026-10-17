@@ -28,10 +28,12 @@
     "pre-commit": "npm run lint && npm run typecheck"
   },
   "dependencies": {
+    "@nuxt/image": "^2.1.0",
     "@nuxtjs/i18n": "^10.6.0",
     "nuxt": "^4.6.1",
     "vue": "^3.5.43",
     "vue-router": "^5.4.0",
+    "web-vitals": "^6.2.3",
     "zod": "^4.6.6"
   },
   "devDependencies": {
