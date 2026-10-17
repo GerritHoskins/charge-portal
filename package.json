@@ -21,7 +21,7 @@
     "check": "npm run lint && npm run typecheck && npm run tokens -- --check && npm run migration:status -- --check && npm run test:coverage && npm run test:e2e && npm run budget",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build -o storybook-static",
-    "budget": "npm run build && node scripts/check-bundle-size.mjs",
+    "budget": "npm run build && node scripts/check-bundle-size.mjs && node scripts/check-route-budget.mjs",
     "lighthouse": "npm run build && node scripts/lighthouse.mjs"
   },
   "simple-git-hooks": {

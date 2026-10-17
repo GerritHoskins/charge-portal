@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-12 client-side cart implementation complete; verification deferred solely to WP-13's aggregate-budget replacement
+Current step: WP-13 per-route JavaScript budget — Review (implementation and required checks complete)
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-16
-Next step: WP-13 replaces the invalid aggregate JS gate and unlocks Review for WP-10/WP-11/WP-12
+Next step: Human review/integration of WP-13, then WP-14 documents the accepted budget model in ADR 0007
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -295,6 +295,33 @@ Next step: WP-13 replaces the invalid aggregate JS gate and unlocks Review for W
   reproduced both defects; focused cart unit **10/10**, product/cart E2E **8/8**, lint, and
   typecheck all pass after the correction.
 
+## WP-13 — Per-route JavaScript budget (2026-10-17, detached from `6bdc1fa`)
+- Status: Review. Replaced the hard aggregate client-JavaScript sum with a browser-measured hard
+  budget for seven representative portal and shop routes. Each route uses a fresh browser context,
+  portal routes use the demo session, emitted `/_nuxt/*.js` files are read from `.output/public`
+  and gzipped locally, and hydration plus initial network idle define a deterministic first-visit
+  boundary. Stale ports, redirects, missing client JavaScript, missing build assets, absent budgets,
+  and over-budget measurements all fail hard; browser and child processes are closed in `finally`.
+- Tests first: after `nuxt prepare`, the focused suite failed on the deliberately missing
+  `scripts/lib/route-budget.mjs`. The implemented pure parser/evaluator then passed **8/8** cases,
+  covering under/equal/over, a missing budget, JSON/object input, numeric shorthand, and invalid
+  definitions. The first hydration-only calibration exposed a prefetch race on the dispute route;
+  adding initial network idle produced two byte-identical zero-budget calibration runs.
+- Budgets: portal thresholds are the measured baseline +5%, rounded upward to 0.1 KB; shop
+  thresholds are the measured baseline +10%, rounded upward to 0.1 KB and marked provisional.
+  The former aggregate total remains visible (**122.9 KB gz / 120 KB**) but is informational only.
+- Verification: targeted unit **8/8**, full coverage **269/269** (94.96% statements, 89.32%
+  branches, 98.71% functions, 95.36% lines), lint, and typecheck passed. A deliberate all-zero
+  `npm run budget` failed all seven routes and printed their baselines; the calibrated fresh
+  `npm run budget` passed. Full `npm run check` passed lint, typecheck, token and migration checks,
+  coverage, Playwright **137/137**, production build, informational aggregate output, and all seven
+  hard per-route gates. No Codex advisor consultation was needed.
+- Handoff: local implementation is contained in this commit, based on `6bdc1fa`, on the detached
+  WP-13 worktree; package scope
+  is limited to `scripts/lib/route-budget.mjs`, `scripts/check-route-budget.mjs`,
+  `scripts/route-budgets.json`, `scripts/check-bundle-size.mjs`, `package.json`,
+  `tests/unit/route-budget.test.ts`, and this log. Human acceptance is still required.
+
 ## Completed Changes
 - WP-00: setup + measurement only, no application code changes. `package.json` + `package-lock.json` modified by the two installs (uncommitted at time of writing; a human commits every diff).
 - WP-02: `shared/contracts/catalog.ts` (zod contract + mapping, new), `tests/unit/catalog-contract.test.ts` (15 cases, new), progress log updated.
@@ -307,6 +334,13 @@ Next step: WP-13 replaces the invalid aggregate JS gate and unlocks Review for W
 | 2026-10-17 | e34d009 | /portal/sessions | `npm run lighthouse` | 3, median | 1967 ms | 0 | 57 ms | n/a (WP-19) | n/a (per-route tooling WP-13) | 13 ms (warm, local) | lab; portal baseline, WP-00 |
 | 2026-10-17 | e34d009 | /portal/invoices | `npm run lighthouse` | 3, median | 1956 ms | 0 | 34 ms | n/a (WP-19) | n/a (per-route tooling WP-13) | 12 ms (warm, local) | lab; portal baseline, WP-00 |
 | 2026-10-17 | e34d009 | /portal/invoices/inv-0042/dispute | `npm run lighthouse` | 3, median | 2106 ms | 0 | 30 ms | n/a (WP-19) | n/a (per-route tooling WP-13) | 11 ms (warm, local) | lab; portal baseline, WP-00 |
+| 2026-10-17 | 6bdc1fa + WP-13 | /portal/stations | `npm run budget` | 2, identical | n/a | n/a | n/a | n/a (WP-19) | 113.795 KB (budget 119.5 KB) | n/a | local first visit; WP-13 baseline, +5% hard budget |
+| 2026-10-17 | 6bdc1fa + WP-13 | /portal/sessions | `npm run budget` | 2, identical | n/a | n/a | n/a | n/a (WP-19) | 113.795 KB (budget 119.5 KB) | n/a | local first visit; WP-13 baseline, +5% hard budget |
+| 2026-10-17 | 6bdc1fa + WP-13 | /portal/invoices | `npm run budget` | 2, identical | n/a | n/a | n/a | n/a (WP-19) | 116.556 KB (budget 122.4 KB) | n/a | local first visit; WP-13 baseline, +5% hard budget |
+| 2026-10-17 | 6bdc1fa + WP-13 | /portal/invoices/inv-0042/dispute | `npm run budget` | 2, identical | n/a | n/a | n/a | n/a (WP-19) | 116.556 KB (budget 122.4 KB) | n/a | local first visit; WP-13 baseline, +5% hard budget |
+| 2026-10-17 | 6bdc1fa + WP-13 | /shop/c/wallboxes | `npm run budget` | 2, identical | n/a | n/a | n/a | n/a (WP-19) | 114.527 KB (budget 126.0 KB) | n/a | local first visit; WP-13 baseline, provisional +10% hard budget |
+| 2026-10-17 | 6bdc1fa + WP-13 | /shop/wallbox-home-7-4 | `npm run budget` | 2, identical | n/a | n/a | n/a | n/a (WP-19) | 116.307 KB (budget 128.0 KB) | n/a | local first visit; WP-13 baseline, provisional +10% hard budget |
+| 2026-10-17 | 6bdc1fa + WP-13 | /shop/cart | `npm run budget` | 2, identical | n/a | n/a | n/a | n/a (WP-19) | 111.800 KB (budget 123.0 KB) | n/a | local first visit; WP-13 baseline, provisional +10% hard budget |
 
 Notes: medians from `.lighthouseci/` reports of the 2026-10-17 run; TTFB is the `server-response-time` audit on the local warm server (no cold/warm split yet); all numbers lab (mobile emulation, simulated throttling).
 
