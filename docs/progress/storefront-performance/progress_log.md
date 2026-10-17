@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-20 and WP-19 sampler repair — integrated; combined check pending
+Current step: WP-20 and sampler repair — integrated Review; WP-22 In progress in its isolated worktree
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-26
-Next step: run the combined check gate; obtain human acceptance for WP-20
+Next step: obtain human acceptance for WP-20; complete independent WP-22 cache safety and measurements
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -351,7 +351,8 @@ Next step: run the combined check gate; obtain human acceptance for WP-20
   sample passed; an in-memory missing-response-event regression passed with 8 server-confirmed
   beacons, and an in-memory intercepted-request regression failed as intended despite browser
   204s, preserving partial diagnostics. No product source changed for this repair. Combined
-  integration `npm run check` remains pending.
+  integration `npm run check` passed: **289/289** unit tests, **144/144** browser tests,
+  lint/typecheck, token/inventory checks, production build, and all seven unchanged route budgets.
 
 ## WP-11 — Product detail page `/shop/[slug]` (2026-10-17, detached from `5333120`)
 - Status: Done (human-accepted 2026-10-17). WP-13 replaced the aggregate JS gate and the
