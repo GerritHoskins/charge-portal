@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" role="img" aria-label="Wallbox Smart 22 (placeholder image)">
+<rect width="400" height="400" fill="#f8fafc" />
+<circle cx="200" cy="176" r="80" fill="none" stroke="undefined" stroke-width="14.000000000000002" /><circle cx="200" cy="176" r="40" fill="undefined" />
+<text x="200" y="352" text-anchor="middle" font-family="system-ui, sans-serif" font-size="20" fill="#334155">Wallbox Smart 22</text>
+</svg>

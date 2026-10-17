@@ -33,6 +33,30 @@ Next step: WP-03
 - Done-when verified: vitest 15 passed on the file; `npm run test:coverage` 195/195 (stmt 97.75 %, branch 94.39 %, fn 97.77 %, line 97.87 %); eslint clean; `nuxt typecheck` clean; stale orphan legacy server on :8080 (killed) was causing 9 invoices e2e failures before the final gate — with clean ports `npm run check` fully **green**: lint, typecheck, tokens, migration-status, coverage (16 files/195 tests), Playwright **112/112**, budget **115.8 KB gz of 120 KB**.
 - Pushed to `main` (user-approved commit + push).
 
+## WP-03 — Standin catalogue data (2026-10-17, on `main` @ `6430ea1`)
+- Status: Review. Full `npm run check` green: 200/200 unit tests (incl. the new
+  `tests/unit/legacy-catalog.test.ts`), Playwright e2e + axe, lint, typecheck, tokens,
+  coverage, and the client-JS budget (115.8 KB of 120 KB).
+- Test first: failing test (schema parse per product, 40 products ≥ 15 per category,
+  unique IDs, unique `seoPathInfo` slugs, referenced image files existed on disk)
+  before any implementation.
+- Added `legacy/catalog.mjs`: deterministic stand-in catalogue — 40 products
+  (20 wallboxes, 20 accessories) in 2 categories. Stable 32-char hex IDs derived
+  by FNV-1a (no random numbers, identical across runs), umlaut-safe unique slugs,
+  prices 24.90–1287.25 EUR. Every product parses through the WP-02
+  `storeApiProductSchema`; `customFields` (powerKw/connectorType/kind) feed the
+  WP-19 filter and 3 products per category are out of stock (available=false,
+  availableStock=0) so stock states have real test data.
+- Added `scripts/shop-images.mjs` + `public/shop/`: 240 placeholder images
+  (40 products × 400/800/1600 px) — deterministic SVG art (name + shape, colour
+  by name) plus raster JPEG renders via `sharp` (resolved at runtime here; the
+  script degrades to SVG-only where sharp is unavailable). Total 1.9 MB, under
+  the 2 MB budget. Raster images give WP-20 real material to optimize.
+- Open question: images are generated, not hand-crafted — acceptable for a
+  stand-in; `node scripts/shop-images.mjs` regenerates them any time
+  (deterministic). WP-03 does not implement the product-detail route (WP-04).
+- State: uncommitted, awaiting human review (AGENTS.md: a human commits every diff).
+
 ## Completed Changes
 - WP-00: setup + measurement only, no application code changes. `package.json` + `package-lock.json` modified by the two installs (uncommitted at time of writing; a human commits every diff).
 - WP-02: `shared/contracts/catalog.ts` (zod contract + mapping, new), `tests/unit/catalog-contract.test.ts` (15 cases, new), progress log updated.
