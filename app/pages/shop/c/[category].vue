@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ShopListing } from '#shared/contracts/catalog'
+import { breadcrumbJsonLd, listingCanonicalUrl, serializeJsonLd } from '#shared/seo'
 
 definePageMeta({ layout: 'shop' })
 
@@ -12,6 +13,7 @@ type Order = typeof ORDERS[number]
 const route = useRoute()
 const { t } = useI18n()
 const fmt = useFormatters()
+const requestUrl = useRequestURL()
 
 const queryValue = (value: string | (string | null)[] | null | undefined) => {
   const first = Array.isArray(value) ? value[0] : value
@@ -50,8 +52,6 @@ const activeQuery = computed(() => ({
   ...(tenant.value ? { tenant: tenant.value } : {}),
 }))
 
-useHead({ title: () => categoryName.value })
-
 const { data: listing, error } = await useFetch<ShopListing>(
   () => `/api/shop/listing/${encodeURIComponent(category.value)}`,
   {
@@ -69,6 +69,33 @@ const { data: listing, error } = await useFetch<ShopListing>(
 const totalPages = computed(() => Math.max(1, Math.ceil(listing.value.total / listing.value.limit)))
 const pages = computed(() => Array.from({ length: totalPages.value }, (_, index) => index + 1))
 const pageTarget = (page: number) => ({ path: `/shop/c/${category.value}`, query: { ...activeQuery.value, page } })
+// Canonicals remove every filter. Page one points to the unfiltered category; later pages
+// retain only their page number so paginated inventory remains independently discoverable.
+const canonicalUrl = computed(() => listingCanonicalUrl(requestUrl.origin, category.value, pageNumber.value))
+const listingImage = computed(() => {
+  const image = listing.value.items[0]?.image.url
+  return image ? new URL(image, requestUrl.origin).toString() : undefined
+})
+
+useSeoMeta({
+  title: () => categoryName.value,
+  description: () => t('shop.listing.caption'),
+  ogTitle: () => categoryName.value,
+  ogImage: () => listingImage.value,
+  ogType: 'website',
+})
+
+useHead(() => ({
+  link: [{ rel: 'canonical', href: canonicalUrl.value }],
+  script: [{
+    key: 'listing-breadcrumb-json-ld',
+    type: 'application/ld+json',
+    innerHTML: serializeJsonLd(breadcrumbJsonLd([
+      { name: t('shop.breadcrumb.home'), url: new URL('/shop', requestUrl.origin).toString() },
+      { name: categoryName.value, url: canonicalUrl.value },
+    ])),
+  }],
+}))
 
 // baseline (WP-10): no debounce on purpose, see WP-24
 const onFilterInput = (event: Event) => {

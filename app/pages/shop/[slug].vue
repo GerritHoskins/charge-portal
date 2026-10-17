@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ShopListing, ShopProduct } from '#shared/contracts/catalog'
+import { breadcrumbJsonLd, productJsonLd, serializeJsonLd } from '#shared/seo'
 
 definePageMeta({ layout: 'shop' })
 
@@ -8,6 +9,7 @@ const { t } = useI18n()
 const fmt = useFormatters()
 const announcement = ref('')
 const { addItem } = useCart()
+const requestUrl = useRequestURL()
 
 const slug = computed(() => String(route.params.slug))
 const { data: product, error: productError } = await useFetch<ShopProduct>(
@@ -47,7 +49,45 @@ const connectorType = computed(() => {
   return typeof value === 'string' ? value : '—'
 })
 
-useHead({ title: () => product.value?.name ?? t('shop.product.notFound') })
+const canonicalUrl = computed(() => new URL(route.path, requestUrl.origin).toString())
+const productDescription = computed(() => (
+  product.value
+    ? `${product.value.name}. ${t('shop.listing.caption')}`.slice(0, 155)
+    : t('shop.product.notFound')
+))
+const productImage = computed(() => (
+  product.value ? new URL(product.value.image.url, requestUrl.origin).toString() : undefined
+))
+
+useSeoMeta({
+  title: () => product.value?.name ?? t('shop.product.notFound'),
+  description: () => productDescription.value,
+  ogTitle: () => product.value?.name ?? t('shop.product.notFound'),
+  ogImage: () => productImage.value,
+  ogType: 'website',
+})
+
+useHead(() => ({
+  link: [{ rel: 'canonical', href: canonicalUrl.value }],
+  script: product.value
+    ? [
+        {
+          key: 'product-json-ld',
+          type: 'application/ld+json',
+          innerHTML: serializeJsonLd(productJsonLd(product.value, canonicalUrl.value)),
+        },
+        {
+          key: 'product-breadcrumb-json-ld',
+          type: 'application/ld+json',
+          innerHTML: serializeJsonLd(breadcrumbJsonLd([
+            { name: t('shop.breadcrumb.home'), url: new URL('/shop', requestUrl.origin).toString() },
+            { name: categoryName.value, url: new URL(`/shop/c/${category.value}`, requestUrl.origin).toString() },
+            { name: product.value.name, url: canonicalUrl.value },
+          ])),
+        },
+      ]
+    : [],
+}))
 
 const onAddToCart = async () => {
   if (!product.value) return

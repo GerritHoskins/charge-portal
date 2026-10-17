@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-14, WP-15, and WP-17 integrated implementation — combined gate passed; human review pending
+Current step: WP-14, WP-15, WP-17, and WP-26 integrated implementation — combined gate pending; human review pending
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-16
-Next step: finish WP-26 verification, run the combined integration gate, and obtain human acceptance
+Next step: run the combined integration gate, then obtain human acceptance
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -410,6 +410,38 @@ Next step: finish WP-26 verification, run the combined integration gate, and obt
   `VUE_ROUTER_R0004`; adding that route is outside WP-15's authorized files. Lighthouse reports
   remain local and ignored. Package scope is `lighthouserc.shop.cjs`, `scripts/lighthouse.mjs`,
   `package.json`, `.gitignore`, and this progress/measurement handoff.
+
+## WP-26 — SEO basics for public pages (2026-10-17, detached from `254ce7d` + local WP-15 parent)
+- Status: implementation and package verification complete; integration review remains. The required WP-15 verification
+  dependency (`b6d901e`, applied locally as `75bbf83`) supplies `npm run lighthouse:shop`; the
+  eventual WP-26 commit must be cherry-picked without treating that parent as WP-26 scope.
+- Tests first: the focused unit suite failed on the missing `#shared/seo` module. Added exact
+  Product/Offer and BreadcrumbList builder cases, cents-to-decimal EUR pricing, out-of-stock
+  mapping, canonical rules, and safe script serialization proving every `<` becomes the literal
+  `\\u003c` sequence while remaining parsable JSON. The SSR Playwright coverage verifies
+  title, description, canonical URL, parsable Product JSON-LD/price, filtered page-one canonical,
+  and page-two canonical.
+- Implementation: product and category pages use typed `useSeoMeta`, absolute largest-image
+  Open Graph metadata, canonical links, and safely serialized JSON-LD scripts. Product pages emit
+  Product plus breadcrumb data; category pages emit breadcrumb data. Nuxt's typed Open Graph union
+  does not include `product`, so the product page uses supported `website` Open Graph type while
+  retaining schema.org `Product` semantics in JSON-LD.
+- Canonical decision: every listing canonical strips filters. Page one points to the unfiltered
+  category URL; page two and later retain only `?page=N`. This prevents filter combinations from
+  fragmenting canonical identity while keeping pagination independently discoverable.
+- Language-alternate limitation for ADR 0008: the accepted `no_prefix` strategy gives German and
+  English the same URL, so there is no truthful alternate URL to publish and no `hreflang` is
+  emitted. A prefix strategy such as `/de/...` and `/en/...` would create distinct targets and
+  allow reciprocal alternates (plus an optional `x-default`).
+- Verification: focused SEO unit **5/5 passed**; coverage **277/277 passed** (95.29%
+  statements, 89.62% branches, 98.83% functions, 95.65% lines); lint and typecheck passed. The
+  focused SSR SEO E2E passed **2/2** and the complete `shop` project passed **25/25**, both with
+  `E2E_LEGACY_PORT=18083`. `LIGHTHOUSE_LEGACY_PORT=18083 npm run lighthouse:shop` completed
+  **20/20 audits** (5 runs × 4 routes): SEO score **1.00** on the unfiltered listing, filtered
+  listing, and product route; the unchanged cart route scored **0.90**. Accessibility remained
+  **1.00** on all routes. The only route warning was WP-15's known missing `/robots.txt`; the
+  listing/product performance and LCP/CLS baseline findings remained warn-only. Google's Rich
+  Results Test was **not performed** because no public URL was supplied. No push has been made.
 
 ## Completed Changes
 - WP-00: setup + measurement only, no application code changes. `package.json` + `package-lock.json` modified by the two installs (uncommitted at time of writing; a human commits every diff).
