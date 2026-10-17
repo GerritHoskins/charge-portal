@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest'
 import {
   catalogProductSchema,
   mapProductListing,
+  shopListingQuerySchema,
   storeApiProductListingSchema,
   storeApiProductSchema,
   toCatalogProduct,
+  toShopListing,
+  toShopProduct,
 } from '#shared/contracts/catalog'
 
 const idA = 'd8e9c1b2a3f4e5d6c7b8a9d0e1f2a3b4'
@@ -126,5 +129,58 @@ describe('catalog contract mapping', () => {
     for (const item of mapped.items) {
       expect(catalogProductSchema.safeParse(item).success).toBe(true)
     }
+  })
+})
+
+describe('shop listing query contract', () => {
+  it('coerces numeric query strings and applies defaults', () => {
+    expect(shopListingQuerySchema.parse({ page: '2', limit: '12', minPower: '11', connector: 'ccs' })).toEqual({
+      page: 2,
+      limit: 12,
+      order: 'name-asc',
+      minPower: 11,
+      connector: 'ccs',
+    })
+  })
+
+  it.each([
+    { page: '0' },
+    { limit: '0' },
+    { limit: '49' },
+    { minPower: '-1' },
+  ])('rejects out-of-bounds numeric input %#', (query) => {
+    expect(shopListingQuerySchema.safeParse(query).success).toBe(false)
+  })
+
+  it('rejects an unknown order', () => {
+    expect(shopListingQuerySchema.safeParse({ order: 'bogus' }).success).toBe(false)
+  })
+})
+
+describe('shop response mapping', () => {
+  it('maps Store API euro amounts to integer cents and supplies image alt text', () => {
+    expect(toShopProduct({ ...validProduct, calculatedPrice: { unitPrice: 499.99 } })).toEqual({
+      id: idA,
+      name: 'AC/DC Wallbox Pro',
+      priceCents: 49999,
+      image: {
+        url: 'https://cdn.example/media/thumbnail/box.jpg',
+        alt: 'AC/DC Wallbox Pro',
+      },
+      inStock: true,
+      stock: 3,
+      slug: '/catalog/ac-dc-wallbox-pro',
+      customFields: { bundleCode: 'WBX-PRO' },
+    })
+  })
+
+  it('maps listing pagination and products to the public shop shape', () => {
+    const listing = { ...validListing, elements: [{ ...validProduct, calculatedPrice: { unitPrice: 499.99 } }] }
+    expect(toShopListing(listing)).toEqual({
+      total: 2,
+      page: 1,
+      limit: 24,
+      items: [toShopProduct(listing.elements[0])],
+    })
   })
 })

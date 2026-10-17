@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-06 + WP-16 parallel wave (WP-16 Review; WP-06 scope decision pending)
+Current step: WP-06 + WP-16 parallel wave (WP-16 Review; WP-06 integration verification pending)
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-07, WP-08
-Next step: resolve the WP-06 fixture mismatch, integrate it, and run the combined full gate
+Next step: run the combined full gate, then move WP-06 to Review for human acceptance
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -96,6 +96,41 @@ Next step: resolve the WP-06 fixture mismatch, integrate it, and run the combine
 - Handoff: package changes are limited to the six allowed implementation/test/config files
   and this log. The unrelated `package.json` and `.claude/launch.json` changes remain
   unstaged and untouched.
+
+## WP-06 — BFF shop endpoints (2026-10-17, detached worktree based on `5343b48`)
+- Status: implementation complete and ready for root integration verification; not marked Review until
+  `npm run check` is rerun from an integration path that does not contain `shop`.
+- Tests first: the new contract/query/mapping tests initially failed 8 cases because the shop schemas and
+  mappers did not exist; the public BFF E2E initially failed 3 cases with 404 routes. After the BFF was
+  implemented, the listing correctly returned the accepted catalogue's 20 products, exposing the package's
+  previously unresolved requirement for exactly 24 products and a non-empty CCS filter.
+- Approved scope decision: the user allowed `legacy/catalog.mjs` and
+  `tests/unit/legacy-catalog.test.ts` into WP-06. Four deterministic products were added per category,
+  including two meaningful synthetic CCS fixtures per category. All eight new fixtures deliberately reuse
+  existing valid placeholder image URLs; no generated assets or image scripts changed. The expanded catalogue
+  has 48 products, exactly 24 per category, stable unique IDs/slugs, valid prices and stock states, and every
+  product still parses through `storeApiProductSchema`. The expanded catalogue tests first failed 5 expected
+  assertions (40/48 total, 20/24 per category, missing new fixtures, empty CCS subset, pagination total), then
+  passed after the fixture change.
+- Added logged-out Nuxt BFF routes for category listings and product detail. Query validation/coercion, sorting,
+  pagination, minimum power and connector mapping are contract-backed; invalid queries return 400, unknown
+  entities preserve 404, raw legacy responses are parsed before mapping, prices are rounded to integer cents,
+  and Store API requests use a server-only access key without forwarding the portal cookie. The stand-in Store
+  API now resolves category/product slugs as well as legacy IDs.
+- Verification: `npx vitest run tests/unit/catalog-contract.test.ts tests/unit/legacy-catalog.test.ts`
+  **37/37 passed**; isolated `npx playwright test tests/e2e/shop-public.spec.ts --project=shop` **4/4 passed**;
+  isolated `npx playwright test --project=app` **36/36 passed**; `npm run lint` passed; `npm run typecheck`
+  passed. In the attempted full `npm run check`, lint, typecheck, token/migration checks and coverage all passed
+  (18 files / 232 tests; 96.50% statements, 93.16% branches, 97.95% functions, 96.25% lines).
+- Full-gate environment note: Playwright selected 231 tests because the shop project's
+  `/shop.*\\.spec\\.ts/` regex also matched the absolute worktree directory `wp06-bff-shop`; unrelated signed-in
+  specs therefore ran a second time under the logged-out shop project. That invalid duplicate run ended with
+  214 passed / 17 failed, all 17 from unrelated `invoices`, `mobile`, or `portal` specs under `[shop]`. Root will
+  rerun the unchanged full gate after integration from a path without `shop` in its pathname.
+- Package scope: `legacy/catalog.mjs`, `legacy/server.mjs`, `nuxt.config.ts`,
+  `server/utils/legacy.ts`, `shared/contracts/catalog.ts`, the two new shop API handlers,
+  `tests/unit/catalog-contract.test.ts`, `tests/unit/legacy-catalog.test.ts`,
+  `tests/e2e/shop-public.spec.ts`, and this log. No Codex advisor consultation was needed.
 
 ## WP-07 — Portal and shop layouts (2026-10-17, detached worktree @ `9408eca`)
 - Status: Done (human-accepted 2026-10-17). The WP-05 full check on this base supplied the pre-refactor baseline;

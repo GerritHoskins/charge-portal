@@ -23,6 +23,8 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     legacyOrigin: LEGACY_ORIGIN,
+    // Server-only Store API credential. Override with NUXT_STORE_API_ACCESS_KEY.
+    storeApiAccessKey: 'demo-access-key',
     // Private (server only). Override with NUXT_CSRF_SECRET / NUXT_TRUST_PROXY.
     csrfSecret: '',
     // Rate limiting keys on the client ip; behind a reverse proxy set NUXT_TRUST_PROXY=true
