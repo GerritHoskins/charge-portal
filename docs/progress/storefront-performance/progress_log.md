@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-07 — Portal and shop layouts (Review)
+Current step: WP-07 + WP-08 parallel wave (integrated verification in progress)
 Completed steps: WP-00, WP-01, WP-02, WP-03
-Next step: integrate the parallel WP-07/WP-08 wave and rerun the combined full gate
+Next step: run the combined full gate, then move both packages to Review
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -113,6 +113,30 @@ Next step: integrate the parallel WP-07/WP-08 wave and rerun the combined full g
   `app/layouts/default.vue`, `app/layouts/shop.vue`, and this progress log only.
 - Next action: integrate with WP-08, reconcile this shared log, and rerun `npm run check` on
   the combined head. No Codex advice was needed.
+
+## WP-08 — Shop strings in both catalogues (2026-10-17, detached @ `9408eca`)
+- Status: In progress; implementation is complete and ready for the root-run dependency and
+  full verification gates. Expected dirty files are `i18n/locales/de.json`,
+  `i18n/locales/en.json`, and this log.
+- Tests first: `node -e "...if (!data.shop) throw new Error(locale+'.shop is missing')"`
+  failed as expected with `Error: de.shop is missing` (exit 1) before the catalogue edit.
+- Added the package-specified top-level `shop` tree to both catalogues: navigation and cart
+  labels, categories, listing/error/count copy, filters and connector types, sorting,
+  pagination, product stock/actions/specifications, cart-page copy, and breadcrumbs. German
+  is the source copy; English has the identical 42-key structure. Stock remains explicit text
+  (`inStock` / `outOfStock`), not colour-only meaning.
+- Local dependency-free verification: the prescribed 42 paths exist in both catalogues;
+  `node -e "const fs=require('fs');const flat=o=>Object.values(o).flatMap(v=>typeof v==='string'?[v]:flat(v));for(const l of ['de','en']){const v=flat(JSON.parse(fs.readFileSync('i18n/locales/'+l+'.json','utf8')).shop);if(v.length!==42||v.some(x=>!x))throw Error(l+' invalid shop catalogue')}console.log('de/en shop catalogues: 42 non-empty messages each')"`
+  passed.
+- Verification: `npx vitest run tests/unit/i18n-catalogues.test.ts` **4/4 passed** after
+  worktree-local Nuxt types were generated; lint and typecheck passed. A full `npm run check`
+  was stopped because the existing `shop.*` Playwright project regex matched every spec when
+  evaluated under the temporary `wp08-shop-i18n` directory, producing 228 duplicate tests.
+  Root will run the unchanged full gate after integration from a path without `shop` in it.
+- Environment note: `git rev-parse --show-toplevel` and `--is-inside-work-tree` report this
+  checkout and `true`; Git diff/status required escalated worktree access from the root and
+  the final diff was reviewed there. No Codex advisor consultation was needed and there is no
+  implementation blocker.
 
 ## Completed Changes
 - WP-00: setup + measurement only, no application code changes. `package.json` + `package-lock.json` modified by the two installs (uncommitted at time of writing; a human commits every diff).

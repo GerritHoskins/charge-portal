@@ -76,5 +76,67 @@
     "submit": "Send dispute",
     "submitting": "Sending …",
     "cancel": "Cancel"
+  },
+  "shop": {
+    "title": "Shop",
+    "cart": "Cart",
+    "cartCount": "{n} items",
+    "categories": {
+      "wallboxes": "Wallboxes",
+      "accessories": "Accessories"
+    },
+    "listing": {
+      "heading": "Products",
+      "caption": "Charging cards, wallboxes, cables and adapters",
+      "shown": "{n} products shown",
+      "empty": "No products found.",
+      "loadError": "The products could not be loaded."
+    },
+    "filter": {
+      "heading": "Filter products",
+      "minPower": "Minimum power",
+      "connector": "Connector type",
+      "connectorAll": "All connector types",
+      "connectorType": {
+        "type2": "Type 2",
+        "ccs": "CCS",
+        "card": "Charging card"
+      }
+    },
+    "sort": {
+      "label": "Sort by",
+      "priceAsc": "Price: low to high",
+      "priceDesc": "Price: high to low",
+      "nameAsc": "Name: A to Z"
+    },
+    "pagination": {
+      "label": "Pagination",
+      "prev": "Previous page",
+      "next": "Next page",
+      "page": "Page {n} of {total}"
+    },
+    "product": {
+      "price": "Price",
+      "inStock": "In stock",
+      "outOfStock": "Out of stock",
+      "addToCart": "Add to cart",
+      "added": "Added to cart",
+      "specs": "Specifications",
+      "maxPower": "Maximum power",
+      "connector": "Connector",
+      "notFound": "Product not found"
+    },
+    "cartPage": {
+      "heading": "Cart",
+      "empty": "The cart is empty.",
+      "remove": "Remove",
+      "total": "Total",
+      "quantity": "Quantity",
+      "noCheckout": "Demo: no checkout"
+    },
+    "breadcrumb": {
+      "label": "Breadcrumb navigation",
+      "home": "Shop home"
+    }
   }
 }

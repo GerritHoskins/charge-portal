@@ -76,5 +76,67 @@
     "submit": "Beanstandung senden",
     "submitting": "Wird gesendet …",
     "cancel": "Abbrechen"
+  },
+  "shop": {
+    "title": "Shop",
+    "cart": "Warenkorb",
+    "cartCount": "{n} Artikel",
+    "categories": {
+      "wallboxes": "Wallboxen",
+      "accessories": "Zubehör"
+    },
+    "listing": {
+      "heading": "Produkte",
+      "caption": "Ladekarten, Wallboxen, Kabel und Adapter",
+      "shown": "{n} Produkte angezeigt",
+      "empty": "Keine Produkte gefunden.",
+      "loadError": "Die Produkte konnten nicht geladen werden."
+    },
+    "filter": {
+      "heading": "Produkte filtern",
+      "minPower": "Mindestleistung",
+      "connector": "Anschlusstyp",
+      "connectorAll": "Alle Anschlusstypen",
+      "connectorType": {
+        "type2": "Typ 2",
+        "ccs": "CCS",
+        "card": "Ladekarte"
+      }
+    },
+    "sort": {
+      "label": "Sortierung",
+      "priceAsc": "Preis: aufsteigend",
+      "priceDesc": "Preis: absteigend",
+      "nameAsc": "Name: A bis Z"
+    },
+    "pagination": {
+      "label": "Seitennavigation",
+      "prev": "Vorherige Seite",
+      "next": "Nächste Seite",
+      "page": "Seite {n} von {total}"
+    },
+    "product": {
+      "price": "Preis",
+      "inStock": "Auf Lager",
+      "outOfStock": "Nicht auf Lager",
+      "addToCart": "In den Warenkorb",
+      "added": "Zum Warenkorb hinzugefügt",
+      "specs": "Technische Daten",
+      "maxPower": "Maximale Leistung",
+      "connector": "Anschluss",
+      "notFound": "Produkt nicht gefunden"
+    },
+    "cartPage": {
+      "heading": "Warenkorb",
+      "empty": "Der Warenkorb ist leer.",
+      "remove": "Entfernen",
+      "total": "Gesamtsumme",
+      "quantity": "Menge",
+      "noCheckout": "Demo: kein Checkout"
+    },
+    "breadcrumb": {
+      "label": "Brotkrümelnavigation",
+      "home": "Shop-Startseite"
+    }
   }
 }
