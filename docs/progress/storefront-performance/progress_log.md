@@ -1,11 +1,12 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-20 and sampler repair — integrated Review; WP-22 In progress in its isolated worktree
-Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-26
-Next step: obtain human acceptance for WP-20; complete independent WP-22 cache safety and measurements
+Current step: WP-20 Done (human-accepted); WP-21 and WP-22 continuing in isolated worktrees
+Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-26
+Next step: complete WP-21 layout-stability assessment and independent WP-22 cache safety and measurements
 
 ## Decisions
+- 2026-10-17: Human accepted WP-20 at integrated commit `32532be`; continue the authorized backlog with GPT-6 Luna high subagents. Measurement/build gates remain serialized between isolated worktrees.
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
 - Execution: one work package per fresh session, see `docs/instructions/storefront-performance/packages/README.md`.
 - 2026-10-17: branch `feat/storefront-performance` cut from `feat/login-in-nuxt-ds-i18n-rollout` (Track A committed/pushed; base `e34d009`).
