@@ -1,7 +1,7 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-10 — Listing filters and sorting (ready for integration verification; WP-11 runs in parallel)
+Current step: WP-10 + WP-11 parallel wave (combined integration gate pending)
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-16
 Next step: integrate WP-10 and WP-11, then run the combined `npm run check` gate before human review
 
@@ -236,6 +236,24 @@ Next step: integrate WP-10 and WP-11, then run the combined `npm run check` gate
 - Handoff: changes are limited to the four WP-16 implementation/test/config files and this log.
   The integrated `npm run check` passed: **240/240 unit tests**, Playwright **115/115**, and
   client JS **116.6 KB gz of 120 KB**. Human acceptance was recorded on 2026-10-17.
+
+## WP-11 — Product detail page `/shop/[slug]` (2026-10-17, detached from `5333120`)
+- Status: Review-ready for the serialized integration gate. Added the SSR product route with a
+  real 404 response and accessible not-found state, breadcrumb, deliberately naive hero, localized
+  description/price/stock/specs, cart-button stub, and eight eagerly rendered related products.
+- Bounded interpretation: the narrow product contract exposes neither category nor description.
+  For the synthetic two-category catalogue the page treats numeric `customFields.powerKw` as a
+  wallbox signal and otherwise uses accessories; it reuses `shop.listing.caption` as descriptive
+  copy. The same-category listing excludes the current slug and takes the first eight items.
+- Tests first: the new six-case Playwright spec failed **6/6** because `/shop/[slug]` did not exist,
+  then passed **6/6** after implementation. It covers detail/spec/related content, actual HTTP 404,
+  breadcrumb semantics and navigation, textual out-of-stock disabling, and axe on product + 404.
+- Verification: focused product spec **6/6 passed**; complete `shop` project **15/15 passed**;
+  `npm run migration:status -- --check` passed with 3 Nuxt-native routes; lint and typecheck passed.
+- Handoff: changes are limited to the page, migration inventory, product E2E spec, and this log.
+  `npm run check` is deliberately deferred to the combined integration gate. Next action: integrate
+  the package commit, run the serialized full gate, and move WP-11 to Review if green; human
+  acceptance is still required for Done.
 
 ## Completed Changes
 - WP-00: setup + measurement only, no application code changes. `package.json` + `package-lock.json` modified by the two installs (uncommitted at time of writing; a human commits every diff).

@@ -10,6 +10,7 @@
     { "path": "/", "status": "migrated", "adr": "0001", "files": ["app/pages/index.vue"] },
     { "path": "/shop", "status": "nuxt-native", "adr": "0007", "files": ["app/pages/shop/index.vue"] },
     { "path": "/shop/c/:category", "status": "nuxt-native", "adr": "0007", "files": ["app/pages/shop/c/[category].vue"] },
+    { "path": "/shop/:slug", "status": "nuxt-native", "adr": "0007", "files": ["app/pages/shop/[slug].vue"] },
     { "path": "/api/v1/*", "status": "stays-legacy", "adr": "0002", "note": "Session owner and system of record. The BFF consumes it through shared/contracts." }
   ]
 }
