@@ -120,3 +120,53 @@ export const accessories = makeProducts(
 )
 
 export const products = [...wallboxes, ...accessories]
+
+const publicProduct = ({ categoryId: _categoryId, slug: _slug, ...product }) => product
+
+const boundedInteger = (value, fallback, maximum = Number.POSITIVE_INFINITY) => {
+  const number = Number(value)
+  return Number.isFinite(number) ? Math.min(maximum, Math.max(1, Math.floor(number))) : fallback
+}
+
+export function findProduct(productId) {
+  const product = products.find(({ id }) => id === productId)
+  return product ? publicProduct(product) : undefined
+}
+
+export function queryListing(categoryId, params = {}) {
+  if (!categories.some(({ id }) => id === categoryId)) return undefined
+
+  const page = boundedInteger(params.page, 1)
+  const limit = boundedInteger(params.limit, 24, 48)
+  const minPower = Number(params['min-power'])
+  const connector = typeof params.connector === 'string' && params.connector ? params.connector : undefined
+  const order = ['price-asc', 'price-desc', 'name-asc'].includes(params.order) ? params.order : 'name-asc'
+
+  const matches = products
+    .filter((product) => product.categoryId === categoryId)
+    .filter((product) => !Number.isFinite(minPower) || Number(product.customFields.powerKw) >= minPower)
+    .filter((product) => !connector || product.customFields.connectorType === connector)
+    .sort((left, right) => {
+      if (order === 'price-asc') return left.calculatedPrice.unitPrice - right.calculatedPrice.unitPrice
+      if (order === 'price-desc') return right.calculatedPrice.unitPrice - left.calculatedPrice.unitPrice
+      return left.name.localeCompare(right.name, 'de')
+    })
+
+  const offset = (page - 1) * limit
+  return {
+    elements: matches.slice(offset, offset + limit).map(publicProduct),
+    total: matches.length,
+    page,
+    limit,
+    availableSortings: [
+      { key: 'name-asc', label: 'Name' },
+      { key: 'price-asc', label: 'Price ascending' },
+      { key: 'price-desc', label: 'Price descending' },
+    ],
+    currentFilters: { order, ...(Number.isFinite(minPower) ? { 'min-power': minPower } : {}), ...(connector ? { connector } : {}) },
+    aggregations: {
+      power: [...new Set(matches.map((product) => product.customFields.powerKw).filter((value) => typeof value === 'number'))].sort((a, b) => a - b),
+      connector: [...new Set(matches.map((product) => product.customFields.connectorType).filter((value) => typeof value === 'string'))].sort(),
+    },
+  }
+}

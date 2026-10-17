@@ -4,12 +4,14 @@
 // markup: it is the thing being migrated.
 import { createServer } from 'node:http'
 import { clearCookie, COOKIE, createAuth, parseCookies, safeNext, sessionCookie } from './auth.mjs'
+import { findProduct, queryListing } from './catalog.mjs'
 import { invoices, resetInvoices, sessions, stations } from './data.mjs'
 import { createDispute } from './invoices.mjs'
 import { layout, pages } from './pages.mjs'
 
 const PORT = Number(process.env.LEGACY_PORT ?? 8080)
 const SECURE = process.env.COOKIE_SECURE === '1'
+const CATALOG_DELAY_MS = Math.max(0, Number(process.env.LEGACY_CATALOG_DELAY_MS) || 0)
 const auth = createAuth()
 
 const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
@@ -38,6 +40,8 @@ const redirect = (res, location, headers = {}) => {
   res.writeHead(302, { location, ...headers })
   res.end()
 }
+
+const delayCatalogResponse = () => new Promise((resolve) => setTimeout(resolve, CATALOG_DELAY_MS))
 
 const MAX_BODY = 10_000
 const readBody = (req) =>
@@ -96,6 +100,27 @@ createServer(async (req, res) => {
   if (path === '/__test/reset' && req.method === 'POST' && process.env.LEGACY_ALLOW_RESET === '1') {
     resetInvoices()
     return json(res, 200, { ok: true })
+  }
+
+  const listingRoute = path.match(/^\/store-api\/product-listing\/([0-9a-f]+)$/)
+  const detailRoute = path.match(/^\/store-api\/product\/([0-9a-f]+)$/)
+  if (listingRoute || detailRoute) {
+    if (req.headers['sw-access-key'] !== 'demo-access-key') return json(res, 401, { error: 'invalid_access_key' })
+
+    await delayCatalogResponse()
+    if (listingRoute && req.method === 'POST') {
+      const input = await readBody(req).then(JSON.parse).catch(() => undefined)
+      if (input === undefined) return json(res, 400, { error: 'bad_json' })
+      const listing = queryListing(listingRoute[1], input)
+      return listing ? json(res, 200, listing) : json(res, 404, { error: 'category_not_found' })
+    }
+
+    if (detailRoute && req.method === 'POST') {
+      const product = findProduct(detailRoute[1])
+      return product ? json(res, 200, { product }) : json(res, 404, { error: 'product_not_found' })
+    }
+
+    return json(res, 404, { error: 'not_found' })
   }
 
   // Everything below requires a session.

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { storeApiProductListingSchema, storeApiProductSchema } from '../../shared/contracts/catalog'
 import { disputeResponseSchema, invoiceListResponseSchema, validationErrorSchema } from '../../shared/contracts/invoice'
 import { parseLegacyLogin } from '../../shared/contracts/login'
 import { meResponseSchema } from '../../shared/contracts/me'
@@ -6,6 +7,8 @@ import { sessionListResponseSchema } from '../../shared/contracts/session'
 import { stationListResponseSchema } from '../../shared/contracts/station'
 import { LEGACY_PORT } from '../../playwright.config'
 import { DEMO_LOGIN } from './demo-login'
+// @ts-expect-error plain .mjs module without type declarations
+import { categories, products } from '../../legacy/catalog.mjs'
 
 // Consumer-driven contract test: the shared zod schemas (what the BFF will accept) are run
 // against the REAL responses of a running legacy. Unit tests only prove the schemas reject
@@ -63,6 +66,26 @@ test.describe(`legacy API contract (${LEGACY})`, () => {
   test('GET /api/v1/invoices matches the contract', async ({ request }) => {
     const parsed = invoiceListResponseSchema.safeParse(await (await get(request, '/api/v1/invoices')).json())
     expect(parsed.error?.issues ?? []).toEqual([])
+  })
+
+  test('public Store API listing and detail match the catalogue contracts', async ({ request }) => {
+    const headers = { 'sw-access-key': 'demo-access-key' }
+    const listing = await request.post(`${LEGACY}/store-api/product-listing/${categories[0].id}`, {
+      headers,
+      data: { page: 1, limit: 5, order: 'price-asc' },
+    })
+    expect(listing.status()).toBe(200)
+    expect(storeApiProductListingSchema.safeParse(await listing.json()).error?.issues ?? []).toEqual([])
+
+    const detail = await request.post(`${LEGACY}/store-api/product/${products[0].id}`, { headers })
+    expect(detail.status()).toBe(200)
+    const body = await detail.json()
+    expect(storeApiProductSchema.safeParse(body.product).error?.issues ?? []).toEqual([])
+  })
+
+  test('public Store API rejects a missing access key without requiring a login', async ({ request }) => {
+    const response = await request.post(`${LEGACY}/store-api/product-listing/${categories[0].id}`, { data: {} })
+    expect(response.status()).toBe(401)
   })
 
   test('POST dispute: invalid input answers 422 with the validation contract', async ({ request }) => {

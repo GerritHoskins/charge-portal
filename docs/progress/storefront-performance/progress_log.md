@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-03 — Standin catalogue data
-Completed steps: WP-00, WP-01, WP-02
-Next step: WP-03
+Current step: WP-04 — Stand-in Store API endpoints (Review)
+Completed steps: WP-00, WP-01, WP-02, WP-03
+Next step: WP-05
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -33,8 +33,8 @@ Next step: WP-03
 - Done-when verified: vitest 15 passed on the file; `npm run test:coverage` 195/195 (stmt 97.75 %, branch 94.39 %, fn 97.77 %, line 97.87 %); eslint clean; `nuxt typecheck` clean; stale orphan legacy server on :8080 (killed) was causing 9 invoices e2e failures before the final gate — with clean ports `npm run check` fully **green**: lint, typecheck, tokens, migration-status, coverage (16 files/195 tests), Playwright **112/112**, budget **115.8 KB gz of 120 KB**.
 - Pushed to `main` (user-approved commit + push).
 
-## WP-03 — Standin catalogue data (2026-10-17, on `main` @ `6430ea1`)
-- Status: Review. Full `npm run check` green: 200/200 unit tests (incl. the new
+## WP-03 — Standin catalogue data (2026-10-17, committed as `3f43c13`)
+- Status: Done (accepted when the user explicitly requested continuation with WP-04). Full `npm run check` green: 200/200 unit tests (incl. the new
   `tests/unit/legacy-catalog.test.ts`), Playwright e2e + axe, lint, typecheck, tokens,
   coverage, and the client-JS budget (115.8 KB of 120 KB).
 - Test first: failing test (schema parse per product, 40 products ≥ 15 per category,
@@ -55,7 +55,28 @@ Next step: WP-03
 - Open question: images are generated, not hand-crafted — acceptable for a
   stand-in; `node scripts/shop-images.mjs` regenerates them any time
   (deterministic). WP-03 does not implement the product-detail route (WP-04).
-- State: uncommitted, awaiting human review (AGENTS.md: a human commits every diff).
+- State: committed and pushed to `main` as `3f43c13`.
+
+## WP-04 — Stand-in Store API endpoints (2026-10-17, on `main` @ `3f43c13`)
+- Status: Review. Added public, access-key-protected listing and detail routes before the
+  session guard in `legacy/server.mjs`; missing/wrong `sw-access-key` returns 401, bad JSON
+  returns 400, unknown catalogue entities return 404, and `LEGACY_CATALOG_DELAY_MS` can add
+  a synthetic response delay for WP-22.
+- Tests first: six new `queryListing` cases failed because the function did not exist, then
+  passed after implementing filtering (`min-power`, connector), all three sort modes,
+  bounded pagination, unknown-category handling, and Store-API-only product output in
+  `legacy/catalog.mjs`.
+- Contract coverage: the real stand-in listing and detail responses parse through
+  `storeApiProductListingSchema` / `storeApiProductSchema`; the public endpoint rejects a
+  missing access key without a login cookie.
+- Verification: `npx vitest run tests/unit/legacy-catalog.test.ts` **11/11 passed**;
+  `npx playwright test --project=contract` **47/47 passed**; `npm run check` **green**
+  (17 unit files / 206 tests, Playwright 114/114, bundle 115.8 KB gz of 120 KB).
+- Environment note: initial Playwright startup checks failed with sandbox `connect EACCES`
+  against localhost; rerunning the unchanged command with local-server permission passed.
+- Handoff: package diff is limited to `legacy/catalog.mjs`, `legacy/server.mjs`, the two
+  specified test files, and this log. Unrelated concurrent working-tree changes in
+  `package.json` and `.claude/launch.json` were preserved and excluded.
 
 ## Completed Changes
 - WP-00: setup + measurement only, no application code changes. `package.json` + `package-lock.json` modified by the two installs (uncommitted at time of writing; a human commits every diff).
@@ -73,4 +94,5 @@ Next step: WP-03
 Notes: medians from `.lighthouseci/` reports of the 2026-10-17 run; TTFB is the `server-response-time` audit on the local warm server (no cold/warm split yet); all numbers lab (mobile emulation, simulated throttling).
 
 ## Open questions
-- (none) — WP-00 installs are merged (PR #3 → `main`), the WP-01 test-file blocker was resolved in `3d43055` and WP-01's done-when checks pass.
+- WP-04: `legacy-php/` remains intentionally unchanged; it is the never-executed twin called
+  out by the package and does not expose the new Store API routes.
