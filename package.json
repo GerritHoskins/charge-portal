@@ -22,7 +22,8 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build -o storybook-static",
     "budget": "npm run build && node scripts/check-bundle-size.mjs && node scripts/check-route-budget.mjs",
-    "lighthouse": "npm run build && node scripts/lighthouse.mjs"
+    "lighthouse": "npm run build && node scripts/lighthouse.mjs",
+    "lighthouse:shop": "npm run build && node scripts/lighthouse.mjs --config lighthouserc.shop.cjs --public"
   },
   "simple-git-hooks": {
     "pre-commit": "npm run lint && npm run typecheck"

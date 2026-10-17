@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-14 ADR 0007 — In progress; WP-15 shop Lighthouse baseline runs in parallel
+Current step: WP-14 + WP-15 integrated implementation — combined gate pending
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-16
-Next step: integrate WP-14 and WP-15 from accepted commit `254ce7d`, run the combined gate, and request human acceptance
+Next step: run the serialized full integration gate, then request human acceptance of WP-14 and WP-15
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -333,15 +333,45 @@ Next step: integrate WP-14 and WP-15 from accepted commit `254ce7d`, run the com
   `tests/unit/route-budget.test.ts`, and this log. Human acceptance is still required.
 
 ## WP-14 — ADR 0007: public shop area, inventory status, per-route budgets (2026-10-17, detached from `254ce7d`)
-- Status: In progress. The proposed ADR documents the public SSR rationale, synthetic catalogue
+- Status: Implementation complete; combined integration gate and human ADR acceptance pending.
+  The proposed ADR documents the public SSR rationale, synthetic catalogue
   boundary, exact public API allowlist, separate cache-ready shop layout, `nuxt-native` inventory
   meaning, and the accepted WP-13 measurement model and baselines. It also records the added
   complexity and exclusions, including the client-only cart, absent CDN behavior, and unchanged
   `legacy-php/` twin, without treating the stand-in as a real Shopware integration.
 - Package scope: new `docs/adr/0007-public-shop-and-budgets.md`, the single README decision-record
   line, and this workflow log only. No behavior changed, so no test-first step applies.
-- Verification: `npm run lint` passed. Next action: inspect the bounded diff, commit the local
-  package, then integrate it for human ADR acceptance.
+- Verification: `npm run lint` passed; the bounded diff was reviewed and committed locally before
+  integration. The ADR remains `proposed` until the WP-27 closeout acceptance step.
+
+## WP-15 — Public-shop Lighthouse baseline (2026-10-17, detached from `254ce7d`)
+- Status: implementation and package verification complete; the serialized full `npm run check`
+  remains for the integration branch because a user-owned dev stack is using the default legacy
+  port `8080`. That process was neither stopped nor reused.
+- Tests first: `npm run lighthouse:shop` initially failed because the script did not exist. After
+  adding the public configuration and driver options, an explicit default-port regression check
+  exposed that the former HTTP stale-server probe could miss an IPv4-bound listener and reach an
+  `EADDRINUSE` child failure. The probe now uses an exclusive TCP bind; with `8080` occupied,
+  `node scripts/lighthouse.mjs` exits immediately with the intended stale-server refusal.
+- Added `lighthouserc.shop.cjs` for the four required public routes, five runs, median-run output
+  in `.lighthouseci-shop`, performance/accessibility/best-practices/SEO categories, warn-only
+  performance/LCP/CLS/TBT assertions, and the hard accessibility `1.0` assertion. The public mode
+  skips login and removes any inherited `LH_COOKIE`; the portal's default authenticated behavior
+  remains unchanged.
+- The runner now accepts `--config <file>` and `--public`. `LIGHTHOUSE_LEGACY_PORT` defaults to
+  `8080`; the measurement used isolated port `18080`, which is forwarded to the legacy child and
+  to Nuxt as `NUXT_LEGACY_ORIGIN`. Nuxt stayed on `3000`. This preserved the default stale-server
+  refusal without touching the active user stack.
+- Verification: `LIGHTHOUSE_LEGACY_PORT=18080 npm run lighthouse:shop` completed **20/20 audits**
+  and wrote ignored reports; all four accessibility scores were **1.00**. The expected naive
+  baseline warnings were performance/CLS/LCP on the two listing variants and product page.
+  `LIGHTHOUSE_LEGACY_PORT=18080 npm run lighthouse` completed the existing authenticated portal
+  sweep **12/12** with all assertions passing. `npm run lint` and `npm run typecheck` also passed
+  after the recorded measurement run and final driver correction.
+- Warning: every public audit requested `/robots.txt`, which currently has no Nuxt route and emits
+  `VUE_ROUTER_R0004`; adding that route is outside WP-15's authorized files. Lighthouse reports
+  remain local and ignored. Package scope is `lighthouserc.shop.cjs`, `scripts/lighthouse.mjs`,
+  `package.json`, `.gitignore`, and this progress/measurement handoff.
 
 ## Completed Changes
 - WP-00: setup + measurement only, no application code changes. `package.json` + `package-lock.json` modified by the two installs (uncommitted at time of writing; a human commits every diff).
@@ -362,8 +392,12 @@ Next step: integrate WP-14 and WP-15 from accepted commit `254ce7d`, run the com
 | 2026-10-17 | 6bdc1fa + WP-13 | /shop/c/wallboxes | `npm run budget` | 2, identical | n/a | n/a | n/a | n/a (WP-19) | 114.527 KB (budget 126.0 KB) | n/a | local first visit; WP-13 baseline, provisional +10% hard budget |
 | 2026-10-17 | 6bdc1fa + WP-13 | /shop/wallbox-home-7-4 | `npm run budget` | 2, identical | n/a | n/a | n/a | n/a (WP-19) | 116.307 KB (budget 128.0 KB) | n/a | local first visit; WP-13 baseline, provisional +10% hard budget |
 | 2026-10-17 | 6bdc1fa + WP-13 | /shop/cart | `npm run budget` | 2, identical | n/a | n/a | n/a | n/a (WP-19) | 111.800 KB (budget 123.0 KB) | n/a | local first visit; WP-13 baseline, provisional +10% hard budget |
+| 2026-10-17 | 254ce7d + WP-15 dirty | /shop/c/wallboxes | `LIGHTHOUSE_LEGACY_PORT=18080 npm run lighthouse:shop` | 5, median | 3612 ms | 0.165449 | 85 ms | n/a (WP-19) | 114.527 KB (WP-13) | n/a (WP-22) | lab; WP-15 naive baseline; Speed Index 2180 ms; total byte weight 491,217 B (479.7 KiB) |
+| 2026-10-17 | 254ce7d + WP-15 dirty | /shop/c/wallboxes?connector=ccs | `LIGHTHOUSE_LEGACY_PORT=18080 npm run lighthouse:shop` | 5, median | 2633 ms | 0.165509 | 24 ms | n/a (WP-19) | 114.527 KB (equivalent listing route, WP-13) | n/a (WP-22) | lab; WP-15 naive baseline; Speed Index 2027 ms; total byte weight 198,039 B (193.4 KiB) |
+| 2026-10-17 | 254ce7d + WP-15 dirty | /shop/ladekabel-typ-1-10-m | `LIGHTHOUSE_LEGACY_PORT=18080 npm run lighthouse:shop` | 5, median | 3383 ms | 0.183524 | 127 ms | n/a (WP-19) | 116.307 KB (equivalent product route, WP-13) | n/a (WP-22) | lab; WP-15 naive baseline; Speed Index 2178 ms; total byte weight 416,160 B (406.4 KiB) |
+| 2026-10-17 | 254ce7d + WP-15 dirty | /shop/cart | `LIGHTHOUSE_LEGACY_PORT=18080 npm run lighthouse:shop` | 5, median | 2102 ms | 0 | 53.5 ms | n/a (WP-19) | 111.800 KB (WP-13) | n/a (WP-22) | lab; WP-15 naive baseline; Speed Index 1952 ms; total byte weight 125,485 B (122.5 KiB) |
 
-Notes: medians from `.lighthouseci/` reports of the 2026-10-17 run; TTFB is the `server-response-time` audit on the local warm server (no cold/warm split yet); all numbers lab (mobile emulation, simulated throttling).
+Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) reports of the 2026-10-17 runs; TTFB is the `server-response-time` audit on the local warm server (no cold/warm split yet); all numbers lab (mobile emulation, simulated throttling).
 
 ## Open questions
 - WP-04: `legacy-php/` remains intentionally unchanged; it is the never-executed twin called
