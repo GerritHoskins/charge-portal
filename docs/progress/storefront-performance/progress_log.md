@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-10, WP-11, WP-12, and WP-13 — Review (implementation and required checks complete)
-Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-16
-Next step: Human acceptance of WP-10 through WP-13, then WP-14 documents the accepted budget model in ADR 0007
+Current step: WP-14 ADR 0007 + WP-15 shop Lighthouse baseline (parallel wave)
+Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-16
+Next step: implement WP-14 and WP-15 from accepted commit `3f7e9da`, integrate, and run the combined gate
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -201,8 +201,8 @@ Next step: Human acceptance of WP-10 through WP-13, then WP-14 documents the acc
   optimization, dependency, or generated shop-asset change was made. No Codex advisor was needed.
 
 ## WP-10 — Listing filters and sorting (2026-10-17, detached @ `5333120`)
-- Status: Review. WP-13 replaced the aggregate JS gate and the resulting full `npm run check`
-  passed; implementation and required checks are complete, with human acceptance pending.
+- Status: Done (human-accepted 2026-10-17). WP-13 replaced the aggregate JS gate and the
+  resulting full `npm run check` passed.
 - Tests first: the expanded listing spec initially ran **6 passed / 5 failed**. The new connector,
   minimum-power, price-ordering, direct SSR, and keyboard cases failed against the unfiltered page,
   while the filtered axe case already passed. The first implementation exposed a test-timing issue:
@@ -245,8 +245,8 @@ Next step: Human acceptance of WP-10 through WP-13, then WP-14 documents the acc
   client JS **116.6 KB gz of 120 KB**. Human acceptance was recorded on 2026-10-17.
 
 ## WP-11 — Product detail page `/shop/[slug]` (2026-10-17, detached from `5333120`)
-- Status: Review. WP-13 replaced the aggregate JS gate and the resulting full `npm run check`
-  passed; implementation and required checks are complete, with human acceptance pending. Added the SSR product route with a
+- Status: Done (human-accepted 2026-10-17). WP-13 replaced the aggregate JS gate and the
+  resulting full `npm run check` passed. Added the SSR product route with a
   real 404 response and accessible not-found state, breadcrumb, deliberately naive hero, localized
   description/price/stock/specs, cart-button stub, and eight eagerly rendered related products.
 - Bounded interpretation: the narrow product contract exposes neither category nor description.
@@ -266,8 +266,8 @@ Next step: Human acceptance of WP-10 through WP-13, then WP-14 documents the acc
   pulled forward. Human acceptance is still required after the deferred full gate is green.
 
 ## WP-12 — Client-side cart (2026-10-17, detached from `8c5f4b9`)
-- Status: Review. WP-13 replaced the aggregate JS gate and the resulting full `npm run check`
-  passed; implementation and required checks are complete, with human acceptance pending. Added
+- Status: Done (human-accepted 2026-10-17). WP-13 replaced the aggregate JS gate and the
+  resulting full `npm run check` passed. Added
   immutable pure cart operations (duplicate merge, quantity clamp/removal, item count, integer-cent
   total), a shared Nuxt client cart with guarded localStorage persistence, a hydrated-only header
   count, product-page add/announcement behavior, and an accessible `/shop/cart` table with quantity,
@@ -296,7 +296,7 @@ Next step: Human acceptance of WP-10 through WP-13, then WP-14 documents the acc
   typecheck all pass after the correction.
 
 ## WP-13 — Per-route JavaScript budget (2026-10-17, detached from `6bdc1fa`)
-- Status: Review. Replaced the hard aggregate client-JavaScript sum with a browser-measured hard
+- Status: Done (human-accepted 2026-10-17). Replaced the hard aggregate client-JavaScript sum with a browser-measured hard
   budget for seven representative portal and shop routes. Each route uses a fresh browser context,
   portal routes use the demo session, emitted `/_nuxt/*.js` files are read from `.output/public`
   and gzipped locally, and hydration plus initial network idle define a deterministic first-visit
