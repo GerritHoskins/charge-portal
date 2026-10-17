@@ -3,7 +3,7 @@
 ## Status
 Current step: WP-06 + WP-16 parallel wave (Review)
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-07, WP-08
-Next step: human review/acceptance; then start WP-09 and WP-17 from the integrated head
+Next step: human review/acceptance; then start WP-09 from the integrated head (WP-17 also waits for WP-12)
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
