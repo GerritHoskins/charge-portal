@@ -4,7 +4,11 @@ const LEGACY_ORIGIN = process.env.LEGACY_ORIGIN ?? 'http://localhost:8080'
 export default defineNuxtConfig({
   compatibilityDate: '2026-10-01',
   devtools: { enabled: false },
-  modules: ['@nuxtjs/i18n'],
+  modules: ['@nuxtjs/i18n', '@nuxt/image'],
+  image: {
+    provider: 'ipx',
+    screens: { xs: 320, sm: 400, md: 448, lg: 640, xl: 800, xxl: 1200, xxxl: 1600 },
+  },
 
   // German is the default (and what the tests pin); English follows the browser language
   // or the switcher. No URL prefix: /portal/... paths stay stable for the legacy hand-over.

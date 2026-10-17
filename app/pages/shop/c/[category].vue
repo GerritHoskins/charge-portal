@@ -155,12 +155,15 @@ const onFilterInput = (event: Event) => {
     <p class="sr-only" role="status">{{ t('shop.listing.shown', { n: listing.items.length }) }}</p>
 
     <ul v-if="listing.items.length" class="product-grid" :aria-label="t('shop.listing.heading')">
-      <li v-for="product in listing.items" :key="product.id">
+      <li v-for="(product, index) in listing.items" :key="product.id">
         <ShopProductCard
           :product="product"
           :href="`/shop/${product.slug}`"
           :price="fmt.money(product.priceCents)"
           :stock-label="t(product.inStock ? 'shop.product.inStock' : 'shop.product.outOfStock')"
+          :image-loading="index < 3 ? 'eager' : 'lazy'"
+          :image-fetch-priority="index === 0 ? 'high' : undefined"
+          image-optimized
         />
       </li>
     </ul>

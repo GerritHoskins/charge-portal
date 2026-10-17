@@ -11,6 +11,11 @@ const announcement = ref('')
 const { addItem } = useCart()
 const { track } = useShopEvents()
 const requestUrl = useRequestURL()
+const isShopImage = (url: string) => url.startsWith('/shop/') && url.endsWith('-1600.jpg') && !url.includes('..')
+const shopImageUrl = (url: string) => isShopImage(url) ? `/_ipx/f_webp&w_800${url}` : url
+const shopImageSrcset = (url: string) => isShopImage(url)
+  ? `/_ipx/f_webp&w_320${url} 320w, /_ipx/f_webp&w_400${url} 400w, /_ipx/f_webp&w_448${url} 448w, /_ipx/f_webp&w_640${url} 640w, /_ipx/f_webp&w_800${url} 800w, /_ipx/f_webp&w_1200${url} 1200w, /_ipx/f_webp&w_1600${url} 1600w`
+  : undefined
 
 const slug = computed(() => String(route.params.slug))
 const { data: product, error: productError } = await useFetch<ShopProduct>(
@@ -63,6 +68,8 @@ const productDescription = computed(() => (
 const productImage = computed(() => (
   product.value ? new URL(product.value.image.url, requestUrl.origin).toString() : undefined
 ))
+const productHeroUrl = computed(() => product.value ? shopImageUrl(product.value.image.url) : undefined)
+const productHeroSrcset = computed(() => product.value ? shopImageSrcset(product.value.image.url) : undefined)
 
 useSeoMeta({
   title: () => product.value?.name ?? t('shop.product.notFound'),
@@ -73,7 +80,19 @@ useSeoMeta({
 })
 
 useHead(() => ({
-  link: [{ rel: 'canonical', href: canonicalUrl.value }],
+  link: [
+    { rel: 'canonical', href: canonicalUrl.value },
+    ...(productHeroUrl.value && productHeroSrcset.value
+      ? [{
+          rel: 'preload' as const,
+          as: 'image' as const,
+          href: productHeroUrl.value,
+          imagesrcset: productHeroSrcset.value,
+          imagesizes: '100vw',
+          fetchpriority: 'high' as const,
+        }]
+      : []),
+  ],
   script: product.value
     ? [
         {
@@ -119,8 +138,17 @@ const onAddToCart = async () => {
     </nav>
 
     <h1 id="product-heading">{{ product.name }}</h1>
-    <!-- baseline (WP-09): unoptimized on purpose, see WP-20 -->
-    <img class="product-hero" :src="product.image.url" :alt="product.image.alt">
+    <img
+      class="product-hero"
+      :src="productHeroUrl"
+      :srcset="productHeroSrcset"
+      sizes="100vw"
+      :alt="product.image.alt"
+      width="1600"
+      height="1600"
+      loading="eager"
+      fetchpriority="high"
+    >
 
     <p>{{ t('shop.listing.caption') }}</p>
     <p>{{ fmt.money(product.priceCents) }}</p>
@@ -158,6 +186,7 @@ const onAddToCart = async () => {
             :href="`/shop/${related.slug}`"
             :price="fmt.money(related.priceCents)"
             :stock-label="t(related.inStock ? 'shop.product.inStock' : 'shop.product.outOfStock')"
+            image-optimized
           />
         </li>
       </ul>

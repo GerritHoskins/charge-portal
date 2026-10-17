@@ -33,6 +33,41 @@ test.describe('public shop listing', () => {
     }
   })
 
+  test('eagerly loads the first desktop row and lazy-loads images below it', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 })
+    await page.goto('/shop/c/wallboxes')
+    const images = page.getByRole('list', { name: 'Produkte' }).locator('img')
+    await expect(images).toHaveCount(12)
+    await expect(images.nth(0)).toHaveAttribute('loading', 'eager')
+    await expect(images.nth(0)).toHaveAttribute('fetchpriority', 'high')
+    await expect(images.nth(1)).toHaveAttribute('loading', 'eager')
+    await expect(images.nth(1)).not.toHaveAttribute('fetchpriority', 'high')
+    await expect(images.nth(2)).toHaveAttribute('loading', 'eager')
+    await expect(images.nth(2)).not.toHaveAttribute('fetchpriority', 'high')
+    for (let index = 3; index < 12; index += 1) {
+      await expect(images.nth(index)).toHaveAttribute('loading', 'lazy')
+    }
+    await expect.poll(() => images.nth(0).evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true)
+    const desktopBounds = await images.nth(0).evaluate((image) => {
+      const card = image.closest('.product-card')
+      return { image: image.getBoundingClientRect().toJSON(), card: card?.getBoundingClientRect().toJSON(), pageWidth: document.documentElement.scrollWidth }
+    })
+    expect(desktopBounds.card).toBeDefined()
+    expect(desktopBounds.image.width).toBeGreaterThan(0)
+    expect(desktopBounds.image.right).toBeLessThanOrEqual((desktopBounds.card?.right ?? 0) + 1)
+    expect(desktopBounds.pageWidth).toBeLessThanOrEqual(1280)
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    const mobileBounds = await images.nth(0).evaluate((image) => {
+      const card = image.closest('.product-card')
+      return { image: image.getBoundingClientRect().toJSON(), card: card?.getBoundingClientRect().toJSON(), pageWidth: document.documentElement.scrollWidth }
+    })
+    expect(mobileBounds.card).toBeDefined()
+    expect(mobileBounds.image.width).toBeGreaterThan(0)
+    expect(mobileBounds.image.right).toBeLessThanOrEqual((mobileBounds.card?.right ?? 0) + 1)
+    expect(mobileBounds.pageWidth).toBeLessThanOrEqual(390)
+  })
+
   test('loads the second result page from the pagination link', async ({ page }) => {
     await page.goto('/shop/c/wallboxes')
     const firstProduct = await page.getByRole('list', { name: 'Produkte' }).getByRole('link').first().textContent()

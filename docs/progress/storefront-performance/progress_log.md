@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-19 sampler receipt repair — In progress; WP-20 verification complete in delegated worktree
+Current step: WP-20 and WP-19 sampler repair — integrated; combined check pending
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-26
-Next step: integrate WP-20 and run the combined check gate
+Next step: run the combined check gate; obtain human acceptance for WP-20
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -532,6 +532,51 @@ Next step: integrate WP-20 and run the combined check gate
   **142/142** Playwright tests, production build, and every unchanged per-route budget after the
   WP-17 lazy client-boundary correction. The SEO implementation itself required no integration
   changes.
+
+## WP-20 — Responsive image optimization (2026-10-17, worktree branch `codex/wp20-images`)
+- Status: Review. Before lab reports were freshly measured from the accepted integration
+  source (`ac4c33e`) because WP-15 predates later storefront changes. The source diff from the
+  available WP-19 RUM baseline (`a370cef`) contains no product-code changes, so the baseline
+  RUM rows below remain applicable. After Lighthouse completed **20/20 audits** (five runs ×
+  four routes); raw JSON/HTML are preserved locally in `.lighthouseci-shop-after/` in the WP-20 worktree.
+- Implementation: registered the existing IPX provider and opted the listing/related product
+  cards and product hero into responsive WebP `srcset`, `sizes`, intrinsic 1600×1600 geometry,
+  SSR hero preload, and explicit loading priority. The active image contract exposes only
+  `{url, alt}`; no schema field was invented. Intrinsic 1600×1600 values are bounded to the
+  verified synthetic `*-1600.jpg` assets (whose JPEG metadata was checked). Card default remains
+  a plain JPEG `<img>` so Storybook works without Nuxt. Three listing images are eager (the
+  desktop first row; at 390px this overfetches two below-fold images), first only is high
+  priority, and images from index 3 are lazy.
+- Nuxt Image component candidate was rejected because it exceeded existing hard route budgets
+  (listing 128.755/126 KB, product 130.994/128 KB). The native IPX `<img>` approach passed the
+  unchanged budgets; final route weights: listing **125.574/126 KB**, product **127.938/128 KB**.
+- Lab comparison uses Lighthouse CI's selected representative run, not independently selected
+  per-metric medians. Baseline → after: unfiltered listing LCP **3840→2705 ms** (five-run
+  spreads 3836–3847 vs 2690–2787 ms), CLS **0.1654→0**, byte weight **503,777→203,323 B**;
+  filtered listing LCP **2562→2458 ms** (2559–2564 vs 2455–2560 ms, slight overlap so no
+  improvement beyond noise established), CLS **0.1655→0**, weight **210,595→161,459 B**;
+  product LCP **3613→2933 ms** (3462–3616 vs 2701–2936 ms), CLS **0.1835→0**, weight
+  **429,636→201,913 B**; cart control LCP **2284→2283 ms** (2284–2304 vs 2256–2285 ms),
+  CLS remained 0, weight **136,697→136,687 B**. Accessibility remained 1.00 on all after routes.
+  The unfiltered/product LCP assertions remain warn-only; the filtered result is treated as
+  inconclusive. `/robots.txt` router warnings are unchanged.
+- Verification: red-first focused E2E initially failed on absent hero geometry/loading attrs;
+  after implementation focused shop tests passed **18/18**. Full `npm run check` passed with
+  explicit `E2E_LEGACY_PORT=18086`, `ROUTE_BUDGET_LEGACY_PORT=18086`,
+  `LIGHTHOUSE_LEGACY_PORT=18086`, and `RUM_LEGACY_PORT=18086`: lint, typecheck, tokens,
+  migration status, coverage (**289/289**, 95.78% statements), Playwright (**144/144**), build,
+  and all route budgets. Storybook build passed; direct browser checks of in-stock/out-of-stock
+  card stories each loaded the JPEG (`naturalWidth=1600`) with no console/page errors.
+- Synthetic RUM after-sample completed **30/30** against this optimized production build using
+  the isolated legacy port. Route p75 (LCP; INP; CLS) was category **220 ms (n=30); 16 ms
+  (n=27); 0 (n=30)**, product **156 ms (n=30); 24 ms (n=5); 0 (n=30)**, and cart **204 ms
+  (n=30); no INP sample; 0 (n=30)**. Funnel totals were **30/30/30** with both conversion
+  rates 100%. The run observed 240 vitals POSTs and 90 event POSTs, all 204, with zero request
+  failures or 429s. INP coverage is sparse and cart has no INP sample; the backend summary may
+  include unload metrics beyond observed browser requests, so 240 is not claimed as the full
+  stored-record count. Raw JSON: ignored `.lighthouseci-shop/rum-wp20-after.json`.
+- Status: Review. The bounded RUM sampler repair is a separate WP-19 integration change and is
+  not part of the WP-20 source diff. No package or lockfile changes; no push.
 
 ## Completed Changes
 - WP-00: setup + measurement only, no application code changes. `package.json` + `package-lock.json` modified by the two installs (uncommitted at time of writing; a human commits every diff).
