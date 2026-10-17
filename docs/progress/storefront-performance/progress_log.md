@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-14 + WP-15 integrated implementation — combined gate passed; human review pending
+Current step: WP-14, WP-15, and WP-17 integrated implementation — combined gate passed; human review pending
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-16
-Next step: request human acceptance of WP-14 and WP-15
+Next step: finish WP-26 verification, run the combined integration gate, and obtain human acceptance
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -244,6 +244,31 @@ Next step: request human acceptance of WP-14 and WP-15
   The integrated `npm run check` passed: **240/240 unit tests**, Playwright **115/115**, and
   client JS **116.6 KB gz of 120 KB**. Human acceptance was recorded on 2026-10-17.
 
+## WP-17 — Vitals endpoint and browser plugin (2026-10-17, detached from `254ce7d`)
+- Status: Review. Tests were written first; the focused shop E2E failed **3/3** before
+  implementation (missing summary data and two 404 responses where 400 was required), then
+  passed **3/3** after implementation. The complete shop project passed **26/26**.
+- Added a public 2 KB-bounded `text/plain`/`application/json` beacon endpoint with schema
+  validation, per-IP rate limiting that respects `runtimeConfig.trustProxy`, the WP-16
+  module-level ring-buffer store, and a 204 response. The public summary route exposes only
+  the aggregate store summary.
+- The client-only plugin loads the installed `web-vitals@6.2.3` attribution build and registers
+  LCP, INP, CLS, TTFB and FCP only for `/shop` routes. It sends no identity or cookies, truncates
+  LCP/INP targets to 200 characters, uses `sendBeacon` first and a cookie-free keepalive fetch
+  fallback. Headless Chromium did not report INP reliably, so the browser regression asserts
+  real LCP/CLS beacons after a keyboard interaction and page hide, as the package permits.
+- Verification: focused vitals unit **19/19**, coverage **279/279** (95.26% statements,
+  89.95% branches, 98.78% functions, 95.62% lines), lint and typecheck passed. `npm run budget`
+  passed all seven routes; the attribution build added **5.129–5.132 KB gz** per initial route
+  versus the WP-13 baselines, with every route still below its hard budget. The full
+  `npm run check` passed with both isolated legacy-port overrides: coverage **279/279**,
+  Playwright **140/140**, build, token/inventory checks, and all route budgets green.
+- Infrastructure prerequisite `12af1b2` was cherry-picked separately as local commit `1d6b0ee`
+  to isolate the route-budget legacy port; the integration base already contains that fix and
+  must integrate only the later WP-17 feature commit. Package changes are limited to the four
+  authorized implementation/test files and this workflow log. No Codex advisor consultation
+  was needed.
+
 ## WP-11 — Product detail page `/shop/[slug]` (2026-10-17, detached from `5333120`)
 - Status: Done (human-accepted 2026-10-17). WP-13 replaced the aggregate JS gate and the
   resulting full `npm run check` passed. Added the SSR product route with a
@@ -409,6 +434,13 @@ Next step: request human acceptance of WP-14 and WP-15
 | 2026-10-17 | 254ce7d + WP-15 dirty | /shop/c/wallboxes?connector=ccs | `LIGHTHOUSE_LEGACY_PORT=18080 npm run lighthouse:shop` | 5, median | 2633 ms | 0.165509 | 24 ms | n/a (WP-19) | 114.527 KB (equivalent listing route, WP-13) | n/a (WP-22) | lab; WP-15 naive baseline; Speed Index 2027 ms; total byte weight 198,039 B (193.4 KiB) |
 | 2026-10-17 | 254ce7d + WP-15 dirty | /shop/ladekabel-typ-1-10-m | `LIGHTHOUSE_LEGACY_PORT=18080 npm run lighthouse:shop` | 5, median | 3383 ms | 0.183524 | 127 ms | n/a (WP-19) | 116.307 KB (equivalent product route, WP-13) | n/a (WP-22) | lab; WP-15 naive baseline; Speed Index 2178 ms; total byte weight 416,160 B (406.4 KiB) |
 | 2026-10-17 | 254ce7d + WP-15 dirty | /shop/cart | `LIGHTHOUSE_LEGACY_PORT=18080 npm run lighthouse:shop` | 5, median | 2102 ms | 0 | 53.5 ms | n/a (WP-19) | 111.800 KB (WP-13) | n/a (WP-22) | lab; WP-15 naive baseline; Speed Index 1952 ms; total byte weight 125,485 B (122.5 KiB) |
+| 2026-10-17 | 254ce7d + WP-17 | /portal/stations | `npm run budget` | 1 | n/a | n/a | n/a | n/a (WP-19) | 118.927 KB (budget 119.5 KB) | n/a | web-vitals attribution build; +5.132 KB vs WP-13 baseline |
+| 2026-10-17 | 254ce7d + WP-17 | /portal/sessions | `npm run budget` | 1 | n/a | n/a | n/a | n/a (WP-19) | 118.927 KB (budget 119.5 KB) | n/a | web-vitals attribution build; +5.132 KB vs WP-13 baseline |
+| 2026-10-17 | 254ce7d + WP-17 | /portal/invoices | `npm run budget` | 1 | n/a | n/a | n/a | n/a (WP-19) | 121.688 KB (budget 122.4 KB) | n/a | web-vitals attribution build; +5.132 KB vs WP-13 baseline |
+| 2026-10-17 | 254ce7d + WP-17 | /portal/invoices/inv-0042/dispute | `npm run budget` | 1 | n/a | n/a | n/a | n/a (WP-19) | 121.688 KB (budget 122.4 KB) | n/a | web-vitals attribution build; +5.132 KB vs WP-13 baseline |
+| 2026-10-17 | 254ce7d + WP-17 | /shop/c/wallboxes | `npm run budget` | 1 | n/a | n/a | n/a | n/a (WP-19) | 119.656 KB (budget 126.0 KB) | n/a | web-vitals attribution build; +5.129 KB vs WP-13 baseline |
+| 2026-10-17 | 254ce7d + WP-17 | /shop/wallbox-home-7-4 | `npm run budget` | 1 | n/a | n/a | n/a | n/a (WP-19) | 121.438 KB (budget 128.0 KB) | n/a | web-vitals attribution build; +5.131 KB vs WP-13 baseline |
+| 2026-10-17 | 254ce7d + WP-17 | /shop/cart | `npm run budget` | 1 | n/a | n/a | n/a | n/a (WP-19) | 116.930 KB (budget 123.0 KB) | n/a | web-vitals attribution build; +5.130 KB vs WP-13 baseline |
 
 Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) reports of the 2026-10-17 runs; TTFB is the `server-response-time` audit on the local warm server (no cold/warm split yet); all numbers lab (mobile emulation, simulated throttling).
 
