@@ -1,16 +1,19 @@
 import { spawn } from 'node:child_process'
 import { readFileSync } from 'node:fs'
+import { createServer } from 'node:net'
 import { isAbsolute, relative, resolve, sep } from 'node:path'
 import { gzipSync } from 'node:zlib'
 import { chromium } from '@playwright/test'
 import {
   evaluate,
+  parseLegacyPort,
   parseBudgets,
   REQUIRED_ROUTES,
   validateBudgetCoverage,
 } from './lib/route-budget.mjs'
 
-const LEGACY = 'http://localhost:8080'
+const LEGACY_PORT = parseLegacyPort(process.env.ROUTE_BUDGET_LEGACY_PORT)
+const LEGACY = `http://localhost:${LEGACY_PORT}`
 const APP = 'http://localhost:3000'
 const ASSET_ROOT = resolve('.output/public/_nuxt')
 const BUDGET_FILE = 'scripts/route-budgets.json'
@@ -27,6 +30,15 @@ const start = (script, env = {}) => {
 const stop = () => children.forEach((child) => child.kill())
 
 const responds = (url) => fetch(url, { redirect: 'manual' }).then(() => true, () => false)
+const isPortInUse = (port) => new Promise((resolvePort, reject) => {
+  const server = createServer()
+  server.unref()
+  server.once('error', (error) => {
+    if (error.code === 'EADDRINUSE' || error.code === 'EACCES') resolvePort(true)
+    else reject(error)
+  })
+  server.listen({ port, exclusive: true }, () => server.close(() => resolvePort(false)))
+})
 const waitFor = async (url) => {
   for (let attempt = 0; attempt < 60; attempt++) {
     if (await responds(url)) return
@@ -120,14 +132,18 @@ try {
   const budgets = parseBudgets(readFileSync(BUDGET_FILE, 'utf8'))
   validateBudgetCoverage(budgets)
 
-  for (const url of [LEGACY, APP]) {
-    if (await responds(url)) {
+  for (const [url, port] of [[LEGACY, LEGACY_PORT], [APP, 3000]]) {
+    if (await isPortInUse(port)) {
       throw new Error(`${url} is already in use; stop the stale server before measuring this build`)
     }
   }
 
-  start('legacy/server.mjs')
-  start('.output/server/index.mjs', { PORT: '3000', NITRO_PORT: '3000' })
+  start('legacy/server.mjs', { LEGACY_PORT: String(LEGACY_PORT) })
+  start('.output/server/index.mjs', {
+    PORT: '3000',
+    NITRO_PORT: '3000',
+    NUXT_LEGACY_ORIGIN: LEGACY,
+  })
   await Promise.all([waitFor(`${LEGACY}/login`), waitFor(`${APP}/login`)])
 
   const cookies = await sessionCookies()

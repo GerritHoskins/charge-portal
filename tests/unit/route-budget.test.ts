@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 // @ts-expect-error The budget helper is an intentionally plain Node.js module.
 import {
   evaluate,
+  parseLegacyPort,
   parseBudgets,
   REQUIRED_ROUTES,
   validateBudgetCoverage,
@@ -62,6 +63,22 @@ describe('route budget parsing', () => {
   ])('rejects an invalid budget definition', (value) => {
     expect(() => parseBudgets(value)).toThrow()
   })
+})
+
+describe('route budget legacy port parsing', () => {
+  it('defaults to 8080 and accepts an explicit isolated port', () => {
+    expect(parseLegacyPort(undefined)).toBe(8080)
+    expect(parseLegacyPort('18081')).toBe(18081)
+  })
+
+  it.each(['', ' ', 'not-a-port', '0', '65536', '1.5'])(
+    'rejects invalid ROUTE_BUDGET_LEGACY_PORT value %j',
+    (value) => {
+      expect(() => parseLegacyPort(value)).toThrow(
+        'ROUTE_BUDGET_LEGACY_PORT must be an integer from 1 to 65535',
+      )
+    },
+  )
 })
 
 describe('required route budget coverage', () => {

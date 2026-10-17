@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-14 + WP-15 integrated implementation — combined gate pending
+Current step: WP-14 + WP-15 integrated implementation — combined gate passed; human review pending
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-16
-Next step: run the serialized full integration gate, then request human acceptance of WP-14 and WP-15
+Next step: request human acceptance of WP-14 and WP-15
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -331,6 +331,19 @@ Next step: run the serialized full integration gate, then request human acceptan
   is limited to `scripts/lib/route-budget.mjs`, `scripts/check-route-budget.mjs`,
   `scripts/route-budgets.json`, `scripts/check-bundle-size.mjs`, `package.json`,
   `tests/unit/route-budget.test.ts`, and this log. Human acceptance is still required.
+- Runner port-isolation follow-up (integrated base `eb43912`): `ROUTE_BUDGET_LEGACY_PORT`
+  now parses as an optional integer from 1 to 65535 with default `8080`. The runner derives its
+  legacy origin from that port, rejects occupied legacy/app ports with a direct TCP bind check,
+  starts the legacy child with `LEGACY_PORT`, and starts built Nuxt with the matching
+  `NUXT_LEGACY_ORIGIN`; app port `3000` and all thresholds remain unchanged.
+- Follow-up tests first: the focused suite failed **7 new cases** because `parseLegacyPort` did
+  not exist, then passed **18/18** after implementation. The default production runner refused
+  the user-owned occupied `8080` before starting children. `npm run lint` and
+  `npm run typecheck` passed. With both the existing E2E override and new runner override set to
+  isolated `18081`, full `npm run check` passed: coverage **279/279** (95.26% statements,
+  89.95% branches, 98.78% functions, 95.62% lines), Playwright **137/137**, build, aggregate
+  information, and all seven unchanged per-route budgets. The user-owned `8080` server was not
+  stopped or reused.
 
 ## WP-14 — ADR 0007: public shop area, inventory status, per-route budgets (2026-10-17, detached from `254ce7d`)
 - Status: Implementation complete; combined integration gate and human ADR acceptance pending.

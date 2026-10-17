@@ -8,6 +8,16 @@ export const REQUIRED_ROUTES = Object.freeze([
   '/shop/cart',
 ])
 
+export const parseLegacyPort = (value) => {
+  const message = 'ROUTE_BUDGET_LEGACY_PORT must be an integer from 1 to 65535'
+  if (value === undefined) return 8080
+  if (typeof value !== 'string' || value.trim() === '') throw new Error(message)
+
+  const port = Number(value)
+  if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error(message)
+  return port
+}
+
 const normalizeBudget = (route, value) => {
   if (!route.startsWith('/')) throw new Error(`Route budget key must start with "/": ${route}`)
 
