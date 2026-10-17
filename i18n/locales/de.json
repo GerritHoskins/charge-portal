@@ -15,8 +15,8 @@
   },
   "login": {
     "title": "Anmelden",
-    "username": "Benutzername",
-    "password": "Passwort",
+    "username": "Benutzername (demo)",
+    "password": "Passwort (demo-password)",
     "submit": "Anmelden",
     "errors": {
       "invalid": "Benutzername oder Passwort ungültig.",

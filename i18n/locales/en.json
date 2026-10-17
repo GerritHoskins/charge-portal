@@ -15,8 +15,8 @@
   },
   "login": {
     "title": "Sign in",
-    "username": "Username",
-    "password": "Password",
+    "username": "Username (demo)",
+    "password": "Password (demo-password)",
     "submit": "Sign in",
     "errors": {
       "invalid": "Invalid username or password.",
