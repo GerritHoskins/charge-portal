@@ -1,5 +1,5 @@
 {
-  "$comment": "Route inventory of the strangler migration. `status`: migrated (Nuxt owns it), legacy (still to migrate), stays-legacy (deliberately not migrated, e.g. the JSON API the BFF consumes). `files` are the Nuxt files that implement a migrated route; `npm run migration:status -- --check` fails when one is missing or when a page under app/pages is not listed here.",
+  "$comment": "Route inventory of the strangler migration. `status`: migrated (a legacy route Nuxt now owns), legacy (still to migrate), nuxt-native (Nuxt capability that was never a legacy route — listed and file-checked like migrated, but excluded from the migration percentage), stays-legacy (deliberately not migrated, e.g. the JSON API the BFF consumes). `files` are the Nuxt files that implement a migrated or nuxt-native route; `npm run migration:status -- --check` fails when one is missing or when a page under app/pages is not listed here.",
   "routes": [
     { "path": "/portal/stations", "status": "migrated", "adr": "0001", "files": ["app/pages/portal/stations/index.vue"] },
     { "path": "/portal/sessions", "status": "migrated", "adr": "0001", "files": ["app/pages/portal/sessions/index.vue"] },

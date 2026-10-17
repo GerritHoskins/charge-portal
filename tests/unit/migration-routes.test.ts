@@ -44,6 +44,23 @@ describe('validate', () => {
     expect(validate([route(over)], { exists: () => true, pageFiles: [] }).join()).toContain(fragment)
   })
 
+  it('accepts a nuxt-native route with an ADR and existing files', () => {
+    expect(validate([route({ status: 'nuxt-native' })], ok)).toEqual([])
+  })
+
+  it.each([
+    ['without an ADR', { adr: undefined }, '/a: migrated and nuxt-native routes must reference the ADR that decided it'],
+    ['without files', { files: [] }, '/a: migrated and nuxt-native routes must list the files that implement them'],
+  ])('flags a nuxt-native route %s', (_label, over, expected) => {
+    expect(validate([route({ status: 'nuxt-native', ...over })], { exists: () => true, pageFiles: [] }))
+      .toContain(expected)
+  })
+
+  it('flags a nuxt-native route file that does not exist', () => {
+    expect(validate([route({ status: 'nuxt-native' })], { ...ok, exists: () => false }))
+      .toContain('/a: listed file app/pages/a.vue does not exist')
+  })
+
   it('flags duplicate routes', () => {
     expect(validate([route(), route()], ok).join()).toContain('duplicate route')
   })

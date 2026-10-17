@@ -15,7 +15,7 @@ const pageFiles = walk(join(root, 'app/pages'))
   .map((f) => relative(root, f).replaceAll('\\', '/'))
 
 const s = summarize(routes)
-console.log(`Migrated ${s.migrated} of ${s.total} routes (${s.percent}%), ${s.remaining} remaining, ${s.staysLegacy} deliberately staying in legacy.`)
+console.log(`Migrated ${s.migrated} of ${s.total} routes (${s.percent}%), ${s.remaining} remaining, ${s.staysLegacy} deliberately staying in legacy${s.native ? `, ${s.native} Nuxt-native (excluded from the percentage)` : ''}.`)
 for (const r of routes.filter((x) => x.status === 'legacy')) console.log(`  todo: ${r.path}`)
 
 if (process.argv.includes('--check')) {

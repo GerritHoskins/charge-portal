@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-01 — Inventory status `nuxt-native`
-Completed steps: WP-00
-Next step: WP-01
+Current step: WP-02 — Catalogue contract
+Completed steps: WP-00, WP-01
+Next step: WP-02
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -16,6 +16,14 @@ Next step: WP-01
 - Step 3 — `npm run check`: **green** (exit 0): lint, typecheck, `tokens --check`, `migration:status --check`, unit suite + coverage, full Playwright suite, build. Bundle budget hold: client JS **115.8 KB gz of 120 KB**.
 - Step 4 — `npm run lighthouse`: portal routes logged in, mobile emulation + simulated throttling (Lighthouse defaults, per `lighthouserc.cjs`), 3 runs, median-run aggregation. All 4 routes pass all assertions (perf ≥ 0.9, a11y = 1.0, best-practices ≥ 0.9, LCP ≤ 2500 ms, CLS ≤ 0.1, TBT ≤ 300 ms). Per-route category scores: perf 98 / a11y 100 / best-practices 100.
 - Step 5 — this log updated; installed versions: `nuxt@4.6.1`, `@nuxt/image@2.1.0`, `web-vitals@6.2.3`.
+
+## WP-01 — Inventory status `nuxt-native` (2026-10-17, on `main` @ `3d43055`)
+- Tests first (TDD): added 4 cases to `tests/unit/migration-routes.test.ts` (summarize `native` count, nuxt-native accept, missing ADR/files, missing file) → RED 6 failed / 8 passed; then implemented → **GREEN 14/14**.
+- `scripts/lib/migration-routes.mjs`: `nuxt-native` added to `STATUSES`; `summarize()` reports `native` and excludes those routes from `total`/`percent`; `validate()` runs the ADR/files/exists checks for both `migrated` and `nuxt-native`.
+- Wording decision (delegated to a Codex subagent before answering): shared messages `migrated and nuxt-native routes must …`; existing migrated test expectations stay valid (they assert the fragments `ADR` / `files` / `does not exist`).
+- `docs/migration-routes.json` `$comment` now documents `nuxt-native`; `scripts/migration-status.mjs` prints the native count when non-zero.
+- Done-when verified: targeted vitest 14 passed, `npm run migration:status -- --check` passes (7/7 routes, 0 remaining, 1 stays-legacy), eslint clean.
+- State: uncommitted diff awaiting human review (AGENTS.md: a human commits every diff).
 
 ## Completed Changes
 - WP-00: setup + measurement only, no application code changes. `package.json` + `package-lock.json` modified by the two installs (uncommitted at time of writing; a human commits every diff).
@@ -32,5 +40,4 @@ Next step: WP-01
 Notes: medians from `.lighthouseci/` reports of the 2026-10-17 run; TTFB is the `server-response-time` audit on the local warm server (no cold/warm split yet); all numbers lab (mobile emulation, simulated throttling).
 
 ## Open questions
-- `package.json` / `package-lock.json` (the two WP-00 installs) are still uncommitted on `feat/storefront-performance` — to be committed by a human before WP-01 starts.
-- WP-01 is blocked: `tests/unit/migration-routes.test.ts` has pre-existing uncommitted user changes (summary assertions for `nuxt-native`). The targeted test run confirms RED (2 failed, 8 passed). Attempts to add the remaining WP-01 validation tests could not be applied safely: patch matching failed and the write tool refused a full-file replacement due to its partial-read guard. No implementation files were changed. Resolve/reapply the test edit before continuing WP-01.
+- (none) — WP-00 installs are merged (PR #3 → `main`), the WP-01 test-file blocker was resolved in `3d43055` and WP-01's done-when checks pass.
