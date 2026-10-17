@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-09 — Listing page (Review)
-Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-16
-Next step: human review and acceptance of WP-09, then select the next ready package
+Current step: WP-10 + WP-11 parallel wave
+Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-16
+Next step: implement WP-10 and WP-11 in isolated worktrees; serialize browser and full gates
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -176,7 +176,7 @@ Next step: human review and acceptance of WP-09, then select the next ready pack
   implementation blocker.
 
 ## WP-09 — Listing page `/shop` and `/shop/c/[category]` (2026-10-17, detached @ `0dfe80b`)
-- Status: Review. Added the permanent `/shop` → `/shop/c/wallboxes` redirect and an SSR category
+- Status: Done (human-accepted 2026-10-17). Added the permanent `/shop` → `/shop/c/wallboxes` redirect and an SSR category
   listing on the public shop layout. The category page requests 12 items so each accepted 24-product
   fixture has two real pages; it renders a semantic list, translated heading/count/error/stock text,
   locale-aware euro prices, accessible pagination, and no portal navigation.
