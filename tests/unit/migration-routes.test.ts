@@ -8,11 +8,16 @@ const ok = { exists: () => true, pageFiles: ['app/pages/a.vue'] }
 describe('summarize', () => {
   it('counts progress over migratable routes only', () => {
     const s = summarize([route(), route({ path: '/b' }), route({ path: '/c', status: 'legacy' }), route({ path: '/api', status: 'stays-legacy' })])
-    expect(s).toEqual({ migrated: 2, remaining: 1, staysLegacy: 1, total: 3, percent: 67 })
+    expect(s).toEqual({ migrated: 2, remaining: 1, staysLegacy: 1, native: 0, total: 3, percent: 67 })
   })
 
   it('is 100% when nothing is left to migrate', () => {
     expect(summarize([]).percent).toBe(100)
+  })
+
+  it('ignores nuxt-native routes in progress and counts them as native', () => {
+    const s = summarize([route(), route({ path: '/shop', status: 'nuxt-native' }), route({ path: '/c', status: 'legacy' })])
+    expect(s).toEqual({ migrated: 1, remaining: 1, staysLegacy: 0, native: 1, total: 2, percent: 50 })
   })
 })
 

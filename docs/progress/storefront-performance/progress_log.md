@@ -33,3 +33,4 @@ Notes: medians from `.lighthouseci/` reports of the 2026-10-17 run; TTFB is the 
 
 ## Open questions
 - `package.json` / `package-lock.json` (the two WP-00 installs) are still uncommitted on `feat/storefront-performance` — to be committed by a human before WP-01 starts.
+- WP-01 is blocked: `tests/unit/migration-routes.test.ts` has pre-existing uncommitted user changes (summary assertions for `nuxt-native`). The targeted test run confirms RED (2 failed, 8 passed). Attempts to add the remaining WP-01 validation tests could not be applied safely: patch matching failed and the write tool refused a full-file replacement due to its partial-read guard. No implementation files were changed. Resolve/reapply the test edit before continuing WP-01.
