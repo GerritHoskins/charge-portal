@@ -1,11 +1,13 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-20 Done (human-accepted); WP-21 and WP-22 continuing in isolated worktrees
+Current step: WP-20 Done (human-accepted); WP-21, WP-22 and WP-23 In progress in isolated worktrees
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-26
-Next step: complete WP-21 layout-stability assessment and independent WP-22 cache safety and measurements
+Next step: finish WP-21 verification, verify WP-22's payload-aware sorting regression, and measure WP-23 delayed hydration; runtime/build gates are serialized
 
 ## Decisions
+- 2026-10-18: Human explicitly approved WP-22 extending `tests/e2e/shop-listing.spec.ts`: accept the API or query-aware Nuxt payload transport while verifying the complete sorted result. A cache-on diagnostic showed all 12 prices correctly descending; the old API-only wait was incompatible with Nuxt's cached-route payload loading.
+- 2026-10-18: Human explicitly approved extending WP-21's edit scope to `tests/e2e/shop-cart.spec.ts` for a permanent persisted-cart hydration regression. Product-page controls isolate the header-only shift (CLS 0.0007–0.0024); the initial larger cart-page values also included cart-content restoration.
 - 2026-10-17: Human explicitly approved WP-22's additional `server/plugins/shop-cache-safety.ts` runtime hook, outside its original file list, to remove only the shop i18n response cookie before cache capture while preserving locale detection and portal/other cookies. Cache variant and no-cookie tests remain required.
 - 2026-10-17: Human accepted WP-20 at integrated commit `32532be`; continue the authorized backlog with GPT-6 Luna high subagents. Measurement/build gates remain serialized between isolated worktrees.
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
