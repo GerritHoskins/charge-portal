@@ -28,7 +28,7 @@ Against the PHP twin of the legacy stand-in: `docker compose up --build` (see "H
 
 `npm run migration:status` prints the progress from `docs/migration-routes.json` (the inventory; `-- --check` fails when it drifts from the repo).
 
-Decision records: [0001 strangler migration](docs/adr/0001-strangler-migration.md), [0002 auth hand-over](docs/adr/0002-auth-hand-over.md), [0003 accessible dispute form](docs/adr/0003-accessible-dispute-form.md), [0004 login in Nuxt, CSRF, rate limiting](docs/adr/0004-login-in-nuxt.md), [0005 rollout and rollback](docs/adr/0005-rollout-and-rollback.md), [0006 i18n](docs/adr/0006-i18n.md). Working agreements: [CONTRIBUTING](CONTRIBUTING.md), [migration playbook](docs/migration-playbook.md), [accessibility checks](docs/accessibility-checks.md).
+Decision records: [0001 strangler migration](docs/adr/0001-strangler-migration.md), [0002 auth hand-over](docs/adr/0002-auth-hand-over.md), [0003 accessible dispute form](docs/adr/0003-accessible-dispute-form.md), [0004 login in Nuxt, CSRF, rate limiting](docs/adr/0004-login-in-nuxt.md), [0005 rollout and rollback](docs/adr/0005-rollout-and-rollback.md), [0006 i18n](docs/adr/0006-i18n.md), [0007 public shop and budgets](docs/adr/0007-public-shop-and-budgets.md). Working agreements: [CONTRIBUTING](CONTRIBUTING.md), [migration playbook](docs/migration-playbook.md), [accessibility checks](docs/accessibility-checks.md).
 
 Rollback without a deploy: `NUXT_ROLLOUT="/portal/invoices=0"` sends everybody back to the legacy page for that route; `=50` serves half of the users from Nuxt (sticky per session). Details and limits in ADR 0005.
 

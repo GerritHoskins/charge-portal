@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-14 ADR 0007 + WP-15 shop Lighthouse baseline (parallel wave)
+Current step: WP-14 ADR 0007 — In progress; WP-15 shop Lighthouse baseline runs in parallel
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-16
-Next step: implement WP-14 and WP-15 from accepted commit `3f7e9da`, integrate, and run the combined gate
+Next step: integrate WP-14 and WP-15 from accepted commit `254ce7d`, run the combined gate, and request human acceptance
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -331,6 +331,17 @@ Next step: implement WP-14 and WP-15 from accepted commit `3f7e9da`, integrate, 
   is limited to `scripts/lib/route-budget.mjs`, `scripts/check-route-budget.mjs`,
   `scripts/route-budgets.json`, `scripts/check-bundle-size.mjs`, `package.json`,
   `tests/unit/route-budget.test.ts`, and this log. Human acceptance is still required.
+
+## WP-14 — ADR 0007: public shop area, inventory status, per-route budgets (2026-10-17, detached from `254ce7d`)
+- Status: In progress. The proposed ADR documents the public SSR rationale, synthetic catalogue
+  boundary, exact public API allowlist, separate cache-ready shop layout, `nuxt-native` inventory
+  meaning, and the accepted WP-13 measurement model and baselines. It also records the added
+  complexity and exclusions, including the client-only cart, absent CDN behavior, and unchanged
+  `legacy-php/` twin, without treating the stand-in as a real Shopware integration.
+- Package scope: new `docs/adr/0007-public-shop-and-budgets.md`, the single README decision-record
+  line, and this workflow log only. No behavior changed, so no test-first step applies.
+- Verification: `npm run lint` passed. Next action: inspect the bounded diff, commit the local
+  package, then integrate it for human ADR acceptance.
 
 ## Completed Changes
 - WP-00: setup + measurement only, no application code changes. `package.json` + `package-lock.json` modified by the two installs (uncommitted at time of writing; a human commits every diff).
