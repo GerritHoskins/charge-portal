@@ -41,26 +41,26 @@ Gotcha: Playwright reuses servers already listening on its ports. A stale legacy
 - Accessibility: automated checks only (axe, contrast unit tests, keyboard tests). **No manual screen-reader pass has been done**; the checklist in `docs/accessibility-checks.md` is the plan, with every row marked "not performed".
 - i18n covers all pages; validation messages from legacy stay German (ADR 0006).
 - Rollout has no metrics dashboard or automatic rollback, and legacy pages do not share the Nuxt header (ADR 0005).
-- Mobile: responsive with plain CSS and tested at 320/375 px in headless Chromium only; no real-device run. Wide tables scroll horizontally inside their region instead of reflowing into cards, so on a phone some columns need a sideways swipe (there is no scroll hint). The posting names no UI library, so none was added.
+- Mobile: responsive with plain CSS and tested at 320/375 px in headless Chromium only; no real-device run. Wide tables scroll horizontally inside their region instead of reflowing into cards, so on a phone some columns need a sideways swipe (there is no scroll hint). No UI library was added; components are built on the project's own tokens.
 - Design tokens are generated from `tokens/tokens.json`; a Figma/Tokens Studio sync into that file is not implemented.
 - No visual-regression testing (screenshot baselines differ per OS and would be flaky between Windows and the Linux CI).
 - Invoices are synthetic and the dispute is only recorded in memory (no payment, no PDF).
 
-## Mapping to the role
+## What this demonstrates
 
-| What the role asks for | Where it is shown here |
+| Topic | Where it is shown here |
 |---|---|
-| Incremental migration of an SSR frontend coupled to a monolithic backend to a Vue architecture | ADR 0001, route inventory + `migration:status`, [playbook](docs/migration-playbook.md) |
-| Own delivery risk | Runtime rollout/rollback switch with sticky buckets (ADR 0005), legacy fallback pages, contract suite against the real backend |
-| Own delivery risk of the riskiest slice (auth) | Shared session cookie, server-side guard, then login/logout in Nuxt with CSRF + throttling (ADR 0002, 0004) |
-| Define boundaries and contracts between frontend and backend | `shared/contracts/` (zod), BFF parsing, unit tests with invalid cases, `tests/e2e/contract.spec.ts` against live legacy |
-| Frontend standards: UI consistency, accessibility, testing, performance, code quality | [CONTRIBUTING](CONTRIBUTING.md) table mapping each standard to its enforcement: ESLint (`--max-warnings 0`), coverage floor, axe per route, bundle budget, Lighthouse CI, strict TS |
+| Incremental migration of a server-rendered, monolith-coupled frontend to Nuxt | ADR 0001, route inventory + `migration:status`, [playbook](docs/migration-playbook.md) |
+| Delivery risk control | Runtime rollout/rollback switch with sticky buckets (ADR 0005), legacy fallback pages, contract suite against the real backend |
+| The riskiest slice first (auth) | Shared session cookie, server-side guard, then login/logout in Nuxt with CSRF + throttling (ADR 0002, 0004) |
+| Contracts between frontend and backend | `shared/contracts/` (zod), BFF parsing, unit tests with invalid cases, `tests/e2e/contract.spec.ts` against live legacy |
+| Frontend standards: accessibility, testing, performance, code quality | [CONTRIBUTING](CONTRIBUTING.md) table mapping each standard to its enforcement: ESLint (`--max-warnings 0`), coverage floor, axe per route, bundle budget, Lighthouse CI, strict TS |
 | Reusable component library and design-system integration | `app/components/ds/` (Badge, Button, Alert, TextField, DataTable) consuming generated tokens, documented in Storybook, axe per story and tenant |
-| White-label frontends in customer branding | `data-tenant` token overrides, AA contrast unit-tested and axe-checked per tenant |
+| White-label theming | `data-tenant` token overrides, AA contrast unit-tested and axe-checked per tenant |
 | Vue, Nuxt, TypeScript | Nuxt 4, Vue 3 `<script setup>`, strict TS, `@nuxtjs/i18n` |
 | Unit and E2E tests, WCAG | Vitest + Vue Test Utils, Playwright + axe (WCAG 2.2 AA tags), keyboard-only flows |
-| Mentoring and standards without formal authority | CONTRIBUTING, PR template, playbook, ADRs that state value and limits |
-| Link technical decisions to user value | "User and business value" section in every ADR |
+| Shared working agreements | CONTRIBUTING, PR template, playbook, ADRs that state value and limits |
+| Decisions tied to user value | "User and business value" section in every ADR |
 | AI in daily engineering with risks controlled | `AGENTS.md`: tests first, human review of every diff |
 
 ## Design system and performance
