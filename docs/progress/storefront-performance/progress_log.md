@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-10 + WP-11 parallel wave (combined integration gate pending)
+Current step: WP-12 client-side cart (WP-10/WP-11 implementation complete; aggregate-budget verification deferred to WP-13)
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-16
-Next step: integrate WP-10 and WP-11, then run the combined `npm run check` gate before human review
+Next step: implement WP-12, then WP-13 replaces the invalid aggregate JS gate and unlocks Review for WP-10/WP-11/WP-12
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -201,7 +201,8 @@ Next step: integrate WP-10 and WP-11, then run the combined `npm run check` gate
   optimization, dependency, or generated shop-asset change was made. No Codex advisor was needed.
 
 ## WP-10 — Listing filters and sorting (2026-10-17, detached @ `5333120`)
-- Status: Ready for integration verification; human review and the combined full gate remain pending.
+- Status: Implementation complete; verification deferred solely to WP-13's planned replacement of
+  the aggregate JS budget. Keep out of Review until the resulting `npm run check` is green.
 - Tests first: the expanded listing spec initially ran **6 passed / 5 failed**. The new connector,
   minimum-power, price-ordering, direct SSR, and keyboard cases failed against the unfiltered page,
   while the filtered axe case already passed. The first implementation exposed a test-timing issue:
@@ -221,6 +222,12 @@ Next step: integrate WP-10 and WP-11, then run the combined `npm run check` gate
 - Package scope: `app/pages/shop/c/[category].vue`, `tests/e2e/shop-listing.spec.ts`, and this log.
   No dependency, route-rule, locale, generated-asset, or budget change was made. No Codex advisor
   consultation was needed.
+- Integrated with WP-11 on `codex/storefront-complete`. The combined `npm run check` passed lint,
+  typecheck, token/inventory checks, **251/251 unit tests**, and Playwright **135/135**. Its final
+  aggregate client-JS check reported **120.9 KB gz / 120 KB**. This is the structural all-route
+  sum explicitly assigned to WP-13; no budget was raised and the deliberately naive baseline was
+  not prematurely optimized. WP-12 may proceed because WP-11's functional prerequisite is met,
+  while WP-10/WP-11 remain verification-deferred until WP-13 removes the dependency deadlock.
 
 ## WP-16 — Field metrics schema and aggregation logic (2026-10-17, detached from `5343b48`)
 - Status: Done (human-accepted 2026-10-17). Added the shop-only vitals beacon
@@ -238,7 +245,8 @@ Next step: integrate WP-10 and WP-11, then run the combined `npm run check` gate
   client JS **116.6 KB gz of 120 KB**. Human acceptance was recorded on 2026-10-17.
 
 ## WP-11 — Product detail page `/shop/[slug]` (2026-10-17, detached from `5333120`)
-- Status: Review-ready for the serialized integration gate. Added the SSR product route with a
+- Status: Implementation complete; verification deferred solely to WP-13's planned replacement of
+  the aggregate JS budget. Keep out of Review until the resulting `npm run check` is green. Added the SSR product route with a
   real 404 response and accessible not-found state, breadcrumb, deliberately naive hero, localized
   description/price/stock/specs, cart-button stub, and eight eagerly rendered related products.
 - Bounded interpretation: the narrow product contract exposes neither category nor description.
@@ -251,9 +259,11 @@ Next step: integrate WP-10 and WP-11, then run the combined `npm run check` gate
 - Verification: focused product spec **6/6 passed**; complete `shop` project **15/15 passed**;
   `npm run migration:status -- --check` passed with 3 Nuxt-native routes; lint and typecheck passed.
 - Handoff: changes are limited to the page, migration inventory, product E2E spec, and this log.
-  `npm run check` is deliberately deferred to the combined integration gate. Next action: integrate
-  the package commit, run the serialized full gate, and move WP-11 to Review if green; human
-  acceptance is still required for Done.
+  The combined integration gate passed lint, typecheck, token/inventory checks, **251/251 unit
+  tests**, and Playwright **135/135**, then reported the planned aggregate-budget limitation at
+  **120.9 KB gz / 120 KB**. WP-13 explicitly replaces that structurally invalid sum after WP-12 so
+  all shop routes can be baselined together. No budget was weakened and no later optimization was
+  pulled forward. Human acceptance is still required after the deferred full gate is green.
 
 ## Completed Changes
 - WP-00: setup + measurement only, no application code changes. `package.json` + `package-lock.json` modified by the two installs (uncommitted at time of writing; a human commits every diff).
