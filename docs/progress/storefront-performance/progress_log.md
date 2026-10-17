@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-07 + WP-08 parallel wave (Review)
-Completed steps: WP-00, WP-01, WP-02, WP-03
-Next step: human review/acceptance; after WP-05 is accepted, WP-06 and WP-16 are the next safe parallel wave
+Current step: WP-06 + WP-16 parallel wave
+Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-07, WP-08
+Next step: implement WP-06 and WP-16 in isolated worktrees, then integrate and verify
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -58,7 +58,7 @@ Next step: human review/acceptance; after WP-05 is accepted, WP-06 and WP-16 are
 - State: committed and pushed to `main` as `3f43c13`.
 
 ## WP-04 — Stand-in Store API endpoints (2026-10-17, on `main` @ `3f43c13`)
-- Status: Review. Added public, access-key-protected listing and detail routes before the
+- Status: Done (human-accepted 2026-10-17). Added public, access-key-protected listing and detail routes before the
   session guard in `legacy/server.mjs`; missing/wrong `sw-access-key` returns 401, bad JSON
   returns 400, unknown catalogue entities return 404, and `LEGACY_CATALOG_DELAY_MS` can add
   a synthetic response delay for WP-22.
@@ -80,7 +80,7 @@ Next step: human review/acceptance; after WP-05 is accepted, WP-06 and WP-16 are
 - State: committed and pushed to `main` as `fb4d9e7`.
 
 ## WP-05 — Public API allowlist (2026-10-17, on `main` @ `fb4d9e7`)
-- Status: Review. Added framework-free `isPublicApi()` with exact matches for vitals/events
+- Status: Done (human-accepted 2026-10-17). Added framework-free `isPublicApi()` with exact matches for vitals/events
   and a slash-delimited `/api/shop/` prefix. `/api/shop` deliberately stays private, and
   ambiguous names, case variants, deeper exact-route suffixes, malformed encodings, and dot
   segments do not cross the boundary.
@@ -98,7 +98,7 @@ Next step: human review/acceptance; after WP-05 is accepted, WP-06 and WP-16 are
   unstaged and untouched.
 
 ## WP-07 — Portal and shop layouts (2026-10-17, detached worktree @ `9408eca`)
-- Status: Review. The WP-05 full check on this base supplied the pre-refactor baseline;
+- Status: Done (human-accepted 2026-10-17). The WP-05 full check on this base supplied the pre-refactor baseline;
   root then ran the focused and full post-refactor gates in this worktree.
 - Refactored `app/app.vue` to retain only the skip link, document metadata, hydration marker,
   and `<NuxtLayout><NuxtPage /></NuxtLayout>` shell. The default layout now owns the unchanged
@@ -116,7 +116,7 @@ Next step: human review/acceptance; after WP-05 is accepted, WP-06 and WP-16 are
   No Codex advice was needed.
 
 ## WP-08 — Shop strings in both catalogues (2026-10-17, detached @ `9408eca`)
-- Status: Review. Implementation is integrated with WP-07 on `codex/storefront-complete`.
+- Status: Done (human-accepted 2026-10-17). Implementation is integrated with WP-07 on `codex/storefront-complete`.
   Package files are `i18n/locales/de.json`, `i18n/locales/en.json`, and this log.
 - Tests first: `node -e "...if (!data.shop) throw new Error(locale+'.shop is missing')"`
   failed as expected with `Error: de.shop is missing` (exit 1) before the catalogue edit.
