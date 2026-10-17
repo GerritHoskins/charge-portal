@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-19 synthetic RUM baseline — Ready
+Current step: WP-19 synthetic RUM baseline — Review
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-26
-Next step: implement WP-19 and measure two consecutive 30-run baselines
+Next step: human review and acceptance of WP-19
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -312,6 +312,36 @@ Next step: implement WP-19 and measure two consecutive 30-run baselines
   product, and cart events. The strengthened focused E2E passed **1/1** and lint passed on the
   integration branch.
 
+## WP-19 — Synthetic RUM driver and baseline (2026-10-17, `codex/wp19-rum-sample`)
+- Status: Review. Added `scripts/rum-sample.mjs` and `npm run rum:sample`. Each run uses a new
+  390×844 mobile context, CDP CPU slowdown 4, listing connector/sort changes, third product,
+  add-to-cart, cart, then `about:blank`; telemetry status and minimum LCP/CLS sample coverage are
+  checked. `RUM_LEGACY_PORT` defaults to 8080. Two final 30-run captures used the same production
+  build from `a370cef`, each with a fresh server process on legacy port 18085.
+- Baseline 1 and 2 funnel totals were each **30 listing / 30 product / 30 adds**, with both distinct-
+  tab conversion rates at **100%**. All **476 vitals** and **180 funnel** POSTs across both runs
+  returned 204, with zero rate limits or failed requests.
+- LCP p75 run 1 → run 2: category **240 → 232 ms** (8 ms spread), product **148 → 156 ms**
+  (8 ms), cart **228 → 232 ms** (4 ms). CLS was **0.000** in both runs with 30 samples per route.
+  INP samples were sparse: category **16 ms (n=1)** in both runs; product **24 ms (n=3)** then
+  **24 ms (n=2)**; cart **no sample**. First-input entries appeared in all 30 runs. The auxiliary
+  `performance.getEntriesByType('event')` diagnostic returned zero, which does not establish that
+  Event Timing entries or interaction IDs were unsupported. The INP samples do not establish an
+  INP noise floor.
+- Route labeling uses the path active when the Web Vitals callback fires. Product-card links and
+  the cart URL perform full document navigations; connector and sort changes update the listing
+  route in the same document. This is synthetic RUM, not real-user data.
+- Flush diagnosis: awaiting `requestfinished` stalled on navigated sendBeacon requests even though
+  the server returned 204. Following Codex advisor guidance, the driver now treats the observed
+  HTTP response as completion, records failed tracked requests, and bounds the remaining wait.
+  A final one-run trial passed with **8/8** vitals and **3/3** funnel POSTs accepted, with LCP/CLS
+  coverage on all three routes. Full `npm run check` passed: lint, typecheck, token and migration
+  checks; coverage **289/289**; Playwright **143/143**; production build; and all seven route budgets.
+  Final budget sizes were **118.088 KB** stations/sessions, **120.866 KB** invoices/dispute,
+  **125.205 KB** listing, **127.302 KB** product, and **121.577 KB** cart. Six-second deterministic
+  pacing kept the synthetic run below the telemetry rate limit. Raw captures are preserved in the
+  ignored `.lighthouseci-shop/rum-baseline-1.json` and `rum-baseline-2.json` files.
+
 ## WP-11 — Product detail page `/shop/[slug]` (2026-10-17, detached from `5333120`)
 - Status: Done (human-accepted 2026-10-17). WP-13 replaced the aggregate JS gate and the
   resulting full `npm run check` passed. Added the SSR product route with a
@@ -522,6 +552,12 @@ Next step: implement WP-19 and measure two consecutive 30-run baselines
 | 2026-10-17 | 254ce7d + WP-17 | /shop/c/wallboxes | `npm run budget` | 1 | n/a | n/a | n/a | n/a (WP-19) | 119.656 KB (budget 126.0 KB) | n/a | web-vitals attribution build; +5.129 KB vs WP-13 baseline |
 | 2026-10-17 | 254ce7d + WP-17 | /shop/wallbox-home-7-4 | `npm run budget` | 1 | n/a | n/a | n/a | n/a (WP-19) | 121.438 KB (budget 128.0 KB) | n/a | web-vitals attribution build; +5.131 KB vs WP-13 baseline |
 | 2026-10-17 | 254ce7d + WP-17 | /shop/cart | `npm run budget` | 1 | n/a | n/a | n/a | n/a (WP-19) | 116.930 KB (budget 123.0 KB) | n/a | web-vitals attribution build; +5.130 KB vs WP-13 baseline |
+| 2026-10-17 | a370cef + WP-19 dirty | /shop/c/:category | `RUM_LEGACY_PORT=18085 npm run rum:sample -- --runs 30` | 30 | 240 ms | 0.000 (n=30) | n/a | 16 ms (n=1) | n/a | n/a | synthetic RUM baseline 1/2; CPU 4; callback route; INP sample too small |
+| 2026-10-17 | a370cef + WP-19 dirty | /shop/:slug | `RUM_LEGACY_PORT=18085 npm run rum:sample -- --runs 30` | 30 | 148 ms | 0.000 (n=30) | n/a | 24 ms (n=3) | n/a | n/a | synthetic RUM baseline 1/2; CPU 4; product is a document navigation |
+| 2026-10-17 | a370cef + WP-19 dirty | /shop/cart | `RUM_LEGACY_PORT=18085 npm run rum:sample -- --runs 30` | 30 | 228 ms | 0.000 (n=30) | n/a | n/a (n=0) | n/a | n/a | synthetic RUM baseline 1/2; CPU 4; cart is a document navigation |
+| 2026-10-17 | a370cef + WP-19 dirty | /shop/c/:category | `RUM_LEGACY_PORT=18085 npm run rum:sample -- --runs 30` | 30 | 232 ms | 0.000 (n=30) | n/a | 16 ms (n=1) | n/a | n/a | synthetic RUM baseline 2/2; LCP spread 8 ms; INP sample too small |
+| 2026-10-17 | a370cef + WP-19 dirty | /shop/:slug | `RUM_LEGACY_PORT=18085 npm run rum:sample -- --runs 30` | 30 | 156 ms | 0.000 (n=30) | n/a | 24 ms (n=2) | n/a | n/a | synthetic RUM baseline 2/2; LCP spread 8 ms; INP sample too small |
+| 2026-10-17 | a370cef + WP-19 dirty | /shop/cart | `RUM_LEGACY_PORT=18085 npm run rum:sample -- --runs 30` | 30 | 232 ms | 0.000 (n=30) | n/a | n/a (n=0) | n/a | n/a | synthetic RUM baseline 2/2; LCP spread 4 ms; no INP sample |
 
 Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) reports of the 2026-10-17 runs; TTFB is the `server-response-time` audit on the local warm server (no cold/warm split yet); all numbers lab (mobile emulation, simulated throttling).
 
