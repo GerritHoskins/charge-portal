@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-19 synthetic RUM baseline — Review
-Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-26
-Next step: human review and acceptance of WP-19
+Current step: WP-20 image optimization — Ready
+Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-26
+Next step: measure and implement WP-20 images/LCP
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -313,7 +313,7 @@ Next step: human review and acceptance of WP-19
   integration branch.
 
 ## WP-19 — Synthetic RUM driver and baseline (2026-10-17, `codex/wp19-rum-sample`)
-- Status: Review. Added `scripts/rum-sample.mjs` and `npm run rum:sample`. Each run uses a new
+- Status: Done (human-accepted 2026-10-17 at integration commit `3a09284`). Added `scripts/rum-sample.mjs` and `npm run rum:sample`. Each run uses a new
   390×844 mobile context, CDP CPU slowdown 4, listing connector/sort changes, third product,
   add-to-cart, cart, then `about:blank`; telemetry status and minimum LCP/CLS sample coverage are
   checked. `RUM_LEGACY_PORT` defaults to 8080. Two final 30-run captures used the same production
