@@ -213,7 +213,7 @@ Next step: human review and acceptance of WP-09, then select the next ready pack
   98.3% functions / 97.08% lines; `npm run lint` and `npm run typecheck` passed.
 - Handoff: changes are limited to the four WP-16 implementation/test/config files and this log.
   The integrated `npm run check` passed: **240/240 unit tests**, Playwright **115/115**, and
-  client JS **116.6 KB gz of 120 KB**. Human acceptance is still required for Done.
+  client JS **116.6 KB gz of 120 KB**. Human acceptance was recorded on 2026-10-17.
 
 ## Completed Changes
 - WP-00: setup + measurement only, no application code changes. `package.json` + `package-lock.json` modified by the two installs (uncommitted at time of writing; a human commits every diff).
