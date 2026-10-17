@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-18 conversion funnel events — integrated Review; human acceptance pending
-Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-26
-Next step: obtain human acceptance for WP-18, then execute WP-19 RUM sample
+Current step: WP-19 synthetic RUM baseline — Ready
+Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-26
+Next step: implement WP-19 and measure two consecutive 30-run baselines
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -280,7 +280,7 @@ Next step: obtain human acceptance for WP-18, then execute WP-19 RUM sample
   listing, **126.932 KB** for product, and **121.574 KB** for cart.
 
 ## WP-18 — Conversion funnel events (2026-10-17, `codex/wp18-funnel-events` @ `70ea536`)
-- Status: Review. Tests were written first: the focused unit suite failed because the events
+- Status: Done (human-accepted 2026-10-17 at integration commit `6b5e6eb`). Tests were written first: the focused unit suite failed because the events
   contract did not exist, and the focused browser test timed out waiting for the absent
   `listing_view` request. After implementation the unit suite passed **5/5**, the focused browser
   funnel passed **1/1**, and the complete shop project passed **29/29**.
