@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-07 + WP-08 parallel wave (integrated verification in progress)
+Current step: WP-07 + WP-08 parallel wave (Review)
 Completed steps: WP-00, WP-01, WP-02, WP-03
-Next step: run the combined full gate, then move both packages to Review
+Next step: human review/acceptance; after WP-05 is accepted, WP-06 and WP-16 are the next safe parallel wave
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -111,13 +111,13 @@ Next step: run the combined full gate, then move both packages to Review
   for this behavior-preserving refactor.
 - Dirty files: `app/app.vue`, `app/components/AppLocaleSwitcher.vue`,
   `app/layouts/default.vue`, `app/layouts/shop.vue`, and this progress log only.
-- Next action: integrate with WP-08, reconcile this shared log, and rerun `npm run check` on
-  the combined head. No Codex advice was needed.
+- Integrated with WP-08 on `codex/storefront-complete`; the combined `npm run check` is
+  **green** (221/221 unit tests, Playwright 115/115, bundle 116.6 KB gz of 120 KB).
+  No Codex advice was needed.
 
 ## WP-08 — Shop strings in both catalogues (2026-10-17, detached @ `9408eca`)
-- Status: In progress; implementation is complete and ready for the root-run dependency and
-  full verification gates. Expected dirty files are `i18n/locales/de.json`,
-  `i18n/locales/en.json`, and this log.
+- Status: Review. Implementation is integrated with WP-07 on `codex/storefront-complete`.
+  Package files are `i18n/locales/de.json`, `i18n/locales/en.json`, and this log.
 - Tests first: `node -e "...if (!data.shop) throw new Error(locale+'.shop is missing')"`
   failed as expected with `Error: de.shop is missing` (exit 1) before the catalogue edit.
 - Added the package-specified top-level `shop` tree to both catalogues: navigation and cart
@@ -132,7 +132,8 @@ Next step: run the combined full gate, then move both packages to Review
   worktree-local Nuxt types were generated; lint and typecheck passed. A full `npm run check`
   was stopped because the existing `shop.*` Playwright project regex matched every spec when
   evaluated under the temporary `wp08-shop-i18n` directory, producing 228 duplicate tests.
-  Root will run the unchanged full gate after integration from a path without `shop` in it.
+  The unchanged full gate passed after integration from a path without `shop` in it:
+  221/221 unit tests, Playwright 115/115, and bundle 116.6 KB gz of 120 KB.
 - Environment note: `git rev-parse --show-toplevel` and `--is-inside-work-tree` report this
   checkout and `true`; Git diff/status required escalated worktree access from the root and
   the final diff was reviewed there. No Codex advisor consultation was needed and there is no
