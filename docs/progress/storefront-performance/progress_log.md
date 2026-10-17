@@ -1,7 +1,7 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-06 + WP-16 parallel wave
+Current step: WP-06 + WP-16 parallel wave (WP-16 targeted checks passed; integration gate pending)
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-07, WP-08
 Next step: implement WP-06 and WP-16 in isolated worktrees, then integrate and verify
 
@@ -138,6 +138,22 @@ Next step: implement WP-06 and WP-16 in isolated worktrees, then integrate and v
   checkout and `true`; Git diff/status required escalated worktree access from the root and
   the final diff was reviewed there. No Codex advisor consultation was needed and there is no
   implementation blocker.
+
+## WP-16 — Field metrics schema and aggregation logic (2026-10-17, detached from `5343b48`)
+- Status: Review-ready for the serialized integration gate. Added the shop-only vitals beacon
+  contract, route normalization, nearest-rank percentile calculation, and a fixed-capacity in-memory
+  ring buffer that reports p75 and rating counts per normalized route and metric.
+- Tests first: after generating the ignored Nuxt type scaffolding, the new targeted suite failed on
+  the missing `server/utils/vitals-store` module, then passed **19/19** after implementation. Cases
+  cover valid/invalid schema boundaries, metric-specific ceilings, normalization (including cart),
+  percentile behavior, capacity validation, oldest-entry eviction, p75, and rating counts.
+- Verification: `npx vitest run tests/unit/vitals.test.ts` **19/19 passed**;
+  `npm run test:coverage` **240/240 passed** with 96.48% statements / 92.2% branches /
+  98.3% functions / 97.08% lines; `npm run lint` and `npm run typecheck` passed.
+- Handoff: changes are limited to the four WP-16 implementation/test/config files and this log.
+  `npm run check` was deliberately deferred while WP-06 owns the shared-port suite. Next action:
+  integrate the package commit, run the serialized full gate, and move WP-16 to Review if green;
+  human acceptance is still required for Done.
 
 ## Completed Changes
 - WP-00: setup + measurement only, no application code changes. `package.json` + `package-lock.json` modified by the two installs (uncommitted at time of writing; a human commits every diff).
