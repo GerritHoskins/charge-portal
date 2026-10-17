@@ -1,11 +1,13 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-21 Review; WP-20 Done (human-accepted); WP-22 and WP-23 In progress in isolated worktrees
-Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-26
-Next step: human review of WP-21; finish WP-22 cache safety and WP-23 lazy-hydration measurements; runtime/build gates remain serialized
+Current step: WP-21 Done (human-accepted); WP-22 and WP-23 In progress in isolated worktrees
+Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-21, WP-26
+Next step: finish WP-23 verification and WP-22 cache safety/sampler compatibility; runtime/build gates remain serialized
 
 ## Decisions
+- 2026-10-18: Human accepted WP-21 at integrated and pushed commit `48b9714`.
+- 2026-10-18: Human explicitly approved extending WP-22 to `scripts/rum-sample.mjs`: require the correct query and a successful API or Nuxt cached-payload response, with a failing-before/passing-after cache-on run. Existing telemetry-delivery verification must remain intact.
 - 2026-10-18: Human explicitly approved WP-22 extending `tests/e2e/shop-listing.spec.ts`: accept the API or query-aware Nuxt payload transport while verifying the complete sorted result. A cache-on diagnostic showed all 12 prices correctly descending; the old API-only wait was incompatible with Nuxt's cached-route payload loading.
 - 2026-10-18: Human explicitly approved extending WP-21's edit scope to `tests/e2e/shop-cart.spec.ts` for a permanent persisted-cart hydration regression. Product-page controls isolate the header-only shift (CLS 0.0007–0.0024); the initial larger cart-page values also included cart-content restoration.
 - 2026-10-17: Human explicitly approved WP-22's additional `server/plugins/shop-cache-safety.ts` runtime hook, outside its original file list, to remove only the shop i18n response cookie before cache capture while preserving locale detection and portal/other cookies. Cache variant and no-cookie tests remain required.
@@ -584,7 +586,7 @@ Next step: human review of WP-21; finish WP-22 cache safety and WP-23 lazy-hydra
   not part of the WP-20 source diff. No package or lockfile changes; no push.
 
 ## WP-21 — CLS and font stability (2026-10-18, worktree branch `codex/wp21-cls-fonts`)
-- Status: Review. Scope stayed in the shop layout, its approved persisted-cart E2E regression,
+- Status: Done (human accepted integrated commit `48b9714`). Scope stayed in the shop layout, its approved persisted-cart E2E regression,
   and this progress log. No font files/loaders were added: the shop uses system fonts, the
   Lighthouse font audit reported no shift, and WP-20's lab and RUM CLS baselines were already 0.
 - Finding and tests first: on the stable product route, pausing initial scripts isolated the
@@ -642,7 +644,10 @@ Next step: human review of WP-21; finish WP-22 cache safety and WP-23 lazy-hydra
 - Runtime overrides for these WP-21 runs: `E2E_LEGACY_PORT=18088`,
   `ROUTE_BUDGET_LEGACY_PORT=18088`, `LIGHTHOUSE_LEGACY_PORT=18088`, and
   `RUM_LEGACY_PORT=18088`; app port 3000. User ports 8080/3001 were left untouched.
-- Source committed locally as `4c3fb1b`; human acceptance is pending. No package/lockfile changes.
+- Source committed locally as `4c3fb1b`, integrated and pushed as `48b9714`, then human-accepted.
+  No package/lockfile changes.
+- GitHub Actions CI for `48b9714` completed successfully:
+  [run 39080329593](https://github.com/GerritHoskins/charge-portal/actions/runs/39080329593).
 
 ## Completed Changes
 - WP-00: setup + measurement only, no application code changes. `package.json` + `package-lock.json` modified by the two installs (uncommitted at time of writing; a human commits every diff).
