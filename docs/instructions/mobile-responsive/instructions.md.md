@@ -17,6 +17,9 @@ Do not introduce Tailwind, Bootstrap, another CSS framework, or new dependencies
 Preserve existing architecture, styling conventions, and functionality.
 
 Follow `AGENTS.md`, especially its test-first and design-token requirements.
+Follow `docs/instructions/work-package-workflow.md` for package status, context, and Codex
+consultation. Treat each numbered step below as one bounded package; use the existing
+progress log for its scope, acceptance checks, state, and handoff.
 
 ## Execution Rules
 
@@ -32,7 +35,7 @@ Follow `AGENTS.md`, especially its test-first and design-token requirements.
 10. Do not modify unrelated files.
 11. Do not overwrite or discard existing uncommitted changes.
 12. Never hand-edit generated CSS.
-13. Stop after two failed attempts to resolve the same error.
+13. After two failed attempts on the same error, pause retries and consult Codex under the shared workflow; also consult when blocked or needing a second opinion before escalating technical issues to the user.
 14. Do not commit, push, reset, or clean Git history.
 
 ### Progress tracking — mandatory
@@ -304,9 +307,12 @@ When a command fails:
 2. Identify the likely cause.
 3. Apply one targeted correction.
 4. Retry once.
-5. If it still fails, stop the affected step.
+5. If it still fails, pause the affected step and consult the configured Codex advisor.
+6. Evaluate its advice, apply only authorized in-scope corrections, and rerun checks.
+7. Follow the shared workflow's retry limits and unavailable-advisor fallback before user escalation.
 
-Record the blocker in the progress log.
+Record the error, attempts, Codex advice or connection failure, verification, and next action
+in the progress log. Mark Blocked only when the issue remains unresolved.
 
 Do not enter repeated tool-call loops.
 
@@ -341,7 +347,12 @@ Do not attempt repeated compaction cycles.
 
 The implementation plan is approved.
 
-Proceed through Steps 0–7 without requesting approval between successful steps.
+Execute the selected step and record its handoff. Resume incomplete steps from the log;
+do not restart completed work. Use a fresh session for the next selected step. Passing
+checks moves a step to Review; human acceptance moves it to Done.
+
+Consult Codex first for technical blockers, architectural uncertainty, or a second opinion.
+It may recommend a solution but cannot authorize a dependency, destructive action, or scope change.
 
 Request user input only if:
 
@@ -365,4 +376,5 @@ Include:
 
 Do not repeat the entire implementation plan.
 
-**Begin with Step 0. Execute one step at a time and update the progress log after every completed step.**
+**Begin with the selected incomplete step (Step 0 only if preflight is not complete).
+Execute one step at a time and update the progress log with its state and handoff.**

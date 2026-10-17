@@ -39,7 +39,9 @@ third-party branding (see `AGENTS.md`).
    needs to change, that is a decision for an ADR (see Step 2).
 6. Do not install dependencies except those listed in Step 0. Installing them is a human step.
 7. Do not commit, push, reset, or clean Git history; a human reviews every diff.
-8. Stop after two failed attempts on the same error and write down what was tried.
+8. Follow `docs/instructions/work-package-workflow.md`. After two failed attempts on the same
+   error, pause retries and consult Codex; also consult when blocked or needing a second
+   opinion, before escalating technical issues to the user. Record advice and verification.
 
 ### Progress tracking — mandatory
 

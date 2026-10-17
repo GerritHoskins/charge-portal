@@ -1,8 +1,8 @@
 # Shared context for every storefront work package
 
-Read this file first in every work package. It replaces repository-wide searching: the facts
-below are what you need to know about the repo. Read other files only when your work package
-lists them.
+Read `AGENTS.md` and `docs/instructions/work-package-workflow.md`, then this file and the
+selected package. These facts are starting points: verify relevant claims against the
+current checkout. Use the package read list first, with targeted extra reads for diagnosis.
 
 ## Rules (from `AGENTS.md`, binding)
 
@@ -15,9 +15,10 @@ lists them.
   by `npm run tokens`.
 - All data is synthetic. No real product names, brands, prices from real shops, or stock photos.
 - Do not install dependencies. Do not commit, push, reset or clean Git history.
-- Touch only the files your work package lists. If another file must change, stop and write
-  that into the progress log as an open question.
-- Stop after two failed attempts on the same error; record what you tried.
+- Touch only the files your work package lists and its progress log. If another file must
+  change, consult Codex about an in-scope solution; record any required scope decision for the user.
+- After two failed attempts on the same error, pause retries and consult Codex. Also consult
+  when blocked or needing a second opinion. Follow the shared workflow before user escalation.
 
 ## Commands
 
@@ -79,6 +80,8 @@ Show only the last ~30 lines of command output in your reasoning; do not paste f
 ## Progress log
 
 After finishing, append to `docs/progress/storefront-performance/progress_log.md`:
-update **Status** (current/completed/next WP), add a **Completed Changes** entry
+update **Status** (package state, current/completed/next WP), add a **Completed Changes** entry
 (`### WP-NN — title`: files changed, tests added, commands run with pass/fail), add any
 measurements to the **Measurements** table, and any blockers to **Open questions**.
+Include branch/HEAD, next action, and Codex advice/results when used. Mark Review only after
+package checks and `npm run check` pass; mark Done only after human review accepts the diff.

@@ -11,12 +11,16 @@ Start a **fresh session per package** (no carry-over context). Prompt:
 ```text
 You are working in C:\Users\Gerrit\job-search\charge-portal-nuxt.
 Read, in this order:
-1. docs/instructions/storefront-performance/packages/context.md
-2. docs/instructions/storefront-performance/packages/WP-NN-<name>.md
-3. docs/progress/storefront-performance/progress_log.md (only the Status and Open questions sections)
+1. AGENTS.md and docs/instructions/work-package-workflow.md
+2. docs/instructions/storefront-performance/packages/context.md
+3. docs/instructions/storefront-performance/packages/WP-NN-<name>.md
+4. docs/progress/storefront-performance/progress_log.md (Status, Open questions, and relevant prerequisite handoffs only)
 Do work package WP-NN and nothing else. Follow its "Read" list instead of searching the repo.
-Tests first. When done, run the commands under "Done when" and update the progress log.
-If you are blocked, stop and write the blocker into Open questions.
+Verify prerequisites against this checkout. Tests first. Run the commands under "Done when"
+and npm run check, inspect the diff, then record the handoff and mark Review in the progress log.
+When blocked, stuck, or needing a second opinion, consult the configured Codex advisor
+before escalating a technical issue to the user. Follow the shared workflow's bounded
+consultation and unavailable-advisor fallback. Stop after this package; Done requires human review.
 ```
 
 Rough context budget per package: ~4K for `context.md`, ~2–3K for the package, 5–15K for the
@@ -24,6 +28,10 @@ listed files, leaving room for test output and edits. If a session gets close to
 stop, write the state into the progress log, and continue in a fresh session with the same package.
 
 ## Order and dependencies
+
+This index is the backlog; execution status lives only in the progress log. Use Ready,
+In progress, Review, Done, and Blocked as defined in `../../work-package-workflow.md`.
+Unmet dependencies stay pending. Load only the selected package and prerequisite evidence.
 
 | WP | Title | Depends on | Who | Type |
 |---|---|---|---|---|
@@ -61,7 +69,8 @@ Suggested linear order: 00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 
 
 ## Human checkpoints
 
-Review and commit the diff after each package (`AGENTS.md`: a human reviews every diff). Look
+Have a human review the diff after each package (`AGENTS.md`). Commit only when explicitly
+authorized; review does not itself authorize committing. Look
 closely at these, which are easy for a model to get subtly wrong:
 
 - **WP-05** (allowlist): exact path matching; nothing private became public.
