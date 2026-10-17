@@ -1,10 +1,20 @@
+<script lang="ts">
+let vitalsRegistered = false
+
+const registerVitalsOnce = (register: () => void) => {
+  if (vitalsRegistered) return
+  vitalsRegistered = true
+  register()
+}
+</script>
+
+<script setup lang="ts">
 import { onCLS, onFCP, onINP, onLCP, onTTFB, type MetricWithAttribution } from 'web-vitals/attribution'
 import type { VitalsBeacon } from '#shared/contracts/vitals'
 
-export default defineNuxtPlugin(() => {
-  const route = useRoute()
-  if (!route.path.startsWith('/shop')) return
+const route = useRoute()
 
+registerVitalsOnce(() => {
   // Demo telemetry only: no identity, cookie values, or third-party analytics are collected.
   const report = (metric: MetricWithAttribution) => {
     const path = route.path
@@ -43,3 +53,8 @@ export default defineNuxtPlugin(() => {
   onTTFB(report)
   onFCP(report)
 })
+</script>
+
+<template>
+  <span hidden aria-hidden="true" />
+</template>

@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-14, WP-15, WP-17, and WP-26 integrated implementation — combined gate pending; human review pending
-Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-16
-Next step: run the combined integration gate, then obtain human acceptance
+Current step: WP-18 ready to start
+Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-26
+Next step: execute WP-18 funnel events
 
 ## Decisions
 - Plan: `docs/instructions/storefront-performance/instructions.md`.
@@ -245,7 +245,7 @@ Next step: run the combined integration gate, then obtain human acceptance
   client JS **116.6 KB gz of 120 KB**. Human acceptance was recorded on 2026-10-17.
 
 ## WP-17 — Vitals endpoint and browser plugin (2026-10-17, detached from `254ce7d`)
-- Status: Review. Tests were written first; the focused shop E2E failed **3/3** before
+- Status: Done (human-accepted 2026-10-17). Tests were written first; the focused shop E2E failed **3/3** before
   implementation (missing summary data and two 404 responses where 400 was required), then
   passed **3/3** after implementation. The complete shop project passed **26/26**.
 - Added a public 2 KB-bounded `text/plain`/`application/json` beacon endpoint with schema
@@ -265,9 +265,19 @@ Next step: run the combined integration gate, then obtain human acceptance
   Playwright **140/140**, build, token/inventory checks, and all route budgets green.
 - Infrastructure prerequisite `12af1b2` was cherry-picked separately as local commit `1d6b0ee`
   to isolate the route-budget legacy port; the integration base already contains that fix and
-  must integrate only the later WP-17 feature commit. Package changes are limited to the four
-  authorized implementation/test files and this workflow log. No Codex advisor consultation
-  was needed.
+  must integrate only the later WP-17 feature commit. The original package worktree changes were
+  limited to the four authorized implementation/test files and this workflow log. No Codex advisor
+  consultation was needed during that implementation.
+- Integration correction: combining WP-17 with WP-26 changed Rollup's shared-chunk compression
+  and failed the unchanged portal budgets at **122.149/124.930 KB gz**. The approved WP-17 scope
+  amendment moved the browser registration from the global plugin into lazy client component
+  `ShopVitals.client.vue`, rendered by the shop layout. A static layout import was rejected because
+  Nuxt prefetches layout chunks on portal routes. The lazy boundary preserves real LCP/CLS delivery
+  (**5/5** focused vitals + SEO E2E) while excluding attribution code from portal requests.
+  The combined `npm run check` passed: **284/284** unit tests, **142/142** Playwright tests,
+  build/token/inventory gates, and all seven unchanged route budgets. Final sizes were
+  **118.085 KB** for stations/sessions, **120.862 KB** for invoices/dispute, **124.882 KB** for
+  listing, **126.932 KB** for product, and **121.574 KB** for cart.
 
 ## WP-11 — Product detail page `/shop/[slug]` (2026-10-17, detached from `5333120`)
 - Status: Done (human-accepted 2026-10-17). WP-13 replaced the aggregate JS gate and the
@@ -371,7 +381,8 @@ Next step: run the combined integration gate, then obtain human acceptance
   stopped or reused.
 
 ## WP-14 — ADR 0007: public shop area, inventory status, per-route budgets (2026-10-17, detached from `254ce7d`)
-- Status: Implementation complete; combined integration gate and human ADR acceptance pending.
+- Status: Done (human-accepted 2026-10-17). The combined integration gate passed; the ADR remains
+  `proposed` until the WP-27 closeout step changes its document status.
   The proposed ADR documents the public SSR rationale, synthetic catalogue
   boundary, exact public API allowlist, separate cache-ready shop layout, `nuxt-native` inventory
   meaning, and the accepted WP-13 measurement model and baselines. It also records the added
@@ -383,9 +394,9 @@ Next step: run the combined integration gate, then obtain human acceptance
   integration. The ADR remains `proposed` until the WP-27 closeout acceptance step.
 
 ## WP-15 — Public-shop Lighthouse baseline (2026-10-17, detached from `254ce7d`)
-- Status: implementation and package verification complete; the serialized full `npm run check`
-  remains for the integration branch because a user-owned dev stack is using the default legacy
-  port `8080`. That process was neither stopped nor reused.
+- Status: Done (human-accepted 2026-10-17). The serialized integration `npm run check` passed
+  with isolated legacy port `18084`; the user-owned dev stack on `8080` was neither stopped nor
+  reused.
 - Tests first: `npm run lighthouse:shop` initially failed because the script did not exist. After
   adding the public configuration and driver options, an explicit default-port regression check
   exposed that the former HTTP stale-server probe could miss an IPv4-bound listener and reach an
@@ -412,7 +423,7 @@ Next step: run the combined integration gate, then obtain human acceptance
   `package.json`, `.gitignore`, and this progress/measurement handoff.
 
 ## WP-26 — SEO basics for public pages (2026-10-17, detached from `254ce7d` + local WP-15 parent)
-- Status: implementation and package verification complete; integration review remains. The required WP-15 verification
+- Status: Done (human-accepted 2026-10-17). The required WP-15 verification
   dependency (`b6d901e`, applied locally as `75bbf83`) supplies `npm run lighthouse:shop`; the
   eventual WP-26 commit must be cherry-picked without treating that parent as WP-26 scope.
 - Tests first: the focused unit suite failed on the missing `#shared/seo` module. Added exact
@@ -441,7 +452,12 @@ Next step: run the combined integration gate, then obtain human acceptance
   listing, and product route; the unchanged cart route scored **0.90**. Accessibility remained
   **1.00** on all routes. The only route warning was WP-15's known missing `/robots.txt`; the
   listing/product performance and LCP/CLS baseline findings remained warn-only. Google's Rich
-  Results Test was **not performed** because no public URL was supplied. No push has been made.
+  Results Test was **not performed** because no public URL was supplied. The package worktree was
+  not pushed independently.
+- Integration verification: the combined `npm run check` passed with **284/284** unit tests,
+  **142/142** Playwright tests, production build, and every unchanged per-route budget after the
+  WP-17 lazy client-boundary correction. The SEO implementation itself required no integration
+  changes.
 
 ## Completed Changes
 - WP-00: setup + measurement only, no application code changes. `package.json` + `package-lock.json` modified by the two installs (uncommitted at time of writing; a human commits every diff).

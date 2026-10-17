@@ -5,6 +5,7 @@ const { hydrated, itemCount } = useCart()
 </script>
 
 <template>
+  <LazyShopVitals />
   <header class="app-header">
     <nav :aria-label="t('nav.main')">
       <span>Charge Portal Shop</span>
