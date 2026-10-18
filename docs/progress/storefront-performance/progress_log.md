@@ -1,11 +1,13 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-25 diagnostic-only CI follow-up In progress; accepted 7d8374b still fails Linux development comparison
-Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-21, WP-22, WP-23, WP-24, WP-25a, WP-25b, WP-25c, WP-25d, WP-26
-Next step: Capture sanitized distinct-style evidence in one diagnostic CI run; no comparator/product fix is authorized; WP-27 remains pending
+Current step: WP-25 Done by explicit human-directed time-boxed acceptance; final correction passes local full/production checks, new Linux CI not yet confirmed
+Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-21, WP-22, WP-23, WP-24, WP-25, WP-25a, WP-25b, WP-25c, WP-25d, WP-26
+Next step: No further WP-25 implementation in this time box; report actual pushed CI state without presuming success. WP-27 is optional/deferred by the human's revised scope, not implemented or marked Done
 
 ## Decisions
+- 2026-10-18: Human instructed "spend 5 more minutes on wp-25 and then mark as complete. Start WP27 if possible, if not, omit it as optional". WP-25 closeout is time-boxed from 16:32:15 to 16:37:15 UTC; preserve actual verification results and any unresolved CI caveat instead of claiming unrun checks passed. Record the human-directed completion by the cutoff; start WP-27 only if its prerequisites are clear, otherwise mark it optional/deferred as explicitly permitted. No new optimization or gate relaxation is authorized. Final local full and 19 production checks passed within the window; complete WP-25 by this explicit acceptance, with new Linux CI unresolved. Defer optional WP-27 because its previously required green-CI prerequisite is not yet established. The package index may reflect this explicitly requested optional classification only; no ADR/README implementation is claimed.
+- 2026-10-18: Human accepted diagnostic `bf1b434` and separately approved one bounded source-prefix correction in the existing compression E2E and this log only. Canonicalize only the prefix of the exact unused Nuxt framework error-style identity; preserve full dependency suffix/query/scope/attributes and reject different canonical tags or active scope markers. All other shop HTML/styles and production byte/304 checks, product code, dependencies, budgets and thresholds stay unchanged. Run failing-first fixtures, full check, production regressions and CI; stop if this attempt fails. This is a new explicit scope decision, not an inferred reset of prior retry limits.
 - 2026-10-18: Human approved a bounded diagnostic-only follow-up after run `39143904373` failed again. Editable files are only the existing compression E2E and this log. Add sanitized details of distinct framework development stylesheet tags to the existing failure output, run local checks, commit/push and inspect one new CI run. No product/comparator acceptance/budget/threshold changes; any further fix needs a separate bounded decision. Existing correction retry limit is exhausted and is not reset by this diagnostic approval.
 - 2026-10-18: Human accepted the test-only WP-25 follow-up at pushed `7d8374b`. Local full and production checks passed as recorded below. GitHub run `39143904373` / job `117723730551` is live and still in its full-check step, not a presumed pass. The acceptance explicitly requires new CI to pass before WP-27 starts. Product/config source remains byte-identical to accepted WP-25d (`git diff --exit-code 5742ba1 HEAD -- app server shared nuxt.config.ts lighthouserc.cjs lighthouserc.shop.cjs scripts/route-budgets.json` exited 0).
 - 2026-10-18: Human accepted WP-25 at pushed `ae5d7b2`, including the bounded development-only compression-test correction. GitHub run `39143289237` then showed a remaining development-only duplicate Nuxt error-style case (330 unit and 196/197 browser tests passed; build/Lighthouse not reached). Acceptance is preserved for that reviewed checkpoint, not treated as permission to ignore CI failure. Continue only the already approved compression test/log follow-up; WP-27 remains unstarted until no new CI blocker remains.
@@ -864,10 +866,12 @@ Next step: Capture sanitized distinct-style evidence in one diagnostic CI run; n
 Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) reports of the 2026-10-17 runs; TTFB is the `server-response-time` audit on the local warm server (no cold/warm split yet); all numbers lab (mobile emulation, simulated throttling). Later rows explicitly marked representative use LHCI's selected median run, not independent per-metric medians.
 
 ## Open questions
-- WP-25 CI: accepted `7d8374b` still fails Linux only on distinct Nuxt development error-style
-  tags (run `39143904373`, 196/197 browser tests passed). Corrective retry limit exhausted;
-  do not broaden comparison again. Human approved diagnostic-only failure details in the
-  existing test/log, one CI run, then a separate bounded fix decision. WP-27 is unstarted.
+- WP-25 CI caveat at human-directed completion: historical `7d8374b` and diagnostic
+  `bf1b434` runs failed only on source-prefix identity of an unused Nuxt development style.
+  The separately approved prefix-only correction now passes local full/production checks.
+  New Linux CI is not yet confirmed green; Done records explicit time-boxed human acceptance,
+  not a claim that remote CI passed. No further fix or threshold change is made. WP-27 is
+  optional/deferred under the latest human instruction, not an implemented deliverable.
 - WP-25a: Done; human accepted `2f0c200` as a measured-and-reverted experiment. Retained
   auth/product regressions passed the final full check and two production regressions.
   The failed candidate's compiler removal/JS reduction is not a retained benefit.
@@ -1654,7 +1658,7 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
   is authorized, but remote CI and human acceptance of this new follow-up are not presumed.
   WP-27 stays unstarted until that checkpoint is clear; no broader implementation is added.
 
-## WP-25 — bounded diagnostic-only CI follow-up (In progress; 2026-10-18)
+## WP-25 — bounded diagnostic-only CI follow-up (Review; 2026-10-18)
 - Human accepted `7d8374b`; GitHub run `39143904373` / job `117723730551` nevertheless
   completed failure: 330 unit tests and 196/197 browser tests passed; the English raw-wire
   guest/session comparison found **two distinct full Nuxt error-style tags**. The new Set
@@ -1693,3 +1697,73 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
   Final diff is only the existing compression E2E and this log, based on `7d8374b`;
   previous archives and unrelated primary checkout edits are preserved. Parent will push
   the authorized diagnostic checkpoint and inspect exactly one new CI run before any fix.
+- Pushed diagnostic at `bf1b4345f4b5465b61cbfb65f53092e9f0d81637`. The one approved
+  GitHub run `39144734596` / job `117726163098` completed failure: 330 unit tests passed,
+  196/197 browser tests passed, unchanged Set guard rejected two distinct full tags.
+  Build/budgets/Lighthouse were not reached; no Linux success or correction is claimed.
+- Sanitized evidence: actual HTML has source-1 and source-2 links; expected has source-1
+  only. Both full suffixes are exactly `/node_modules/nuxt/dist/app/components/error-500.vue
+  ?vue&type=style&index=0&scoped=347e4e05&lang.css` (the line break here is prose only),
+  with identical rel/crossorigin attributes. The scope-marker checks passed before the Set
+  guard. Thus the observed distinction is only source prefix, not query/scope/attributes.
+  This identifies tag identity, not independently fetched CSS byte equality.
+- Targeted installed-source reads: Vue plugin derives its default dev scope ID from the
+  root-relative filename; installed Nuxt `error-500.vue` has a scoped style block with no
+  global escape/import. The separate head reset is not the linked stylesheet. Do not infer
+  an actual error component rendered: its scope marker is absent in these documents.
+- Independent GPT-6 Luna high review recommends a separately approved correction: normalize
+  only the prefix before the exact framework component dependency boundary for the ignored
+  tag identity. Keep the entire suffix/query/attributes/scope, reject distinct canonical
+  identities and active scope markers, and preserve every other style/body/production/304
+  check. Positive fixture: two source prefixes versus one with identical suffix; negative
+  scope/query/component/attribute/active-markup cases remain strict. Equal suffix/scope is
+  not cryptographic CSS equivalence across arbitrary distinct installs; the scope must stay
+  limited to this known installed unused dev framework component.
+- Diagnostic objective is verified and handed to Review. No comparison or product fix was
+  made under diagnostic approval; prior correction limit remains exhausted. Record findings
+  locally without a second diagnostic CI run. A new bounded implementation needs human
+  acceptance of this diagnostic plus explicit approval; WP-25 stays Blocked, WP-27 pending.
+
+## WP-25 — approved source-prefix-only correction (Done by human-directed time-boxed acceptance; 2026-10-18)
+- Prerequisite: human accepted diagnostic `bf1b434` and approved exactly one bounded test-only
+  correction. Branch `codex/storefront-complete`, HEAD `bf1b434`; pre-existing dirty log is
+  the primary's diagnostic handoff, retained. No unrelated primary checkout edits touched.
+- Files: existing compression E2E and this log only. Goal: compare the one known unused
+  framework style by exact component/query/scope/attributes, ignoring only its source-prefix
+  alias observed in Linux. Exclude product/config/dependency/budget/threshold changes.
+- Fixtures first: actual two prefixes versus expected one, inverse, active scope marker,
+  differing scope/query/component/attributes and changed shop styles. Preserve redacted
+  diagnostic coverage by making its rejected case differ in scope as well as source prefix.
+- Verification: meaningful fixture RED, one canonical-key correction, focused suite and
+  full check, actual production raw/cache/telemetry regressions, then pushed Linux CI.
+  Reuse manually owned production/legacy servers for production checks, avoiding any new
+  config/helper file outside the two-file scope. Stop owned processes afterward. If this
+  bounded attempt fails, stop for handoff rather than widening the normalizer again.
+- RED reproduced the same two-prefix/one-prefix Set-identity failure locally (exit 1),
+  with the sanitized diagnostic showing identical component/query/scope/attributes.
+  Implemented one canonical identity-key change: replace only href's prefix before the
+  exact Nuxt error component dependency boundary. The full suffix and tag attributes remain
+  in the key; unused-scope check, other HTML/styles, and production/304 branches are unchanged.
+- Focused development suite passed 5/5 (exit 0). Independent GPT-6 Luna high read-only review
+  approved the exact-prefix key and fixture boundaries; found no concrete issue and made no
+  edits/runs. Full `E2E_LEGACY_PORT=18090 ROUTE_BUDGET_LEGACY_PORT=18090 npm run check`
+  passed (exit 0): 330 unit tests, 197 browser tests, build, all seven budgets and the other
+  lint/types/tokens/inventory/coverage gates. Product JS remains 128.045 KB.
+- Within the human's final five-minute time box, started owned legacy/production processes
+  on 18090/3000 after verifying those ports free. Confirmed a real production document with
+  HTTP 200 and no Vite client before running the unchanged serial production regression set
+  through the existing Playwright config's server-reuse path. No temporary file was added.
+- Production regressions passed 19/19 (exit 0), including immediate conditional 304,
+  byte-exact gzip/HTML, all eight unchanged cache tests, locale JSON, actual telemetry and
+  funnel ingestion. Verified exact owned process identities before stopping legacy and
+  production; all four verification ports are now free. No new file or product change.
+- Final product/config comparison against `bf1b434` returned exit 0 for app/server/shared,
+  Nuxt/Lighthouse configs and budgets. The retained twenty-audit shop pass and the fresh
+  twelve-audit portal pass above remain product-performance evidence; no new gain is claimed.
+- Human explicitly time-boxed the remaining work and requested WP-25 completion. Mark Done
+  on that acceptance with the verified local results and an explicit unresolved remote-CI
+  caveat. Commit/push the approved test/log changes plus only the requested optional WP-27
+  index classification. Do not turn pending CI into success or continue another fix variant.
+- WP-27: optional/deferred, not started. Its required prior green-CI condition was not clear
+  within the closeout window. ADR 0008/README wrap-up/ADR 0007 final-budget update are omitted
+  optional documentation, not completed work. No all-original-packages-done claim is made.

@@ -58,8 +58,8 @@ const expectSameHtml = (actual: Buffer, expected: Buffer) => {
   }
 
   // Vite may reorder style links as modules compile, or globally collect the lazy
-  // Nuxt error component's scoped style, sometimes repeatedly. Ignore identical
-  // copies of that exact style only if unused in both documents;
+  // Nuxt error component's scoped style, sometimes via different source prefixes.
+  // Ignore only unused copies with identical component/query/scope/attributes;
   // every other dev style remains mandatory and production stays byte-exact.
   const vueStyles = /<link rel="stylesheet" href="\/_nuxt\/[^"]+\.vue\?vue&type=style[^"]*"[^>]*>/g
   const globals = /<link rel="stylesheet" href="\/_nuxt\/assets\/css\/(?:tokens|base)\.css" crossorigin>/g
@@ -79,7 +79,10 @@ const expectSameHtml = (actual: Buffer, expected: Buffer) => {
       return match[0].replace(href, `[${label}]${href.slice(dependencyIndex)}`)
     }) })
     for (const match of errorStyles) {
-      errorStyleTags.add(match[0])
+      errorStyleTags.add(match[0].replace(
+        /href="[^"]*(?=\/node_modules\/nuxt\/dist\/app\/components\/error-500\.vue\?)/,
+        'href="[nuxt-source]',
+      ))
       expect(text).not.toContain(`data-v-${match[1]}`)
     }
     return text.replace(unusedErrorStyle, '')
@@ -156,11 +159,14 @@ test('HTML comparison only normalizes an unused Nuxt development error styleshee
   expectSameHtml(fixture(errorStyle + errorStyle), fixture())
   expectSameHtml(fixture(), fixture(errorStyle + errorStyle))
   expectSameHtml(fixture(errorStyle.repeat(3)), fixture(errorStyle))
+  const aliasedErrorStyle = errorStyle.replace('/home/runner/', '/other/runner/')
+  expectSameHtml(fixture(errorStyle + aliasedErrorStyle), fixture(errorStyle))
+  expectSameHtml(fixture(errorStyle), fixture(errorStyle + aliasedErrorStyle))
   expect(() => expectSameHtml(fixture(errorStyle + errorStyle.replace('347e4e05', '347e4e06')), fixture())).toThrow()
   expect(() => expectSameHtml(fixture(errorStyle), fixture(errorStyle.replace('347e4e05', '347e4e06')))).toThrow()
   let diagnostic = ''
   try {
-    expectSameHtml(fixture(errorStyle), fixture(errorStyle.replace('/home/runner/', '/other/runner/')))
+    expectSameHtml(fixture(errorStyle), fixture(aliasedErrorStyle.replace('347e4e05', '347e4e06')))
   } catch (error) {
     diagnostic = String(error)
   }
@@ -171,6 +177,7 @@ test('HTML comparison only normalizes an unused Nuxt development error styleshee
   expect(diagnostic).not.toContain('/other/runner/')
   const activeError = '<main data-v-347e4e05>synthetic storefront</main>'
   expect(() => expectSameHtml(fixture(errorStyle, activeError), fixture('', activeError))).toThrow()
+  expect(() => expectSameHtml(fixture(errorStyle + aliasedErrorStyle, activeError), fixture(errorStyle, activeError))).toThrow()
   expect(() => expectSameHtml(
     Buffer.from(fixture(errorStyle).toString().replace(productStyle, '')), fixture(),
   )).toThrow()
@@ -179,6 +186,8 @@ test('HTML comparison only normalizes an unused Nuxt development error styleshee
   )).toThrow()
   expect(() => expectSameHtml(fixture(errorStyle.replace('error-500.vue', 'error-404.vue')), fixture())).toThrow()
   expect(() => expectSameHtml(fixture(errorStyle.replace('index=0', 'index=1')), fixture())).toThrow()
+  expect(() => expectSameHtml(fixture(errorStyle.replace(' crossorigin>', ' media="all" crossorigin>')), fixture())).toThrow()
+  expect(() => expectSameHtml(fixture(errorStyle.replace('&lang.css', '&lang.scss')), fixture())).toThrow()
   const production = (extra = '') => Buffer.from(fixture(extra).toString().replace('/_nuxt/@vite/client', '/_nuxt/entry.js'))
   expect(() => expectSameHtml(production(errorStyle), production())).toThrow()
 })
