@@ -1,11 +1,13 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-25c Review; diagnostic captures/replays and full check complete, no product changes
-Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-21, WP-22, WP-23, WP-24, WP-25a, WP-25b, WP-26
-Next step: Human acceptance of WP-25c and scope decision for a combined HTML-compression/telemetry-transport experiment. WP-25 CI wiring and WP-27 remain pending the unresolved hard gate
+Current step: WP-25 Blocked on the hard LCP gate; WP-25c Done, further optimization not authorized
+Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-21, WP-22, WP-23, WP-24, WP-25a, WP-25b, WP-25c, WP-26
+Next step: Keep the accepted diagnosis only, as requested; do not start WP-25d. WP-25 CI wiring and WP-27 remain pending the unresolved hard gate and any future explicitly authorized scope
 
 ## Decisions
+- 2026-10-18: Human accepted WP-25c at pushed `5d3d024` and selected "Keep diagnosis only for now" for proposed WP-25d. Mark WP-25c Done; do not create/start WP-25d or implement compression/telemetry changes. The original hard LCP gate, WP-25 CI wiring and WP-27 remain incomplete. This is acceptance of the diagnosis, not acceptance of the proposed optimization or a gate waiver.
+- 2026-10-18: WP-25c checkpoint `5d3d024` GitHub Actions run `39131215753` completed successfully (full check and portal Lighthouse), reverified after human acceptance. The shop hard gate remains unwired and unresolved.
 - 2026-10-18: WP-25c captured ten unchanged-runtime traces/network logs and independently replayed all ten simulated LCP values exactly offline. Terminal modeled nodes are early telemetry pings, after the navigation document/main entry bundle; this is not proof the pings block observed pixels. Significant HTML compression opportunity is also confirmed. No product change or model/gate override was made. Proposed next aggregate experiment is public-shop HTML-only gzip plus safe initial telemetry transport deferral; neither is authorized yet and their estimated savings are not an additive pass guarantee.
 - 2026-10-18: Accepted WP-25b checkpoint `304c87b` GitHub Actions run `39129539025` completed successfully (full check and portal Lighthouse). The shop hard gate is still deliberately unwired and unresolved; this CI success is not evidence of its passing.
 - 2026-10-18: Human accepted WP-25b at pushed `304c87b` as measured-and-reverted and permitted the next bounded LCP investigation. WP-25c is diagnostic only: saved report/source inspection and at most ten controlled current-runtime trace/network captures (five unfiltered listing, five product), temporary capture instrumentation removed before handoff. No product/config/test/dependency/gate/CI changes or reintroduced candidates. A subsequent optimization needs its own scope decision.
@@ -851,9 +853,10 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
   coupling and format-versioned endpoint candidate will not be retained after failure.
   Final retained-source verification passed. No further optimization scope is approved by
   that acceptance. WP-25c is the separately bounded diagnostic next step, not a gate waiver.
-- WP-25c: Review; ten captures and exact offline replays identify terminal modeled pings and
-  actual uncompressed HTML. Full check passed with no product edits. Human acceptance and
-  a separate scope decision are required before the proposed aggregate optimization.
+- WP-25c: Done; human accepted `5d3d024`. Ten captures and exact offline replays identify
+  terminal modeled pings and actual uncompressed HTML. Full check and remote CI passed
+  with no product edits. Human selected diagnosis only; proposed WP-25d is not authorized
+  and must not start without a new explicit scope decision.
 - WP-22: Done; human accepted `60fd260` on 2026-10-18 and its GitHub Actions run passed.
 - WP-24: Done; human accepted `85f7c73` on 2026-10-18. Test-first request coalescing and router/busy
   candidates were measured then reverted because synthetic RUM did not establish a filter-INP
@@ -1283,7 +1286,7 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
 - Human subsequently accepted pushed `304c87b`; WP-25c diagnostic work is now separately
   bounded. Acceptance does not convert the failed candidate into a retained performance gain.
 
-## WP-25c — Simulated LCP diagnosis (Review; 2026-10-18)
+## WP-25c — Simulated LCP diagnosis (Done; 2026-10-18)
 - Human accepted WP-25b and permitted this bounded investigation. Branch
   `codex/storefront-complete`, base `304c87b`; product runtime remains the accepted baseline.
 - Fresh GPT-6 Luna high agents own serialized capture/verification and independent read-only
@@ -1389,3 +1392,9 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
   earlier archives are untouched. Independent capture/source review and primary data
   checks are complete. Final diff/check and authorized commit/push are next; awaiting human
   acceptance before Done. The original WP-25/27 objective is still incomplete.
+- Human subsequently accepted pushed `5d3d024` and declined the proposed WP-25d experiment
+  for now ("Keep diagnosis only for now"). WP-25c is Done. GitHub Actions `39131215753`
+  completed successfully and was reverified; it covers full check and portal Lighthouse,
+  not the still-unwired shop hard gate. No new optimization package/source work is started.
+  This acceptance-status update changes only this progress log; existing app/test/config
+  sources and the preserved diagnostic archive remain unchanged.
