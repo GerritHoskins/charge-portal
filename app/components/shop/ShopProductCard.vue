@@ -2,8 +2,10 @@
 import { computed } from 'vue'
 import type { ShopProduct } from '#shared/contracts/catalog'
 
+type ShopProductCardProduct = Pick<ShopProduct, 'name' | 'image'> & Partial<ShopProduct>
+
 const props = withDefaults(defineProps<{
-  product: ShopProduct
+  product: ShopProductCardProduct
   href: string
   price: string
   stockLabel: string

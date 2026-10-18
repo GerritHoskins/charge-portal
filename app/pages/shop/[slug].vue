@@ -4,6 +4,12 @@ import { breadcrumbJsonLd, productJsonLd, serializeJsonLd } from '#shared/seo'
 
 definePageMeta({ layout: 'shop' })
 
+type ProductPageData = Pick<ShopProduct, 'slug' | 'name' | 'priceCents' | 'image' | 'inStock'> & {
+  customFields: { powerKw?: number; connectorType?: string }
+}
+type RelatedCardProduct = Pick<ShopProduct, 'id' | 'slug' | 'name' | 'priceCents' | 'image' | 'inStock'>
+type RelatedProductsData = { items: RelatedCardProduct[] }
+
 const route = useRoute()
 const { t } = useI18n()
 const fmt = useFormatters()
@@ -18,8 +24,23 @@ const shopImageSrcset = (url: string) => isShopImage(url)
   : undefined
 
 const slug = computed(() => String(route.params.slug))
-const { data: product, error: productError } = await useFetch<ShopProduct>(
+const { data: product, error: productError } = await useFetch(
   () => `/api/shop/products/${encodeURIComponent(slug.value)}`,
+  {
+    transform: (data: ShopProduct): ProductPageData => ({
+      slug: data.slug,
+      name: data.name,
+      priceCents: data.priceCents,
+      image: data.image,
+      inStock: data.inStock,
+      customFields: {
+        ...(typeof data.customFields.powerKw === 'number' ? { powerKw: data.customFields.powerKw } : {}),
+        ...(typeof data.customFields.connectorType === 'string'
+          ? { connectorType: data.customFields.connectorType }
+          : {}),
+      },
+    }),
+  },
 )
 
 const notFound = computed(() => productError.value?.statusCode === 404)
@@ -39,16 +60,29 @@ const category = computed(() => (
 ))
 const categoryName = computed(() => t(`shop.categories.${category.value}`))
 
-const { data: categoryListing } = await useFetch<ShopListing>(
+const { data: categoryListing } = await useFetch(
   () => `/api/shop/listing/${category.value}`,
   {
+    key: computed(() => `shop-related-${category.value}-${slug.value}`),
     query: { limit: 48 },
-    default: () => ({ total: 0, page: 1, limit: 48, items: [] }),
+    immediate: Boolean(product.value),
+    default: () => ({ items: [] } satisfies RelatedProductsData),
+    transform: (data: ShopListing): RelatedProductsData => ({
+      items: data.items
+        .filter(({ slug: relatedSlug }) => relatedSlug !== product.value?.slug)
+        .slice(0, 8)
+        .map(({ id, slug: relatedSlug, name, priceCents, image, inStock }) => ({
+          id,
+          slug: relatedSlug,
+          name,
+          priceCents,
+          image,
+          inStock,
+        })),
+    }),
   },
 )
-const relatedProducts = computed(() => categoryListing.value.items
-  .filter(({ slug: relatedSlug }) => relatedSlug !== product.value?.slug)
-  .slice(0, 8))
+const relatedProducts = computed(() => categoryListing.value.items)
 
 const maxPower = computed(() => {
   const value = product.value?.customFields.powerKw

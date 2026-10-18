@@ -1,10 +1,72 @@
 import AxeBuilder from '@axe-core/playwright'
-import { expect, test } from '@playwright/test'
+import { expect, test, type APIRequestContext } from '@playwright/test'
+import { parse as parseDevalue } from 'devalue'
 import { shopListingSchema } from '../../shared/contracts/catalog'
 
 const WCAG = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 
+const nuxtPayloadRevivers = {
+  ShallowReactive: (data: unknown) => data,
+  Reactive: (data: unknown) => data,
+  ShallowRef: (data: unknown) => data,
+  Ref: (data: unknown) => data,
+}
+
+const loadNuxtPayload = async (request: APIRequestContext, path: string): Promise<unknown> => {
+  const response = await request.get(path)
+  expect(response.status()).toBe(200)
+  const html = await response.text()
+  const script = html.match(/<script[^>]*id="__NUXT_DATA__"[^>]*>([\s\S]*?)<\/script>/)
+  expect(script, 'expected SSR Nuxt hydration data').not.toBeNull()
+  const source = script?.[0].match(/data-src="([^"]+)"/)?.[1]
+  if (!html.includes('/_nuxt/@vite/client')) {
+    expect(source, 'production must externalize the Nuxt payload').toBeDefined()
+  }
+  const body = source
+    ? await request.get(source).then(async (payload) => {
+        expect(payload.status()).toBe(200)
+        return payload.text()
+      })
+    : script?.[1] ?? ''
+
+  return parseDevalue(body, nuxtPayloadRevivers)
+}
+
+const isPayloadRecord = (value: unknown): value is Record<string, unknown> => (
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+)
+
+const collectPayloadRecords = (value: unknown, seen = new WeakSet<object>(), records: Record<string, unknown>[] = []) => {
+  if (typeof value !== 'object' || value === null || seen.has(value)) return records
+  seen.add(value)
+  if (isPayloadRecord(value)) {
+    records.push(value)
+    Object.values(value).forEach((child) => collectPayloadRecords(child, seen, records))
+  } else if (Array.isArray(value)) {
+    value.forEach((child) => collectPayloadRecords(child, seen, records))
+  }
+  return records
+}
+
 test.describe('public shop listing', () => {
+  test('serializes only rendered fields for each listing card', async ({ request }) => {
+    const payload = await loadNuxtPayload(request, '/shop/c/wallboxes')
+    const records = collectPayloadRecords(payload)
+    const products = records.filter((record) => (
+      typeof record.slug === 'string' && typeof record.priceCents === 'number'
+    ))
+    const expectedProductKeys = ['id', 'image', 'inStock', 'name', 'priceCents', 'slug'].sort()
+
+    expect(products).toHaveLength(12)
+    for (const product of products) expect(Object.keys(product).sort()).toEqual(expectedProductKeys)
+    const listing = records.find((record) => 'total' in record && 'page' in record && 'limit' in record && 'items' in record)
+    expect(listing).toBeDefined()
+    if (!listing) return
+    expect(Object.keys(listing).sort()).toEqual(['items', 'limit', 'page', 'total'])
+    expect(Array.isArray(listing.items)).toBe(true)
+    expect((listing.items as unknown[]).length).toBe(12)
+  })
+
   test('redirects /shop permanently to the wallbox category', async ({ page, request }) => {
     const cart = await request.get('/shop/cart')
     expect(cart.status()).toBe(200)

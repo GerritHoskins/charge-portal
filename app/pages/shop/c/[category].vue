@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ShopListing } from '#shared/contracts/catalog'
+import type { ShopListing, ShopProduct } from '#shared/contracts/catalog'
 import { breadcrumbJsonLd, listingCanonicalUrl, serializeJsonLd } from '#shared/seo'
 
 definePageMeta({ layout: 'shop' })
@@ -9,6 +9,8 @@ const CONNECTORS = ['type2', 'ccs', 'card'] as const
 const ORDERS = ['price-asc', 'price-desc', 'name-asc'] as const
 type Connector = typeof CONNECTORS[number]
 type Order = typeof ORDERS[number]
+type ListingCardProduct = Pick<ShopProduct, 'id' | 'slug' | 'name' | 'priceCents' | 'image' | 'inStock'>
+type ListingPageData = Pick<ShopListing, 'total' | 'page' | 'limit'> & { items: ListingCardProduct[] }
 
 const route = useRoute()
 const { t } = useI18n()
@@ -55,7 +57,7 @@ const activeQuery = computed(() => ({
   ...(tenant.value ? { tenant: tenant.value } : {}),
 }))
 
-const { data: listing, error } = await useFetch<ShopListing>(
+const { data: listing, error } = await useFetch(
   () => `/api/shop/listing/${encodeURIComponent(category.value)}`,
   {
     query: computed(() => ({
@@ -65,7 +67,20 @@ const { data: listing, error } = await useFetch<ShopListing>(
       ...(minPower.value ? { minPower: minPower.value } : {}),
       ...(connector.value ? { connector: connector.value } : {}),
     })),
-    default: () => ({ total: 0, page: pageNumber.value, limit: PAGE_SIZE, items: [] }),
+    default: () => ({ total: 0, page: pageNumber.value, limit: PAGE_SIZE, items: [] } satisfies ListingPageData),
+    transform: (data: ShopListing): ListingPageData => ({
+      total: data.total,
+      page: data.page,
+      limit: data.limit,
+      items: data.items.map(({ id, slug, name, priceCents, image, inStock }) => ({
+        id,
+        slug,
+        name,
+        priceCents,
+        image,
+        inStock,
+      })),
+    }),
   },
 )
 
