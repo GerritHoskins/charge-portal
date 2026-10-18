@@ -1,11 +1,14 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-25b Review; measured-and-reverted experiment, final retained checks passed
-Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-21, WP-22, WP-23, WP-24, WP-25a, WP-26
-Next step: Human acceptance of WP-25b, then a separately bounded LCP investigation before any new optimization. WP-25 CI wiring and WP-27 remain pending the unresolved hard gate
+Current step: WP-25c Review; diagnostic captures/replays and full check complete, no product changes
+Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-21, WP-22, WP-23, WP-24, WP-25a, WP-25b, WP-26
+Next step: Human acceptance of WP-25c and scope decision for a combined HTML-compression/telemetry-transport experiment. WP-25 CI wiring and WP-27 remain pending the unresolved hard gate
 
 ## Decisions
+- 2026-10-18: WP-25c captured ten unchanged-runtime traces/network logs and independently replayed all ten simulated LCP values exactly offline. Terminal modeled nodes are early telemetry pings, after the navigation document/main entry bundle; this is not proof the pings block observed pixels. Significant HTML compression opportunity is also confirmed. No product change or model/gate override was made. Proposed next aggregate experiment is public-shop HTML-only gzip plus safe initial telemetry transport deferral; neither is authorized yet and their estimated savings are not an additive pass guarantee.
+- 2026-10-18: Accepted WP-25b checkpoint `304c87b` GitHub Actions run `39129539025` completed successfully (full check and portal Lighthouse). The shop hard gate is still deliberately unwired and unresolved; this CI success is not evidence of its passing.
+- 2026-10-18: Human accepted WP-25b at pushed `304c87b` as measured-and-reverted and permitted the next bounded LCP investigation. WP-25c is diagnostic only: saved report/source inspection and at most ten controlled current-runtime trace/network captures (five unfiltered listing, five product), temporary capture instrumentation removed before handoff. No product/config/test/dependency/gate/CI changes or reintroduced candidates. A subsequent optimization needs its own scope decision.
 - 2026-10-18: WP-25b completed all 20 unchanged hard Lighthouse audits and exited 1 on three LCP selections (3010.556/2709.352/2781.176 ms); cart passed at 2405.685 ms. Primary independently parsed 20 JSON reports and the 41-file backup `.lighthouseci-shop-wp25b-final/`. Locale transfer grew 4317 to 9095 B and total transfer grew 812 B on every representative despite smaller JS. Per approval the failed candidate was fully reverted. Retained full check and production cart regression passed; no new optimization, threshold change or CI wiring. Await human acceptance.
 - 2026-10-18: Accepted WP-25a checkpoint `2f0c200` GitHub Actions run `39126688049` completed successfully (full check and portal Lighthouse). This does not include the still-unwired shop hard gate.
 - 2026-10-18: Human accepted WP-25a at pushed `2f0c200` as measured-and-reverted and separately approved WP-25b: installed production-mode JSON/JIT generator, compact ASTs, versioned internal message URLs to avoid old raw-response cache reuse, same config/verifier/existing auth-product-cart tests/package-index-progress scope. No dependency, contract or threshold changes; production correctness and all hard gates must be measured and failed optimization reverted. This supersedes WP-25a's pending review/new-attempt questions, not WP-25's unresolved LCP gate.
@@ -841,14 +844,16 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
 - WP-25a: Done; human accepted `2f0c200` as a measured-and-reverted experiment. Retained
   auth/product regressions passed the final full check and two production regressions.
   The failed candidate's compiler removal/JS reduction is not a retained benefit.
-- WP-25b: Review, fully reverted after the measured hard LCP failure. Compact AST production
+- WP-25b: Done; human accepted `304c87b`, fully reverted after the measured hard LCP failure. Compact AST production
   delivery, client compiler removal, versioned URL isolation and correctness checks passed,
   but three route selections still exceed 2500 ms. No warm-browser cache-upgrade test was
   performed; browser URL isolation was verified. The internal-annotated generator/plugin
   coupling and format-versioned endpoint candidate will not be retained after failure.
-  Final retained-source verification passed; human acceptance remains required. The next
-  bounded step should investigate simulated/observed LCP differences before another code
-  experiment; no further optimization scope is approved by this handoff.
+  Final retained-source verification passed. No further optimization scope is approved by
+  that acceptance. WP-25c is the separately bounded diagnostic next step, not a gate waiver.
+- WP-25c: Review; ten captures and exact offline replays identify terminal modeled pings and
+  actual uncompressed HTML. Full check passed with no product edits. Human acceptance and
+  a separate scope decision are required before the proposed aggregate optimization.
 - WP-22: Done; human accepted `60fd260` on 2026-10-18 and its GitHub Actions run passed.
 - WP-24: Done; human accepted `85f7c73` on 2026-10-18. Test-first request coalescing and router/busy
   candidates were measured then reverted because synthetic RUM did not establish a filter-INP
@@ -1125,7 +1130,7 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
   retained benefits; the three original WP-25 LCP misses remain. Acceptance is for the reverted
   experiment and regressions, not acceptance of a passing performance optimization.
 
-## WP-25b — Compact production locale experiment (Review; measured and reverted; 2026-10-18)
+## WP-25b — Compact production locale experiment (Done; measured and reverted; 2026-10-18)
 - Actual human accepted WP-25a at pushed `2f0c200` and approved this separate bounded
   experiment. Branch `codex/storefront-complete`, base `2f0c200`; WP-25/27 remain incomplete.
 - Implementation and independent read-only review are delegated to fresh GPT-6 Luna high
@@ -1275,3 +1280,112 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
   A next bounded investigation should examine report inputs and capture paired trace/network
   artifacts if required (the 41-file backups are reports, not a claim of preserved raw traces),
   before selecting another optimization. No such next package has started.
+- Human subsequently accepted pushed `304c87b`; WP-25c diagnostic work is now separately
+  bounded. Acceptance does not convert the failed candidate into a retained performance gain.
+
+## WP-25c — Simulated LCP diagnosis (Review; 2026-10-18)
+- Human accepted WP-25b and permitted this bounded investigation. Branch
+  `codex/storefront-complete`, base `304c87b`; product runtime remains the accepted baseline.
+- Fresh GPT-6 Luna high agents own serialized capture/verification and independent read-only
+  simulation/source analysis. Primary owns package/index/progress, integration and final review.
+- Installed LHCI runner forces report output to stdout; direct installed Lighthouse CLI
+  supports `--save-assets` and `--lantern-data-output-path`. Capture will use unique prefixes
+  and compare resolved defaults to the unchanged baseline, not tune simulation parameters.
+  Ten captures maximum; no product edits or optimization is authorized by this package.
+- Fresh `npm run build` exited 0 on accepted runtime. Installed Lighthouse 12.6.1 and the
+  Playwright Chromium path are verified; baseline settings match mobile 412×823/1.75 scale,
+  simulated 150 ms RTT/1638.4 Kbps/4× CPU and the four unchanged audit categories.
+  Temporary capture runner uses hidden owned Node children and unique per-run output paths.
+- Independent installed-source review confirms simulated LCP uses Lantern's network graph
+  with fixed configured RTT/throughput/CPU plus observed per-origin additional RTT and server
+  response estimates. Trace-engine `lcp-phases-insight` is distinct observed evidence; it
+  does not replace the simulated hard metric. No source-specific cause is proven yet.
+- All ten direct CLI captures and the wrapper exited 0; assigned ports were free afterward.
+  Local `.lighthouseci-shop-wp25c-diagnostics/` contains exactly 50 files: ten each report JSON,
+  report HTML, raw trace JSON, DevTools log JSON and Lantern network JSON. This is successful
+  diagnostic collection, not a successful hard shop gate. Temporary runner was removed.
+- Primary independently verified actual resolved settings/versions match baseline. Separate
+  JSON/HTML output format is the only intended CLI reporting difference. Observed host
+  benchmark scores vary and are not used to excuse hard simulated failures.
+- Current unfiltered listing simulated LCP runs: 2943.763, 2788.436, 2785.410, 2795.234,
+  2783.702 ms; independent median 2788.436 ms. Trace-observed LCP: 426, 304, 236, 235, 250 ms
+  (median 250). Product simulated: 2936.435, 2784.308, 2786.378, 2784.010, 2782.570 ms;
+  median 2784.308. Product trace-observed: 280, 221, 246, 272, 343 ms (median 272).
+  All ten simulated values still exceed 2500 ms. Direct captures have no LHCI-selected
+  representative; none of these medians is labelled as one.
+- Total-byte-weight is constant at 203669 B listing / 201055 B product, matching retained
+  baseline. Network-request transfer sums are separately 203440/200826 B, not the same audit.
+  Saved Lantern estimates have zero additional origin RTT and only about 1.89–3.75 ms
+  server-response estimates; those small differences alone do not establish a cause for
+  hundreds of milliseconds of simulated variation. Graph/priority/dependency analysis is next.
+- Post-capture full check passed lint/types/tokens/inventory and 289 unit tests so far;
+  browser/build/budget verification is still running. No product source has changed.
+- Post-capture `E2E_LEGACY_PORT=18090 ROUTE_BUDGET_LEGACY_PORT=18090 npm run check` exited 0:
+  289 unit tests, 190 browser tests, build and all seven unchanged budgets. Baseline gzip JS
+  remains 117.626 KB stations/sessions, 120.395 KB invoices/dispute, 125.136 KB listing,
+  127.640 KB budget product and 121.080 KB cart. Owned ports are clear and runtime lease returned.
+- Offline replay avoids another browser-capture scope: installed
+  `LanternLargestContentfulPaint.request` can recompute from saved trace/DevTools/settings,
+  navigation gather context, recorded URL fields, `SourceMaps: []`, `simulator: null` and a
+  fresh computed cache. Independent reviewer reproduced listing-01 exactly at
+  2943.7625000000016 ms; primary reproduced listing-03 exactly at 2785.4099999999994 ms
+  (optimistic 2710.41, pessimistic 2860.41, 44/48 timing-map nodes).
+- Primary's validated listing-03 replay shows `/api/vitals` requests finish last in both
+  modeled LCP graphs (2710.41/2860.41 ms), after late locale/CSS requests. This is evidence
+  about the simulator's graph, not proof those beacons block real pixels or that delaying
+  them alone would satisfy the gate. All-ten replay and dependency-chain analysis are next;
+  no graph pruning, custom parameter overrides or product edits have been made.
+- Independent review now validates all ten offline replays exactly against saved report LCP.
+  In each optimistic/pessimistic graph, the terminal node is `/api/vitals` or `/api/events`
+  Ping, not the LCP image. Installed `LargestContentfulPaint.js` filters low-priority images
+  but retains other requests, then uses their maximum end time with 0.5/0.5 optimistic/
+  pessimistic weights. This explains how a non-rendering request can end the modeled path;
+  it does not prove that request blocks the observed paint or invalidate the unchanged gate.
+- Example validated listing-03 optimistic dependency path: navigation document ends 752.6 ms,
+  parser entry `DQFPaqzK.js` (45716 B transfer) ends 2405.2 ms, a RunTask contributes 48 ms,
+  a later Nuxt chunk ends about 2461.5 ms, then vitals pings end 2710.41 ms (pessimistic
+  2860.41). Product-02 has the analogous path with about 52 ms RunTask. The ~1.8–2.2 s old
+  "render delay" row is not evidence of that much CPU work: network/dependency timing is
+  substantial. Terminal requests can have multiple graph dependencies; this is a compact
+  path summary, not an additive breakdown of every node or a causal user-performance model.
+- Late route CSS and German locale messages run in parallel after entry JS, not a CSS
+  waterfall or direct proven cause of the terminal ping. Image bytes/priority and request
+  signatures remain stable. A CSS-consolidation change is therefore not justified here.
+- Compression evidence: captured listing HTML is `text/html;charset=utf-8`, Content-Length
+  23530, no Content-Encoding. Its compression audit estimates 19070 B savings (~4460 B body);
+  product HTML 20130 B has about 15912–15913 B estimated savings (~4217–4218 B). Baseline
+  filtered/cart HTML estimated savings are 9077/4356 B. The audit estimates 150 ms for listing/
+  product but 0 ms filtered/cart: these opportunity estimates are not measured gains.
+- Proposed next scope (NOT implemented/approved): one aggregate experiment combining
+  public-shop HTML-only gzip with deferral of initial noncritical telemetry transport.
+  Keep metric observers/calculation active, serialize payloads at call time, preserve route/
+  tab/value/order and same beacon/fetch fallback, flush on idle and visibility/pagehide,
+  and cover immediate navigation plus late metric callbacks. No Lighthouse detection or
+  graph pruning. Compression alone (~150 ms modeled opportunity) or one ping (~153 ms
+  modeled tail) is not a promised fix; aggregate effects need real unchanged hard audits.
+- Source-based compression safety: H3 awaits route/cache handler before its onBeforeResponse
+  hook; Nitro forwards that hook before final send. Cached handler snapshots raw body first,
+  permitting per-request compression after cache without encoded cache-body contamination.
+  Compressed Content-Length must be updated. Conditional 304 returns before the usual
+  beforeResponse path, so encoding Vary must also be ensured there, preserving existing
+  Cookie/Accept-Language/Host/X-Forwarded-Proto values. Skip APIs/i18n endpoints, non-HTML,
+  already encoded/stream/error/range/no-body responses and unsupported encodings.
+- The next experiment would need explicit bounded runtime compression/header helpers/plugins,
+  shared client transport plus ShopVitals/useShopEvents integrations, matching unit/wire/
+  lifecycle browser regressions and package/index/progress docs. No dependencies, contracts,
+  CI or caps change. Product JS has only 0.360 KB gzip headroom, so transport deduplication
+  and unchanged budgets must be measured; failed optimization must be reverted.
+- Exact capture command was `node .wp25c-capture.mjs` (exit 0). It sequentially invoked
+  `node node_modules/lighthouse/cli/index.js <URL>
+  --only-categories=performance,accessibility,best-practices,seo --form-factor=mobile
+  --throttling-method=simulate --chrome-flags="--no-sandbox --headless=new"
+  --output=json --output=html --output-path=.lighthouseci-shop-wp25c-diagnostics/<prefix>
+  --save-assets --lantern-data-output-path=.lighthouseci-shop-wp25c-diagnostics/<prefix>.lantern.json
+  --quiet`, with CHROME_PATH from installed Playwright. Prefixes listing-01..05/product-01..05,
+  URLs `/shop/c/wallboxes` and `/shop/ladekabel-typ-1-10-m` on localhost:3000. Each CLI exited 0.
+  Saved output and source-review details are local only; nothing was remotely uploaded.
+- Temporary instrumentation is removed and the owned app/legacy processes are stopped.
+  Only this package, index and progress docs differ; existing user checkout changes and
+  earlier archives are untouched. Independent capture/source review and primary data
+  checks are complete. Final diff/check and authorized commit/push are next; awaiting human
+  acceptance before Done. The original WP-25/27 objective is still incomplete.
