@@ -58,18 +58,23 @@ const expectSameHtml = (actual: Buffer, expected: Buffer) => {
   }
 
   // Vite may reorder style links as modules compile, or globally collect the lazy
-  // Nuxt error component's scoped style. Ignore that exact style only if unused;
+  // Nuxt error component's scoped style, sometimes repeatedly. Ignore identical
+  // copies of that exact style only if unused in both documents;
   // every other dev style remains mandatory and production stays byte-exact.
   const vueStyles = /<link rel="stylesheet" href="\/_nuxt\/[^"]+\.vue\?vue&type=style[^"]*"[^>]*>/g
   const globals = /<link rel="stylesheet" href="\/_nuxt\/assets\/css\/(?:tokens|base)\.css" crossorigin>/g
   const unusedErrorStyle = /<link rel="stylesheet" href="\/_nuxt\/[^"?]*\/node_modules\/nuxt\/dist\/app\/components\/error-500\.vue\?vue&type=style&index=0&scoped=([a-f0-9]{8})&lang\.css" crossorigin>/g
+  const errorStyleTags = new Set<string>()
   const texts = [actual, expected].map(body => {
     const text = body.toString('utf8')
     const errorStyles = [...text.matchAll(unusedErrorStyle)]
-    expect(errorStyles.length).toBeLessThanOrEqual(1)
-    for (const match of errorStyles) expect(text).not.toContain(`data-v-${match[1]}`)
+    for (const match of errorStyles) {
+      errorStyleTags.add(match[0])
+      expect(text).not.toContain(`data-v-${match[1]}`)
+    }
     return text.replace(unusedErrorStyle, '')
   })
+  expect(errorStyleTags.size).toBeLessThanOrEqual(1)
   expect((texts[0]!.match(vueStyles) ?? []).sort()).toEqual((texts[1]!.match(vueStyles) ?? []).sort())
   for (const text of texts) {
     expect((text.match(globals) ?? []).sort()).toEqual([
@@ -138,7 +143,12 @@ test('HTML comparison only normalizes an unused Nuxt development error styleshee
 
   expectSameHtml(fixture(errorStyle), fixture())
   expectSameHtml(fixture(), fixture(errorStyle))
-  expect(() => expectSameHtml(fixture(errorStyle + errorStyle), fixture())).toThrow()
+  expectSameHtml(fixture(errorStyle + errorStyle), fixture())
+  expectSameHtml(fixture(), fixture(errorStyle + errorStyle))
+  expectSameHtml(fixture(errorStyle.repeat(3)), fixture(errorStyle))
+  expect(() => expectSameHtml(fixture(errorStyle + errorStyle.replace('347e4e05', '347e4e06')), fixture())).toThrow()
+  expect(() => expectSameHtml(fixture(errorStyle), fixture(errorStyle.replace('347e4e05', '347e4e06')))).toThrow()
+  expect(() => expectSameHtml(fixture(errorStyle), fixture(errorStyle.replace('/home/runner/', '/other/runner/')))).toThrow()
   const activeError = '<main data-v-347e4e05>synthetic storefront</main>'
   expect(() => expectSameHtml(fixture(errorStyle, activeError), fixture('', activeError))).toThrow()
   expect(() => expectSameHtml(

@@ -1,11 +1,12 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-25 Review, including verified WP-25d test-portability follow-up; original WP-25d remains human-accepted Done
+Current step: WP-25 CI follow-up Review; ae5d7b2 accepted by human, remaining dev-only duplicate-style correction verified locally
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-21, WP-22, WP-23, WP-24, WP-25a, WP-25b, WP-25c, WP-25d, WP-26
-Next step: Verify pushed GitHub CI and obtain human acceptance of WP-25 CI wiring/test follow-up before starting WP-27 final documentation
+Next step: Verify pushed Linux CI and obtain human acceptance of the small test-only follow-up before WP-27 final documentation
 
 ## Decisions
+- 2026-10-18: Human accepted WP-25 at pushed `ae5d7b2`, including the bounded development-only compression-test correction. GitHub run `39143289237` then showed a remaining development-only duplicate Nuxt error-style case (330 unit and 196/197 browser tests passed; build/Lighthouse not reached). Acceptance is preserved for that reviewed checkpoint, not treated as permission to ignore CI failure. Continue only the already approved compression test/log follow-up; WP-27 remains unstarted until no new CI blocker remains.
 - 2026-10-18: Human explicitly said "2.50-2.60 is ok. mark as completed" after seeing the filtered listing above 2.50 seconds. Accept 2600 ms only for `/shop/c/wallboxes?connector=ccs`, retaining 2500 ms for listing/product/cart and all other thresholds. All twenty saved audits are reasserted without recollection or selective removal; every URL matches one matrix entry and all twenty assertions pass. Human acceptance completes WP-25d, not the still-unwired WP-25 step 5 or WP-27.
 - 2026-10-18: Human explicitly said "128.045 KB is ok. mark it completed" after the aggregate was reverted for exceeding 128 KB. Accept only the product route's 128.045 KB allowance and restore the same candidate; all other budgets and hard Lighthouse thresholds remain unchanged. This overrides the size rejection, not the requirement to run correctness/performance checks; do not claim unrun checks passed.
 - 2026-10-18: Human explicitly said "continue with wp25d. i approve", superseding the earlier diagnosis-only hold. Approved scope is public-shop HTML-only gzip after caching plus deferred initial telemetry transport, with encoding/304 Vary/cache/cookie safety, unchanged observers/values/attribution/order/lifecycle delivery, corresponding helpers/plugins/tests and package/index/progress docs. No dependencies, contracts, thresholds or Lighthouse detection; all twenty audits and budgets must be measured and failed optimization reverted.
@@ -1605,3 +1606,39 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
   record the actual new GitHub run separately when available, not as a presumed pass.
   Human acceptance of the new diff is still required before WP-27; original WP-25d Done
   and the two explicit narrow numeric allowances remain unchanged.
+
+## WP-25 — accepted checkpoint, remaining Linux CI follow-up (Review; 2026-10-18)
+- Human accepted pushed `ae5d7b2`. Its GitHub run `39143289237`, job `117721911349`,
+  completed failure: 330 unit tests passed, 196/197 browser tests passed. The same raw-wire
+  English guest/session comparison now reports two exact-regex Nuxt `error-500.vue` style
+  matches; the development comparator's maximum-one guard fails. All other tests, including
+  conditional-validator fixtures, passed. Build/budgets/portal/shop Lighthouse were not run.
+- No product change is indicated. Requested one final bounded independent recommendation:
+  permit repeated links only if every full matching tag is identical and its scope marker
+  is absent; retain rejection of distinct tags/scopes, all shop styles, remaining HTML and
+  production bytes. This is not an arbitrary count increase. Changed positive/negative
+  duplicate fixtures first; the unchanged helper must reproduce their semantic RED.
+- Local duplicate fixture reproduced the exact maximum-one failure (exit 1) before the
+  helper change. Independent GPT-6 Luna high consultation approved exact full-tag identity
+  plus absent scope markers: unused scoped rules are inert, so repeated identical links
+  do not change rendered styling. No claim of raw development link-count equality is made.
+- Final bounded correction uses one Set across both documents, allowing any multiplicity
+  only for one identical full tag. Differing hashes/scopes/paths fail even when one occurs
+  in each document. Positive fixtures cover two/three copies and either side; negatives
+  retain active scope, different framework tag/scope, changed/missing product styles and
+  production differences. Every other comparison and production byte branch is unchanged.
+  This is the final targeted correction for the stylesheet issue after consultation;
+  a further failure must stop for a bounded handoff, not broaden normalization again.
+- Focused development suite passed 5/5 (exit 0). Final
+  `E2E_LEGACY_PORT=18090 ROUTE_BUDGET_LEGACY_PORT=18090 npm run check` passed (exit 0):
+  330 unit tests, 197 browser tests, lint/types/tokens/inventory/coverage, production build
+  and all seven unchanged route budgets (accepted product 128.045 KB).
+- Repeated isolated production run passed 19/19 (exit 0), including byte-exact HTML/gzip,
+  first-conditional 304, all eight cache tests, real telemetry and funnel ingestion.
+  Temporary production config removed and owned servers stopped. No new performance audit
+  is needed to attribute this test-only change: product/config bytes remain at the accepted
+  checkpoint and the fresh twenty-audit pass above remains its local performance evidence.
+- Final diff is only `tests/e2e/shop-compression.spec.ts` and this log, based on accepted
+  `ae5d7b2` on `codex/storefront-complete`. Parent diff/whitespace review passed. Commit/push
+  is authorized, but remote CI and human acceptance of this new follow-up are not presumed.
+  WP-27 stays unstarted until that checkpoint is clear; no broader implementation is added.
