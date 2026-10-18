@@ -207,15 +207,40 @@ test.describe('public shop response caching safety', () => {
     }
   })
 
-  test('cart HTML and shop API responses do not advertise or expose shared caching', async ({ request }) => {
-    const cart = await request.get('/shop/cart')
-    const api = await request.get('/api/shop/listing/wallboxes?limit=1')
-
-    for (const [path, response] of [['/shop/cart', cart], ['/api/shop/listing/wallboxes', api]] as const) {
+  test('redirects, cart HTML and shop API responses do not advertise or expose shared caching', async ({ request }) => {
+    for (const path of ['/shop', '/shop/', '/shop/cart', '/api/shop/listing/wallboxes?limit=1']) {
+      const response = await request.get(path, { maxRedirects: 0 })
+      const isRedirect = path === '/shop' || path === '/shop/'
+      expect(response.status(), path).toBe(isRedirect ? 301 : 200)
       const headers = response.headers()
       expect(headers['x-cache'], path).toBeUndefined()
       expect(cacheControl(headers), path).not.toMatch(/(?:public|s-maxage|max-age\s*=\s*[1-9])/i)
       expect(cacheControl(headers), path).toMatch(/(?:no-store|^$)/i)
+      if (isRedirect) expect(getSetCookieHeaders(response), path).toEqual([])
     }
+  })
+
+  test('navigates through the shop redirect without requesting a redirect payload', async ({ page }) => {
+    const redirectPayloadRequests: string[] = []
+    const payloadWarnings: string[] = []
+    page.on('request', (request) => {
+      if (new URL(request.url()).pathname === '/shop/_payload.json') {
+        redirectPayloadRequests.push(request.url())
+      }
+    })
+    page.on('console', (message) => {
+      if (message.text().includes('NUXT_E7002')) payloadWarnings.push(message.text())
+    })
+
+    await page.goto(product)
+    await expect(page.locator('html')).toHaveAttribute('data-hydrated', '')
+    await page.locator('.breadcrumb a[href="/shop"]').click()
+    await expect(page).toHaveURL(/\/shop\/c\/wallboxes$/)
+    await expect(page.getByRole('heading', { level: 1, name: 'Wallboxen' })).toBeVisible()
+    await expect(page.getByRole('list', { name: 'Produkte' }).getByRole('listitem')).toHaveCount(12)
+    await page.waitForLoadState('networkidle')
+
+    expect(redirectPayloadRequests).toEqual([])
+    expect(payloadWarnings).toEqual([])
   })
 })

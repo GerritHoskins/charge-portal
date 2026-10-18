@@ -9,9 +9,15 @@ const logIn = async (page: Page, password = DEMO_LOGIN.password) => {
 }
 
 test.describe('login/logout in Nuxt, session owned by legacy (logged-out browser)', () => {
-  test('migrated page redirects to login and returns after login', async ({ page }) => {
+  test('migrated page redirects to login and returns after login', async ({ page, baseURL }) => {
+    const expectedLoginUrl = new URL('/login?next=%2Fportal%2Fsessions', baseURL).href
     await page.goto('/portal/sessions')
-    await expect(page).toHaveURL('/login?next=%2Fportal%2Fsessions')
+    await expect(page).toHaveURL((url) => {
+      // Production hydration can normalize equivalent query percent-encoding.
+      // Canonicalization preserves the exact origin, path, values, parameters and hash.
+      url.searchParams.sort()
+      return url.href === expectedLoginUrl
+    })
     await logIn(page)
     await expect(page).toHaveURL('/portal/sessions')
     await expect(page.getByRole('heading', { level: 1, name: 'Ladevorgänge' })).toBeVisible()

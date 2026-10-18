@@ -26,6 +26,17 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/tokens.css', '~/assets/css/base.css'],
 
+  // Use Vite's installed Terser minifier for client assets with conservative compression.
+  // Keep the override client-only so Nitro/SSR output is not affected.
+  vite: {
+    $client: {
+      build: {
+        minify: 'terser',
+        terserOptions: { compress: { passes: 2 }, maxWorkers: 2 },
+      },
+    },
+  },
+
   runtimeConfig: {
     legacyOrigin: LEGACY_ORIGIN,
     // Server-only Store API credential. Override with NUXT_STORE_API_ACCESS_KEY.
@@ -52,7 +63,8 @@ export default defineNuxtConfig({
   // real shop must purge these entries (or wait for the TTL). Varying on the full Cookie
   // header also partitions cache entries by session cookie; this is safe but may fragment reuse.
   routeRules: {
-    '/shop': { cache: { swr: true, maxAge: 60, varies: shopCacheVaries } },
+    // This page only redirects: it has no catalogue HTML or JSON payload to cache/prefetch.
+    '/shop': { cache: false },
     '/shop/c/**': { cache: { swr: true, maxAge: 60, varies: shopCacheVaries } },
     '/shop/**': { cache: { swr: true, maxAge: 300, varies: shopCacheVaries } },
     '/shop/cart': { cache: false },

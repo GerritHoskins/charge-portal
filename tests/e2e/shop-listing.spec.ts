@@ -6,9 +6,14 @@ const WCAG = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 
 test.describe('public shop listing', () => {
   test('redirects /shop permanently to the wallbox category', async ({ page, request }) => {
+    const cart = await request.get('/shop/cart')
+    expect(cart.status()).toBe(200)
+    const isViteDev = (await cart.text()).includes('/_nuxt/@vite/client')
     const canonical = await request.get('/shop', { maxRedirects: 0 })
     expect(canonical.status()).toBe(301)
-    expect(canonical.headers().location).toBe('/shop/')
+    // Nuxt dev canonicalizes the slash first; the built server redirects directly.
+    // Both the pre-cache production control and the current build use that direct 301.
+    expect(canonical.headers().location).toBe(isViteDev ? '/shop/' : '/shop/c/wallboxes')
 
     const response = await request.get('/shop/', { maxRedirects: 0 })
     expect(response.status()).toBe(301)
