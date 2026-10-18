@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-25d Done; human accepted the retained aggregate and the two narrowly scoped budget exceptions
+Current step: WP-25 Review, including verified WP-25d test-portability follow-up; original WP-25d remains human-accepted Done
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-21, WP-22, WP-23, WP-24, WP-25a, WP-25b, WP-25c, WP-25d, WP-26
-Next step: Resume WP-25 step 5 (shop CI wiring) under the explicitly accepted gates, then WP-27 final documentation and verification
+Next step: Verify pushed GitHub CI and obtain human acceptance of WP-25 CI wiring/test follow-up before starting WP-27 final documentation
 
 ## Decisions
 - 2026-10-18: Human explicitly said "2.50-2.60 is ok. mark as completed" after seeing the filtered listing above 2.50 seconds. Accept 2600 ms only for `/shop/c/wallboxes?connector=ccs`, retaining 2500 ms for listing/product/cart and all other thresholds. All twenty saved audits are reasserted without recollection or selective removal; every URL matches one matrix entry and all twenty assertions pass. Human acceptance completes WP-25d, not the still-unwired WP-25 step 5 or WP-27.
@@ -848,6 +848,10 @@ Next step: Resume WP-25 step 5 (shop CI wiring) under the explicitly accepted ga
 | 2026-10-18 | 5747de4 + WP-25d dirty, retained | /shop/ladekabel-typ-1-10-m | same twenty-audit cohort + accepted-policy reassertion | 5, representative | 2483.028 ms | 0 | 0 ms | n/a | n/a | n/a | Perf 0.96; SI 2031.690 ms; transfer 186472 B; range 2479.680–2784.590 ms; baseline 2939.418 ms; aggregate gain beyond spreads; not the JS-budget product route |
 | 2026-10-18 | 5747de4 + WP-25d dirty, retained | /shop/cart | same twenty-audit cohort + accepted-policy reassertion | 5, representative | 2405.457 ms | 0 | 6 ms | n/a | 121.549 KB | n/a | Perf 0.96; SI 2029.547 ms; transfer 134108 B; range 2254.869–2452.093 ms; baseline 2283.778 ms; higher representative LCP, within current spread; no cart LCP gain claimed |
 | 2026-10-18 | 5747de4 + WP-25d dirty, retained | /shop/wallbox-home-7-4 | `npm run check` / route budget; raw Node HTTP | 1 build + cold/warm pair | n/a | n/a | n/a | n/a | 128.045 KB | n/a | Human accepted product cap 128.045 KB; raw HTML 20164 B identity / 4227 B gzip; cold gzip then identical identity cache hit; no separate lab-product JS attribution |
+| 2026-10-18 | 5742ba1 + CI/docs dirty | /shop/c/wallboxes | `LIGHTHOUSE_LEGACY_PORT=18090 npm run lighthouse:shop` | 5, representative | 2487.903 ms | 0 | 0 ms | n/a | 125.543 KB | n/a | Fresh command exit 0; perf 0.96; SI 2035.752 ms; transfer 185915 B; range 2481.270–2633.424 ms; HTML resource/transfer 23606/4867 B |
+| 2026-10-18 | 5742ba1 + CI/docs dirty | /shop/c/wallboxes?connector=ccs | same fresh twenty-audit cohort | 5, representative | 2407.009 ms | 0 | 0 ms | n/a | n/a | n/a | Perf 0.96; SI 2030.841 ms; transfer 154771 B; range 2406.002–2558.807 ms; HTML 12905/4160 B; variability retained, no independent optimization claim |
+| 2026-10-18 | 5742ba1 + CI/docs dirty | /shop/ladekabel-typ-1-10-m | same fresh twenty-audit cohort | 5, representative | 2481.306 ms | 0 | 25 ms | n/a | n/a | n/a | Perf 0.96; SI 2030.255 ms; transfer 186471 B; range 2479.716–2635.528 ms; HTML 20206/4626 B; not JS-budget product |
+| 2026-10-18 | 5742ba1 + CI/docs dirty | /shop/cart | same fresh twenty-audit cohort | 5, representative | 2405.499 ms | 0 | 8 ms | n/a | 121.549 KB | n/a | Perf 0.96; SI 2029.582 ms; transfer 134106 B; range 2103.506–2407.812 ms; HTML 6815/2680 B; all twenty a11y 1 and CLS 0; DE locale 4065/4317 B for each representative |
 
 Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) reports of the 2026-10-17 runs; TTFB is the `server-response-time` audit on the local warm server (no cold/warm split yet); all numbers lab (mobile emulation, simulated throttling). Later rows explicitly marked representative use LHCI's selected median run, not independent per-metric medians.
 
@@ -864,11 +868,13 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
   that acceptance. WP-25c is the separately bounded diagnostic next step, not a gate waiver.
 - WP-25c: Done; human accepted `5d3d024`. Ten captures and exact offline replays identify
   terminal modeled pings and actual uncompressed HTML. Full check and remote CI passed
-  with no product edits. Human selected diagnosis only; proposed WP-25d is not authorized
-  and must not start without a new explicit scope decision.
+  with no product edits. The initial diagnosis-only decision was subsequently superseded
+  by explicit WP-25d approval; retain the earlier decision as history, not a current blocker.
 - WP-25d: Done; subsequent human acceptance explicitly permits product JS 128.045 KB and
   filtered LCP 2600 ms only. Full correctness checks and all twenty accepted-policy assertions
   pass. Listing/product improve beyond observed spread; filtered does not show a gain.
+  The subsequent development test-portability correction passed local full and production
+  checks and is included in WP-25's Review handoff; new remote CI is not yet confirmed green.
 - WP-22: Done; human accepted `60fd260` on 2026-10-18 and its GitHub Actions run passed.
 - WP-24: Done; human accepted `85f7c73` on 2026-10-18. Test-first request coalescing and router/busy
   candidates were measured then reverted because synthetic RUM did not establish a filter-INP
@@ -877,7 +883,8 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
   and is outside this package's source scope; the actual-observer scratch probe is narrowly
   described in the handoff below. The optional tooling correction remains unapproved.
   WP-25's former LCP blocker is resolved by retained WP-25d plus the explicit filtered-route
-  threshold exception; CI wiring remains to be implemented. WP-27 remains pending.
+  threshold exception; CI wiring is prepared and awaits the test follow-up/human review.
+  WP-27 remains pending.
 - WP-25 constraint history: the retained post-projection baseline had three LCP selections
   above 2500 ms. WP-25d now passes listing/product/cart at 2500 ms and filtered at the human-
   accepted 2600 ms. Assertions remain hard errors. Shop CI wiring is the next bounded step.
@@ -1525,3 +1532,76 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
   WP-27 remain separate unfinished work. Temporary verification files are removed before
   commit; owned runtime processes are stopped. Historical rollback details above describe
   the intermediate state before the explicit exception, not the final retained state.
+
+## WP-25 — resumed CI wiring (Review; 2026-10-18)
+- Prerequisite WP-25d Done by actual human acceptance and pushed at `5742ba1` on
+  `codex/storefront-complete`. Retained page-level payload projections and omission tests
+  remain intact; shared BFF contracts are unchanged. The explicit product-JS/filtered-LCP
+  exceptions are recorded above; other gates remain unchanged.
+- Fresh GPT-6 Luna high subagent changed only `.github/workflows/ci.yml`: run
+  `npm run lighthouse:shop` after portal Lighthouse and its existing artifact upload, then
+  upload `.lighthouseci-shop` separately with `if: always()`. Uploading portal reports first
+  preserves them before shop collection replaces `.lighthouseci`. No product/dependency edit.
+- Primary parsed YAML with the installed parser and asserted command ordering, the single
+  existing full check, and both always-upload paths (exit 0). Full verification follows;
+  no passing fresh shop collection or completed CI run is claimed yet.
+- Resumed-package `E2E_LEGACY_PORT=18090 ROUTE_BUDGET_LEGACY_PORT=18090 npm run check`
+  passed (exit 0): 330 unit tests, 195 browser tests, production build, coverage floors and
+  all seven route budgets. A fresh twenty-audit `LIGHTHOUSE_LEGACY_PORT=18090
+  npm run lighthouse:shop` is now running under the already accepted per-route policy.
+  Product source/tests/config are identical to pushed WP-25d; only workflow and this log
+  are dirty. The WP-25d GitHub run `39141739368` was last observed In progress, not success.
+- Fresh twenty-audit shop collection completed with exit 0 under the accepted policy;
+  selected listing/filtered/product/cart LCP: 2487.903/2407.009/2481.306/2405.499 ms.
+  All twenty reports plus manifest/assertion results are preserved in the unstaged
+  `.lighthouseci-shop-wp25-ci-final/` (42 files). This is a fresh command pass, not just reassertion.
+
+## WP-25d — CI-portability follow-up (Review with WP-25; 2026-10-18)
+- Pushed `5742ba1` GitHub run `39141739368` failed: 330 unit tests and 194/195 browser
+  tests passed. The raw-wire test's development-only style multiset comparison saw one
+  additional Nuxt `error-500.vue` scoped stylesheet between otherwise equivalent HTTP 200
+  responses. It did not reach build/budgets/Lighthouse; do not describe remote CI as green.
+- Reopen only the already approved `tests/e2e/shop-compression.spec.ts` for this bounded
+  test-portability correction; retained product code and accepted budgets are unchanged.
+  WP-25's prepared workflow remains separate and is not included in this correction.
+- Independent GPT-6 Luna high read-only review recommended permitting at most one exact
+  Nuxt framework error stylesheet only in Vite development HTML, only when its captured
+  scope ID is absent from markup. Preserve every other style/body comparison and production
+  byte equality; reject duplicates, active scope IDs and missing/changed product styles.
+  Installed `error-500.vue` confirms the linked style block is scoped; its separate head
+  reset is not normalized. Added local positive/negative fixtures before the helper change.
+- Fixture RED reproduced the exact additional-style multiset failure before the helper
+  correction (exit 1). After it, focused development compression tests passed 4/4 (exit 0)
+  and independent review approved the exact matcher and adversarial coverage.
+- First follow-up full check: lint/types/tokens/inventory/330 unit tests passed; browser
+  tests passed 195/196, including the corrected comparator, but conditional GET received
+  200 instead of 304. This is a distinct dev ETag-refresh race, not a stylesheet mismatch.
+  Installed Nitro cache permits background SWR refresh and H3 compares the current ETag;
+  requested a focused independent consultation before changing conditional handling.
+- Isolated serial production run using temporary `.wp25d.production.config.mts` passed
+  all 18 compression/cache/telemetry/vitals/funnel tests (exit 0), including first-request
+  conditional 304 and byte-exact HTML/gzip. Product source and build artifacts were unchanged.
+  The failed full check did not reach its build/budget stage; no full success is claimed.
+- Independent consultation supported at most three conditional requests in development,
+  requiring a final 304. Each intermediate 200 must have a nonempty changed ETag, valid
+  gzip/length/Vary, comparator-equivalent prior HTML, and a fresh identity response with
+  exactly that new ETag and equivalent HTML. Production still requires the first 304.
+  Implemented only in the same test file, with positive one/two-refresh fixtures and
+  negative same/missing validator, headers, gzip, content, production and exhaustion cases.
+  No product/runtime/configuration change or extra budget allowance is involved.
+- Final focused development compression suite passed 5/5 (exit 0). Independent read-only
+  review found no concrete flaw in the conditional helper or its positive/negative fixtures.
+- Final `E2E_LEGACY_PORT=18090 ROUTE_BUDGET_LEGACY_PORT=18090 npm run check` passed (exit 0):
+  **330 unit tests, 197 browser tests**, lint/types/tokens/inventory/coverage, production
+  build and all seven JS budgets. Actual product JS remains 128.045 KB. The final serial
+  production suite passed **19/19** (exit 0), retaining immediate 304 and byte-exact gzip/HTML,
+  all eight unchanged cache tests and real telemetry/funnel ingestion checks.
+- Temporary production config removed; owned test servers stopped; previous archives and
+  primary-checkout changes preserved. Final package diff is exactly workflow, compression
+  E2E and this log, based on `5742ba1` on `codex/storefront-complete`. Workflow YAML/order/
+  single full check and separate always-upload paths revalidated (exit 0).
+- Hand off WP-25 plus this bounded test follow-up to Review, using the fresh twenty-audit
+  command pass above and unchanged product source. Parent is authorized to commit/push;
+  record the actual new GitHub run separately when available, not as a presumed pass.
+  Human acceptance of the new diff is still required before WP-27; original WP-25d Done
+  and the two explicit narrow numeric allowances remain unchanged.

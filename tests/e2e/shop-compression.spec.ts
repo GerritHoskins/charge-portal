@@ -1,7 +1,7 @@
 import { request as httpRequest } from 'node:http'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import { gunzipSync } from 'node:zlib'
+import { gunzipSync, gzipSync } from 'node:zlib'
 import { expect, test } from '@playwright/test'
 import { parseLegacyLogin } from '../../shared/contracts/login'
 import { LEGACY_PORT } from '../../playwright.config'
@@ -57,11 +57,19 @@ const expectSameHtml = (actual: Buffer, expected: Buffer) => {
     return
   }
 
-  // Same narrowly checked dev-only normalization as shop-cache.spec.ts. Vite may
-  // reorder its injected style links as modules compile; production remains byte-exact.
+  // Vite may reorder style links as modules compile, or globally collect the lazy
+  // Nuxt error component's scoped style. Ignore that exact style only if unused;
+  // every other dev style remains mandatory and production stays byte-exact.
   const vueStyles = /<link rel="stylesheet" href="\/_nuxt\/[^"]+\.vue\?vue&type=style[^"]*"[^>]*>/g
   const globals = /<link rel="stylesheet" href="\/_nuxt\/assets\/css\/(?:tokens|base)\.css" crossorigin>/g
-  const texts = [actual, expected].map(body => body.toString('utf8'))
+  const unusedErrorStyle = /<link rel="stylesheet" href="\/_nuxt\/[^"?]*\/node_modules\/nuxt\/dist\/app\/components\/error-500\.vue\?vue&type=style&index=0&scoped=([a-f0-9]{8})&lang\.css" crossorigin>/g
+  const texts = [actual, expected].map(body => {
+    const text = body.toString('utf8')
+    const errorStyles = [...text.matchAll(unusedErrorStyle)]
+    expect(errorStyles.length).toBeLessThanOrEqual(1)
+    for (const match of errorStyles) expect(text).not.toContain(`data-v-${match[1]}`)
+    return text.replace(unusedErrorStyle, '')
+  })
   expect((texts[0]!.match(vueStyles) ?? []).sort()).toEqual((texts[1]!.match(vueStyles) ?? []).sort())
   for (const text of texts) {
     expect((text.match(globals) ?? []).sort()).toEqual([
@@ -78,6 +86,122 @@ const expectSameHtml = (actual: Buffer, expected: Buffer) => {
   })
   expect(normalized[0]).toBe(normalized[1])
 }
+
+const expectConditional304 = async (
+  initial: RawResponse,
+  conditionalGet: (etag: string) => Promise<RawResponse>,
+  identityGet: () => Promise<RawResponse>,
+) => {
+  let current = initial
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const etag = header(current, 'etag')
+    expect(etag).not.toBe('')
+    const response = await conditionalGet(etag)
+    expect(varyTokens(response)).toContain('accept-encoding')
+    if (response.statusCode === 304) {
+      expect(header(response, 'etag')).toBe(etag)
+      expect(response.body.byteLength).toBe(0)
+      return
+    }
+
+    // Dev SWR can refresh Vite's style ordering between the two requests. Production
+    // must return 304 immediately; dev must prove a genuine changed representation
+    // and still converge to 304 within this fixed bound.
+    expect(isViteDev(gunzipSync(current.body))).toBe(true)
+    expect(response.statusCode).toBe(200)
+    const nextEtag = header(response, 'etag')
+    expect(nextEtag).not.toBe('')
+    expect(nextEtag).not.toBe(etag)
+    expect(header(response, 'content-encoding')).toBe('gzip')
+    expect(Number(header(response, 'content-length'))).toBe(response.body.byteLength)
+    const decoded = gunzipSync(response.body)
+    expectSameHtml(decoded, gunzipSync(current.body))
+    const identity = await identityGet()
+    expect(identity.statusCode).toBe(200)
+    expect(header(identity, 'content-encoding')).toBe('')
+    expect(header(identity, 'etag')).toBe(nextEtag)
+    expectSameHtml(decoded, identity.body)
+    current = response
+  }
+  throw new Error('development HTML validator did not stabilize within three conditional requests')
+}
+
+test('HTML comparison only normalizes an unused Nuxt development error stylesheet', () => {
+  const productStyle = '<link rel="stylesheet" href="/_nuxt/app/pages/shop/product.vue?vue&type=style&index=0&scoped=1234abcd&lang.css" crossorigin>'
+  const errorStyle = '<link rel="stylesheet" href="/_nuxt/home/runner/work/charge-portal/charge-portal/node_modules/nuxt/dist/app/components/error-500.vue?vue&type=style&index=0&scoped=347e4e05&lang.css" crossorigin>'
+  const fixture = (extra = '', markup = '<main>synthetic storefront</main>') => Buffer.from(
+    '<html><head><script src="/_nuxt/@vite/client"></script>'
+    + '<link rel="stylesheet" href="/_nuxt/assets/css/base.css" crossorigin>'
+    + '<link rel="stylesheet" href="/_nuxt/assets/css/tokens.css" crossorigin>'
+    + productStyle + extra + '</head><body>' + markup + '</body></html>',
+  )
+
+  expectSameHtml(fixture(errorStyle), fixture())
+  expectSameHtml(fixture(), fixture(errorStyle))
+  expect(() => expectSameHtml(fixture(errorStyle + errorStyle), fixture())).toThrow()
+  const activeError = '<main data-v-347e4e05>synthetic storefront</main>'
+  expect(() => expectSameHtml(fixture(errorStyle, activeError), fixture('', activeError))).toThrow()
+  expect(() => expectSameHtml(
+    Buffer.from(fixture(errorStyle).toString().replace(productStyle, '')), fixture(),
+  )).toThrow()
+  expect(() => expectSameHtml(
+    Buffer.from(fixture(errorStyle).toString().replace('scoped=1234abcd', 'scoped=8765dcba')), fixture(),
+  )).toThrow()
+  expect(() => expectSameHtml(fixture(errorStyle.replace('error-500.vue', 'error-404.vue')), fixture())).toThrow()
+  expect(() => expectSameHtml(fixture(errorStyle.replace('index=0', 'index=1')), fixture())).toThrow()
+  const production = (extra = '') => Buffer.from(fixture(extra).toString().replace('/_nuxt/@vite/client', '/_nuxt/entry.js'))
+  expect(() => expectSameHtml(production(errorStyle), production())).toThrow()
+})
+
+test('conditional comparison requires a stable 304 and only retries validated development changes', async () => {
+  const html = Buffer.from('<script src="/_nuxt/@vite/client"></script>'
+    + '<link rel="stylesheet" href="/_nuxt/assets/css/base.css" crossorigin>'
+    + '<link rel="stylesheet" href="/_nuxt/assets/css/tokens.css" crossorigin><main>synthetic</main>')
+  const changedHtml = Buffer.from(html.toString().replace(
+    /(<link[^>]+base\.css[^>]+>)(<link[^>]+tokens\.css[^>]+>)/, '$2$1',
+  ))
+  const gzip = (body: Buffer, etag: string): RawResponse => {
+    const wire = gzipSync(body)
+    return { statusCode: 200, body: wire, headers: {
+      etag, vary: 'Accept-Encoding', 'content-encoding': 'gzip', 'content-length': String(wire.byteLength),
+    } }
+  }
+  const identity = (body: Buffer, etag: string): RawResponse => ({ statusCode: 200, body, headers: { etag } })
+  const notModified = (etag: string): RawResponse => ({ statusCode: 304, body: Buffer.alloc(0), headers: { etag, vary: 'Accept-Encoding' } })
+  const initial = gzip(html, 'one')
+  const changed = gzip(changedHtml, 'two')
+  for (const changes of [1, 2]) {
+    const validators: string[] = []
+    await expectConditional304(initial, async (etag) => {
+      validators.push(etag)
+      return validators.length <= changes ? { ...changed, headers: { ...changed.headers, etag: String(validators.length) } } : notModified(etag)
+    }, async () => identity(changedHtml, String(validators.length)))
+    expect(validators).toHaveLength(changes + 1)
+  }
+  const reject = async (response: RawResponse, fresh = identity(changedHtml, 'two'), start = initial) => {
+    await expect(expectConditional304(start, async () => response, async () => fresh)).rejects.toThrow()
+  }
+  await reject({ ...changed, headers: { ...changed.headers, etag: 'one' } })
+  await reject({ ...changed, headers: { ...changed.headers, etag: '' } })
+  await reject({ ...changed, headers: { ...changed.headers, 'content-encoding': '' } })
+  await reject({ ...changed, headers: { ...changed.headers, 'content-length': '1' } })
+  await reject({ ...changed, headers: { ...changed.headers, vary: '' } })
+  const invalidGzip = Buffer.from('invalid gzip')
+  await reject({ ...changed, body: invalidGzip, headers: { ...changed.headers, 'content-length': String(invalidGzip.byteLength) } })
+  await reject(gzip(Buffer.from(changedHtml.toString().replace('synthetic', 'different')), 'two'))
+  await reject(changed, identity(html, 'wrong-validator'))
+  await reject(changed, identity(Buffer.from('different body'), 'two'))
+  const production = Buffer.from('<main>production</main>')
+  await reject(gzip(production, 'two'), identity(production, 'two'), gzip(production, 'one'))
+  await expectConditional304(gzip(production, 'one'), async () => notModified('one'),
+    async () => { throw new Error('production must not need a new identity request') })
+  await reject(notModified('wrong-validator'))
+  await reject({ ...notModified('one'), body: Buffer.from('unexpected body') })
+  let attempts = 0
+  await expect(expectConditional304(initial, async () => gzip(changedHtml, String(++attempts)),
+    async () => identity(changedHtml, String(attempts)))).rejects.toThrow('did not stabilize')
+  expect(attempts).toBe(3)
+})
 
 test.describe('public shop HTML compression on the raw HTTP wire', () => {
   test('gzip preserves HTML bytes, advertises encoding variance, and keeps variance on 304', async ({ request }) => {
@@ -99,11 +223,9 @@ test.describe('public shop HTML compression on the raw HTTP wire', () => {
     expectSameHtml(gunzipSync(gzip.body), identity.body)
     expect(varyTokens(gzip)).toContain('accept-encoding')
 
-    const etag = header(gzip, 'etag')
-    expect(etag).not.toBe('')
-    const notModified = await rawGet(url, 'gzip', { 'if-none-match': etag })
-    expect(notModified.statusCode).toBe(304)
-    expect(varyTokens(notModified)).toContain('accept-encoding')
+    await expectConditional304(gzip,
+      etag => rawGet(url, 'gzip', { 'if-none-match': etag }),
+      () => rawGet(url, 'identity'))
     expect(varyTokens(identity)).toContain('accept-encoding')
 
     const gzipHit = await rawGet(url, 'gzip')
