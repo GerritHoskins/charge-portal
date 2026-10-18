@@ -4,6 +4,6 @@
   "/portal/invoices": { "budgetKb": 122.4, "provisional": false },
   "/portal/invoices/inv-0042/dispute": { "budgetKb": 122.4, "provisional": false },
   "/shop/c/wallboxes": { "budgetKb": 126, "provisional": true },
-  "/shop/wallbox-home-7-4": { "budgetKb": 128, "provisional": true },
+  "/shop/wallbox-home-7-4": { "budgetKb": 128.045, "provisional": true },
   "/shop/cart": { "budgetKb": 123, "provisional": true }
 }

@@ -1,4 +1,5 @@
 import type { ShopEvent, ShopEventType } from '#shared/contracts/events'
+import { sendShopTelemetry } from '../utils/shop-telemetry-transport'
 
 const TAB_ID_KEY = 'charge-portal-shop-tab-id'
 let fallbackTabId: string | undefined
@@ -26,15 +27,7 @@ export const useShopEvents = () => {
     // Demo telemetry only: the per-tab random id stays in sessionStorage; no identity or cookies are stored.
     const payload: ShopEvent = { type, route: route.path, tabId: tabId() }
     const body = JSON.stringify(payload)
-    if (navigator.sendBeacon('/api/events', body)) return
-
-    void fetch('/api/events', {
-      method: 'POST',
-      body,
-      headers: { 'content-type': 'text/plain' },
-      keepalive: true,
-      credentials: 'omit',
-    }).catch(() => undefined)
+    sendShopTelemetry('/api/events', body, type === 'add_to_cart')
   }
 
   return { track }

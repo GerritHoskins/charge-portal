@@ -1,4 +1,5 @@
 import { getRequestURL, getResponseHeader, removeResponseHeader, setResponseHeader, splitCookiesString } from 'h3'
+import { mergeShopCacheVary } from '../utils/shop-html-compression'
 
 const cookieValues = (value: string | string[] | undefined) => value ? splitCookiesString(value) : []
 const isLocaleCookie = (cookie: string) => cookie.trim().split(';', 1)[0]?.startsWith('i18n_locale=') ?? false
@@ -9,32 +10,21 @@ const cookieHeaderValue = (value: unknown): string | string[] | undefined => {
   return undefined
 }
 
-const mergeVary = (...values: unknown[]) => {
-  const entries = values.flatMap((value) => {
-    if (typeof value === 'string') return value.split(',')
-    if (Array.isArray(value)) return value.flatMap(item => typeof item === 'string' ? item.split(',') : [])
-    return []
-  }).map(value => value.trim()).filter(Boolean)
-  if (entries.some(value => value === '*')) return '*'
-
-  const seen = new Set<string>()
-  return [...entries, 'Cookie', 'Accept-Language', 'Host', 'X-Forwarded-Proto']
-    .filter((value) => {
-      const normalized = value.toLowerCase()
-      if (seen.has(normalized)) return false
-      seen.add(normalized)
-      return true
-    })
-    .join(', ')
-}
-
 export default defineNitroPlugin((nitroApp) => {
+  nitroApp.hooks.hook('request', (event) => {
+    const { pathname } = getRequestURL(event)
+    if (pathname !== '/shop' && !pathname.startsWith('/shop/')) return
+
+    // Conditional requests can end inside Nitro's cache before beforeResponse runs.
+    setResponseHeader(event, 'vary', mergeShopCacheVary(getResponseHeader(event, 'vary')))
+  })
+
   nitroApp.hooks.hook('render:response', (response, { event }) => {
     const { pathname } = getRequestURL(event)
     if (pathname !== '/shop' && !pathname.startsWith('/shop/')) return
 
     // Nitro's internal `varies` options do not emit an HTTP Vary header for intermediaries.
-    const vary = mergeVary(getResponseHeader(event, 'vary'), response.headers?.vary)
+    const vary = mergeShopCacheVary(getResponseHeader(event, 'vary'), response.headers?.vary)
     setResponseHeader(event, 'vary', vary)
     response.headers ??= {}
     response.headers.vary = vary

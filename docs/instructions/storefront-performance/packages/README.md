@@ -65,6 +65,7 @@ Unmet dependencies stay pending. Load only the selected package and prerequisite
 | 25a | [Experiment: precompiled translations](WP-25a-opt-i18n-bundle.md) | 20–24, retained 25 checkpoint | model, human review | optimize, measure |
 | 25b | [Experiment: compact production translations](WP-25b-opt-production-i18n.md) | accepted 25a, retained 25 checkpoint | model, human review | optimize, measure |
 | 25c | [Diagnose simulated LCP](WP-25c-lcp-diagnosis.md) | accepted 25b, retained 25 checkpoint | model, human review | diagnosis, measure |
+| 25d | [Experiment: HTML gzip and startup telemetry](WP-25d-opt-compression-telemetry.md) | accepted 25c | model, human review | optimize, measure |
 | 26 | [SEO basics](WP-26-seo.md) | 11 | model | code + unit + E2E |
 | 27 | [ADR 0008 and README](WP-27-docs.md) | all | model, human review | docs |
 

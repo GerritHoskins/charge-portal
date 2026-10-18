@@ -1,11 +1,14 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-25 Blocked on the hard LCP gate; WP-25c Done, further optimization not authorized
-Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-21, WP-22, WP-23, WP-24, WP-25a, WP-25b, WP-25c, WP-26
-Next step: Keep the accepted diagnosis only, as requested; do not start WP-25d. WP-25 CI wiring and WP-27 remain pending the unresolved hard gate and any future explicitly authorized scope
+Current step: WP-25d Done; human accepted the retained aggregate and the two narrowly scoped budget exceptions
+Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-21, WP-22, WP-23, WP-24, WP-25a, WP-25b, WP-25c, WP-25d, WP-26
+Next step: Resume WP-25 step 5 (shop CI wiring) under the explicitly accepted gates, then WP-27 final documentation and verification
 
 ## Decisions
+- 2026-10-18: Human explicitly said "2.50-2.60 is ok. mark as completed" after seeing the filtered listing above 2.50 seconds. Accept 2600 ms only for `/shop/c/wallboxes?connector=ccs`, retaining 2500 ms for listing/product/cart and all other thresholds. All twenty saved audits are reasserted without recollection or selective removal; every URL matches one matrix entry and all twenty assertions pass. Human acceptance completes WP-25d, not the still-unwired WP-25 step 5 or WP-27.
+- 2026-10-18: Human explicitly said "128.045 KB is ok. mark it completed" after the aggregate was reverted for exceeding 128 KB. Accept only the product route's 128.045 KB allowance and restore the same candidate; all other budgets and hard Lighthouse thresholds remain unchanged. This overrides the size rejection, not the requirement to run correctness/performance checks; do not claim unrun checks passed.
+- 2026-10-18: Human explicitly said "continue with wp25d. i approve", superseding the earlier diagnosis-only hold. Approved scope is public-shop HTML-only gzip after caching plus deferred initial telemetry transport, with encoding/304 Vary/cache/cookie safety, unchanged observers/values/attribution/order/lifecycle delivery, corresponding helpers/plugins/tests and package/index/progress docs. No dependencies, contracts, thresholds or Lighthouse detection; all twenty audits and budgets must be measured and failed optimization reverted.
 - 2026-10-18: Human accepted WP-25c at pushed `5d3d024` and selected "Keep diagnosis only for now" for proposed WP-25d. Mark WP-25c Done; do not create/start WP-25d or implement compression/telemetry changes. The original hard LCP gate, WP-25 CI wiring and WP-27 remain incomplete. This is acceptance of the diagnosis, not acceptance of the proposed optimization or a gate waiver.
 - 2026-10-18: WP-25c checkpoint `5d3d024` GitHub Actions run `39131215753` completed successfully (full check and portal Lighthouse), reverified after human acceptance. The shop hard gate remains unwired and unresolved.
 - 2026-10-18: WP-25c captured ten unchanged-runtime traces/network logs and independently replayed all ten simulated LCP values exactly offline. Terminal modeled nodes are early telemetry pings, after the navigation document/main entry bundle; this is not proof the pings block observed pixels. Significant HTML compression opportunity is also confirmed. No product change or model/gate override was made. Proposed next aggregate experiment is public-shop HTML-only gzip plus safe initial telemetry transport deferral; neither is authorized yet and their estimated savings are not an additive pass guarantee.
@@ -840,6 +843,12 @@ Next step: Keep the accepted diagnosis only, as requested; do not start WP-25d. 
 | 2026-10-18 | 2f0c200 + WP-25b candidate dirty (REVERTED) | /shop/cart | `LIGHTHOUSE_LEGACY_PORT=18090 npm run lighthouse:shop` | 5, representative | 2405.685 ms | 0 | 12.053 ms | n/a | 116.450 KB | n/a | Cart assertions pass; whole command exit 1; range 2255.301–2410.854 ms; perf 0.96; a11y 1.00; transfer 137922 B |
 | 2026-10-18 | 2f0c200 + WP-25b candidate dirty (REVERTED) | /shop/wallbox-home-7-4 | `npm run check` / route budget | 1 build | n/a | n/a | n/a | n/a | 123.010 KB | n/a | Candidate full check/build/all caps passed; baseline product JS 127.640 KB; hard LCP gate still failed |
 
+| 2026-10-18 | 5747de4 + WP-25d dirty, retained | /shop/c/wallboxes | `LIGHTHOUSE_LEGACY_PORT=18090 npm run lighthouse:shop`; accepted-policy reassertion | 5, representative | 2482.335 ms | 0 | 0 ms | n/a | 125.543 KB | n/a | Perf 0.96; SI 2031.113 ms; total transfer 185917 B; range 2481.759–2638.612 ms; baseline 2785.992 ms; aggregate gain beyond spreads |
+| 2026-10-18 | 5747de4 + WP-25d dirty, retained | /shop/c/wallboxes?connector=ccs | same twenty-audit cohort + accepted-policy reassertion | 5, representative | 2556.332 ms | 0 | 0 ms | n/a | n/a | n/a | Perf 0.95; SI 2104.749 ms; transfer 154773 B; range 2554.708–2561.532 ms; baseline 2559.544 ms; no gain beyond noise; human explicitly accepted 2600 ms for this route only |
+| 2026-10-18 | 5747de4 + WP-25d dirty, retained | /shop/ladekabel-typ-1-10-m | same twenty-audit cohort + accepted-policy reassertion | 5, representative | 2483.028 ms | 0 | 0 ms | n/a | n/a | n/a | Perf 0.96; SI 2031.690 ms; transfer 186472 B; range 2479.680–2784.590 ms; baseline 2939.418 ms; aggregate gain beyond spreads; not the JS-budget product route |
+| 2026-10-18 | 5747de4 + WP-25d dirty, retained | /shop/cart | same twenty-audit cohort + accepted-policy reassertion | 5, representative | 2405.457 ms | 0 | 6 ms | n/a | 121.549 KB | n/a | Perf 0.96; SI 2029.547 ms; transfer 134108 B; range 2254.869–2452.093 ms; baseline 2283.778 ms; higher representative LCP, within current spread; no cart LCP gain claimed |
+| 2026-10-18 | 5747de4 + WP-25d dirty, retained | /shop/wallbox-home-7-4 | `npm run check` / route budget; raw Node HTTP | 1 build + cold/warm pair | n/a | n/a | n/a | n/a | 128.045 KB | n/a | Human accepted product cap 128.045 KB; raw HTML 20164 B identity / 4227 B gzip; cold gzip then identical identity cache hit; no separate lab-product JS attribution |
+
 Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) reports of the 2026-10-17 runs; TTFB is the `server-response-time` audit on the local warm server (no cold/warm split yet); all numbers lab (mobile emulation, simulated throttling). Later rows explicitly marked representative use LHCI's selected median run, not independent per-metric medians.
 
 ## Open questions
@@ -857,6 +866,9 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
   terminal modeled pings and actual uncompressed HTML. Full check and remote CI passed
   with no product edits. Human selected diagnosis only; proposed WP-25d is not authorized
   and must not start without a new explicit scope decision.
+- WP-25d: Done; subsequent human acceptance explicitly permits product JS 128.045 KB and
+  filtered LCP 2600 ms only. Full correctness checks and all twenty accepted-policy assertions
+  pass. Listing/product improve beyond observed spread; filtered does not show a gain.
 - WP-22: Done; human accepted `60fd260` on 2026-10-18 and its GitHub Actions run passed.
 - WP-24: Done; human accepted `85f7c73` on 2026-10-18. Test-first request coalescing and router/busy
   candidates were measured then reverted because synthetic RUM did not establish a filter-INP
@@ -864,10 +876,11 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
   The sampler's `performance.getEntriesByType('event')` diagnostic is invalid absence evidence
   and is outside this package's source scope; the actual-observer scratch probe is narrowly
   described in the handoff below. The optional tooling correction remains unapproved.
-  WP-25 is Blocked on the hard LCP gate after the scope approval below; WP-27 remains pending its prerequisites.
-- WP-25 constraint: the retained post-projection baseline has three LCP selections above
-  2500 ms. Assertions are now hard errors, unchanged by WP-25a; its four-route LCP failure
-  was reverted. Shop CI wiring remains unstarted until the hard gate passes.
+  WP-25's former LCP blocker is resolved by retained WP-25d plus the explicit filtered-route
+  threshold exception; CI wiring remains to be implemented. WP-27 remains pending.
+- WP-25 constraint history: the retained post-projection baseline had three LCP selections
+  above 2500 ms. WP-25d now passes listing/product/cart at 2500 ms and filtered at the human-
+  accepted 2600 ms. Assertions remain hard errors. Shop CI wiring is the next bounded step.
 - WP-25's former scope blocker was resolved by explicit human approval for `app/components/shop/ShopProductCard.vue`,
   `shared/seo.ts`, `tests/unit/seo.test.ts`, `tests/e2e/shop-listing.spec.ts`, and
   `tests/e2e/shop-product.spec.ts`. Listing cards consume full `ShopProduct` contract objects
@@ -1398,3 +1411,117 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
   not the still-unwired shop hard gate. No new optimization package/source work is started.
   This acceptance-status update changes only this progress log; existing app/test/config
   sources and the preserved diagnostic archive remain unchanged.
+
+## WP-25d — HTML gzip and startup telemetry (Done; human accepted 2026-10-18)
+- Human approved this bounded aggregate experiment after the diagnosis-only hold. Branch
+  `codex/storefront-complete`, base `5747de4`; current accepted app runtime remains baseline.
+- Three fresh GPT-6 Luna high agents own disjoint server/client implementation and read-only
+  review. Authors prepare tests first and must wait for primary's actual baseline RED before
+  product edits. Primary owns all runtime/build/test commands and documentation/integration.
+- Initial inspection confirms no tracked edits; prior report archives remain unstaged and
+  user checkout's unrelated `package.json`/`.claude/` changes are preserved. Fresh baseline
+  build completed (`npm run build`, exit 0) before any product edits.
+- Actual production RED: `node .wp25d-production.mjs tests/e2e/shop-compression.spec.ts
+  tests/e2e/shop-telemetry-transport.spec.ts --workers=1` exited 1: identity HTML lacked
+  `Accept-Encoding` in Vary; first actual events transport occurred 73.200 ms after document
+  load, below the required 250 ms. A second compression-only run moved the Vary check after
+  the encoding check and exited 1 on expected `gzip`, received empty Content-Encoding.
+  The identity 200 status and exact Content-Length/body bytes passed. These are semantic
+  baseline failures, not missing-module errors. Owned app/legacy processes were stopped by
+  the temporary harness. Authors were then released for scoped product implementation.
+- Candidate: HTML-only gzip ran after the identity cache snapshot, with request-time and
+  post-cache Vary repair, exact compressed Content-Length, q/identity negotiation, and
+  no-transform/strong-validator/range/non-HTML safeguards. The shared client transport
+  preserved immediate observers and serialized snapshots, deferred normal startup sends,
+  and supported ordered lifecycle/user-action delivery and beacon/keepalive fallback.
+- Focused checks: `npx vitest run tests/unit/shop-html-compression.test.ts
+  tests/unit/shop-telemetry-transport.test.ts` initially passed 40 tests; lint/typecheck and
+  build passed. A later explicit identity+gzip refusal regression failed meaningfully
+  (unit expected null, got undefined; wire expected 406, got 200) before its server fix.
+  The resulting focused unit suite passed 41 tests. One intervening test syntax error and
+  H3 numeric Content-Length type error were corrected; neither is claimed as semantic RED.
+- Production focused checks on the intermediate candidate: 17/18 passed, including all
+  eight unchanged cache tests, raw-wire compression/cache/304/session tests, existing
+  funnel and real LCP/CLS ingestion. The additional early-navigation test timed out on
+  Playwright's old-document response waiter; no full candidate correctness pass is claimed.
+  Read-only review advised a same-origin trace plus server-ingestion oracle instead of the
+  old-document waiter. That final test draft was not run after the size gate stopped work.
+  Native static-asset gzip was already enabled by Nitro; its test was corrected to compare
+  against the existing compressed artifact, not wrongly require identity encoding.
+- JS gate, `ROUTE_BUDGET_LEGACY_PORT=18090 node scripts/check-route-budget.mjs`:
+  initial product 128.047/128 KB failed (exit 1). An overcomplicated timing refinement grew
+  it to 128.143 KB. After bounded independent size consultation and one final simplification,
+  the gate still failed at **128.045/128 KB** (exit 1). Final other routes passed: stations
+  and sessions 117.657/119.5 KB, invoices and dispute 120.426/122.4 KB, listing 125.543/126 KB,
+  cart 121.549/123 KB. No budget/assertion/threshold was changed.
+- Stop rule applied: reverted the aggregate candidate, including all three modified product
+  files, all three new product/helper files, and all four candidate-only test files. Primary
+  verified `git diff --exit-code -- app server tests` returned 0. Only package/index/progress
+  docs will remain. **The twenty Lighthouse audits were not run** because the earlier hard
+  JS gate failed; there is no WP-25d LCP, transfer-size or aggregate-performance improvement
+  claim. WP-25 and WP-27 remain incomplete, with no CI wiring or new variant started.
+- Retained verification: moved only the verified integration `.nuxt/cache/nitro` directory
+  to recoverable sibling `nitro-wp25d-candidate-20261018T1722` before starting the full check,
+  so candidate SSR/cache entries cannot be mistaken for the restored source. Prior report
+  archives and the user's unrelated primary-checkout edits remain untouched.
+- Retained-source `E2E_LEGACY_PORT=18090 ROUTE_BUDGET_LEGACY_PORT=18090 npm run check`
+  completed with exit 0: 289 unit tests, 190 browser tests, production build and all seven
+  original route budgets. This verifies the safe rollback checkpoint, not the candidate.
+- Human then explicitly accepted 128.045 KB and requested completion. Primary records the
+  narrow product cap exception in `scripts/route-budgets.json` (128 to 128.045 only), restores
+  the same frozen candidate and resumes its remaining correctness/Lighthouse verification.
+  The rollback and size-failure history above remain accurate historical events, not the
+  final state. No acceptance of unrun tests or LCP results is inferred.
+- Restored candidate: focused 41 unit tests, lint, typecheck and build passed (all exit 0).
+  `node .wp25d-production.mjs tests/e2e/shop-compression.spec.ts
+  tests/e2e/shop-telemetry-transport.spec.ts tests/e2e/shop-cache.spec.ts
+  tests/e2e/shop-vitals.spec.ts tests/e2e/shop-events.spec.ts --workers=1` passed all 17 tests.
+  The early-exit oracle now captures actual beacon body/acceptance/time and real pagehide
+  synchronously in same-origin sessionStorage, navigates to cart, and checks a server funnel
+  increment on the isolated serial server. Old-document response visibility is no longer
+  its sole oracle. Parallel full-suite funnel counts are supporting evidence only; the
+  isolated production run is the ingestion proof. No metric values or observers were changed.
+- Restored budget check exited 0 for all seven routes; product displayed 128.045 KB against
+  the accepted 128.045 KB cap. The checker compares unrounded gzip byte counts, not the
+  displayed rounded value (its display still prints cap 128.0 to one decimal). Every other
+  cap is byte-for-byte unchanged. Final full check and twenty Lighthouse audits follow.
+- Final test compatibility corrections preserve all production assertions: installed i18n
+  `runtime/context.js` forces development onto runtime import loaders, so dev correctly
+  makes no separate messages.json request; production still must request and verify it.
+  The first full check had 330 unit passes and 194 browser passes/one invalid dev-transport
+  assumption. A focused dev rerun then exposed only Vite's previously documented style-link
+  ordering noise; new comparisons use the same exact style-tag multiset/empty-log checks as
+  the unchanged cache suite, while production HTML and gzip bytes remain exact.
+- Final `E2E_LEGACY_PORT=18090 ROUTE_BUDGET_LEGACY_PORT=18090 npm run check` passed (exit 0):
+  **330 unit tests, 195 browser tests**, coverage floors, lint/types/tokens/inventory,
+  production build and all seven budgets including the explicit product exception.
+  Repeated isolated production checks passed all 17 tests (exit 0). The temporary raw-HTTP
+  verification then used a never-used product query cache key to prove **cold gzip miss ->
+  identity hit**, identical decompressed body and weak ETag: `/shop/wallbox-home-7-4` HTML
+  body 20,164 B identity / 4,227 B gzip. These are body bytes for that budget product, not
+  total transfer or the separate Lighthouse ladekabel product. Twenty unchanged hard
+  Lighthouse audits are now running with no competing build/test work.
+- All twenty audits completed. The original command exited 1 solely for filtered LCP
+  2556.332 > 2500 ms. Human then explicitly accepted 2.50–2.60 seconds and requested
+  completion; only filtered LCP is now 2600 ms. `lighthouserc.shop.cjs` uses four exact-URL
+  matrix entries sharing the unchanged non-LCP assertions and median-run aggregation.
+  `node node_modules/@lhci/cli/src/cli.js assert --config lighthouserc.shop.cjs
+  --include-passed-assertions` exited 0 on the same twenty real reports. Independent saved-
+  report assertion evaluation verified exactly twenty passing assertions and exactly one
+  matching matrix entry per collected URL. No recollection, run removal or fabricated metric.
+- Selected LCP listing/filtered/product/cart: 2482.335/2556.332/2483.028/2405.457 ms; all
+  twenty reports have accessibility 1 and CLS zero. Preserved 20 JSON + 20 HTML + manifest
+  and accepted assertion results in `.lighthouseci-shop-wp25d-final/` (42 files, unstaged).
+  HTML resource/transfer B respectively: listing 23606/4869, filtered 12905/4162, product
+  20206/4627, cart 6815/2682. DE locale stays 4065 resource / 4317 transfer B on all four.
+  Total-byte-weight and all five-run spreads are recorded in the measurement rows above.
+- Interpretation: aggregate listing/product gains exceed the observed spreads; filtered
+  gain does not, and its pass is explicitly a human policy exception, not an optimization
+  success. Cart's selected LCP is higher but within the current five-run spread. No causal
+  allocation to gzip versus telemetry is claimed. Individual listing/product outliers exceed
+  2500 ms; the existing median-run policy, not every single audit value, is the gate.
+- Human explicitly requested completion twice with the two narrow allowances. Mark WP-25d
+  Done with the source retained; no further acceptance is invented. WP-25 CI wiring and
+  WP-27 remain separate unfinished work. Temporary verification files are removed before
+  commit; owned runtime processes are stopped. Historical rollback details above describe
+  the intermediate state before the explicit exception, not the final retained state.
