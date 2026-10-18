@@ -1,11 +1,17 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-25 Blocked at the post-projection Lighthouse hard gate; further optimization scope needed
+Current step: WP-25a Review as a measured-and-reverted experiment; WP-25 remains Blocked at its hard LCP gate
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-21, WP-22, WP-23, WP-24, WP-26
-Next step: Decide a bounded follow-on optimization WP for the recorded LCP misses; do not wire WP-25 into CI until the hard gate passes. WP-27 remains pending
+Next step: Human review/acceptance of WP-25a and a new bounded optimization decision; no further attempt is authorized. WP-25 CI wiring and WP-27 remain pending
 
 ## Decisions
+- 2026-10-18: WP-25a final candidate passed correctness checks and reduced initial JS, but `lighthouse:shop` exited 1 after all 20 audits: all four median-run LCP selections failed (3167.556/3009.684/3082.353/2856.573 ms). Per explicit approval, configuration and experimental verifier were reverted; only valid locale E2E regressions remain. Primary review verified 20 reports/41 files in `.lighthouseci-shop-wp25a-final/`. Actual DE locale transfer grew from 4317 B to 56003 B and total route transfer grew 47662 B on every representative; smaller JS did not establish a faster page. No thresholds were relaxed and no further optimization was implemented.
+- 2026-10-18: Human explicitly approved one final WP-25a integration attempt after the two registration failures: use Nitro's supported final Rollup hook to replace only its generic JSON plugin with the already installed equivalent excluding exactly `de.json`/`en.json`. Same approved config/verifier/tests/docs; no dependency/threshold changes. Record build-plugin-name/API and transitive dependency coupling; revert if production checks or measurements fail. No further variant is authorized by this decision.
+- 2026-10-18: WP-25a registration corrections failed with actual exits 1: the exposed i18n `.rollup()` adapter rejects frameworks other than Vite/Webpack; the `.vite()` adapter precompiles JSON but Nitro's later generic JSON parser then rejects the generated `const resource...` JavaScript. Both were stopped, configuration/checker removed, and retained-source verification started before requesting the separate final-attempt decision.
+- 2026-10-18: WP-25a first candidate (three i18n options only) built but production `/login` returned 500 (`unhandled node type: 0`) and locale delivery remained raw strings. Installed `@nuxtjs/i18n/dist/module.d.mts` documents that disabling `optimizeMessageBundling` requires a custom Nitro Rollup locale transform; its implementation registers the precompiler for Nuxt app builds, not Nitro. Bound the correction to an exact-DE/EN registration of the installed precompiler in the already approved `nuxt.config.ts`; no new dependencies or runtime routes. Do not measure a broken candidate as a performance improvement.
+- 2026-10-18: WP-25 checkpoint `abad194` GitHub Actions run `39123220900` completed successfully (full check and portal Lighthouse). The shop Lighthouse hard gate is not wired into that workflow yet and its separately measured LCP failures remain unresolved.
+- 2026-10-18: Human approved bounded WP-25a: `nuxt.config.ts` i18n precompilation/client compiler removal, production regressions in existing auth/shop-product/shop-cart tests, a build-artifact verification script, and package/index/progress documentation. Preserve all thresholds, dependencies, SSR, locale switching, SEO and cart behavior; revert ineffective or broken changes. WP-25 checkpoint `abad194` is committed/pushed; no new optimization was made before this approval.
 - 2026-10-18: Human approved WP-25 extending to `app/components/shop/ShopProductCard.vue`, `shared/seo.ts`, `tests/unit/seo.test.ts`, `tests/e2e/shop-listing.spec.ts`, and `tests/e2e/shop-product.spec.ts`. Narrow only consumer input types, add payload-omission regressions, and preserve rendering, SEO, cart behavior, full API contracts, and unchanged budgets. Resume from `83c3f76`; the existing before measurement has identical runtime source.
 - 2026-10-18: WP-25 payload projection and regressions are implemented. Production payload tests (including external `data-src`, 404, and stable-ID routes) passed 5/5. Before → after bytes (HTML raw / locally computed gzip; inline bootstrap; external payload raw / locally computed gzip): listing 23,530/4,469; 405; 3,568/1,152 → 23,530/4,461; 405; 2,736/943. Product `/shop/ladekabel-typ-1-10-m`: 20,100/4,223; 431; 7,322/2,301 → 20,130/4,218; 461; 2,038/852. HTML and payload bodies were uncompressed (identity); gzip values are computed, not wire-compressed measurements.
 - 2026-10-18: Final `npm run check` exited 0: 289/289 unit tests, 190/190 E2E, production build, and all route budgets passed (listing/product/cart 125.136/127.640/121.080 KB gzip). `npm run lighthouse:shop` built fresh and completed 20 runs, then exited 1 on the unchanged hard LCP limit of 2500 ms. LHCI median-run representatives: `/shop/c/wallboxes` 2785.992 ms, `/shop/c/wallboxes?connector=ccs` 2559.544 ms, and `/shop/ladekabel-typ-1-10-m` 2939.4175 ms. Reports are retained in `.lighthouseci-shop/` and separately backed up in `.lighthouseci-shop-wp25-after/`. Stop per WP-25 step 4; do not loosen thresholds, improvise another optimization, or wire the failing gate into CI. CI step 5 remains unstarted pending a follow-on optimization WP decision.
@@ -812,9 +818,29 @@ Next step: Decide a bounded follow-on optimization WP for the recorded LCP misse
 | 2026-10-18 | 83c3f76 + WP-25 dirty | /shop/c/wallboxes | Owned production Node fetch/body-byte/gzip capture | 1 | n/a | n/a | n/a | n/a | n/a | n/a | WP-25 payload after; HTML 23530 B, bootstrap 405 B, external 2736 B; local gzip HTML/payload 4461/943 B; identity bodies; 5/5 production regressions passed |
 | 2026-10-18 | 83c3f76 + WP-25 dirty | /shop/ladekabel-typ-1-10-m | Owned production Node fetch/body-byte/gzip capture | 1 | n/a | n/a | n/a | n/a | n/a | n/a | WP-25 payload after; HTML 20130 B, bootstrap 461 B, external 2038 B; local gzip HTML/payload 4218/852 B; identity bodies; no LCP improvement claimed |
 
-Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) reports of the 2026-10-17 runs; TTFB is the `server-response-time` audit on the local warm server (no cold/warm split yet); all numbers lab (mobile emulation, simulated throttling).
+| Date | Commit | Route | Command | Runs | LCP | CLS | TBT | INP p75 (RUM) | Initial JS (gz) | TTFB cold/warm | Note |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-10-18 | abad194 + WP-25a candidate dirty (REVERTED) | /shop/c/wallboxes | `LIGHTHOUSE_LEGACY_PORT=18090 npm run lighthouse:shop` | 5, representative | 3167.556 ms | 0 | 18 ms | n/a | 120.487 KB | n/a | Exit 1; LCP fails; range 3162.621–3173.481 ms; perf 0.91; a11y 1.00; transfer 251331 B; candidate reverted |
+| 2026-10-18 | abad194 + WP-25a candidate dirty (REVERTED) | /shop/c/wallboxes?connector=ccs | `LIGHTHOUSE_LEGACY_PORT=18090 npm run lighthouse:shop` | 5, representative | 3009.684 ms | 0 | 50 ms | n/a | n/a | n/a | Exit 1; LCP fails; range 2900.600–3160.356 ms; perf 0.93; a11y 1.00; transfer 210193 B; candidate reverted |
+| 2026-10-18 | abad194 + WP-25a candidate dirty (REVERTED) | /shop/ladekabel-typ-1-10-m | `LIGHTHOUSE_LEGACY_PORT=18090 npm run lighthouse:shop` | 5, representative | 3082.353 ms | 0 | 21 ms | n/a | n/a | n/a | Exit 1; LCP fails; range 3081.639–3310.148 ms; perf 0.92; a11y 1.00; transfer 248717 B; candidate reverted |
+| 2026-10-18 | abad194 + WP-25a candidate dirty (REVERTED) | /shop/cart | `LIGHTHOUSE_LEGACY_PORT=18090 npm run lighthouse:shop` | 5, representative | 2856.573 ms | 0 | 37.905 ms | n/a | 116.432 KB | n/a | Exit 1; LCP fails; range 2705.532–2856.753 ms; perf 0.94; a11y 1.00; transfer 184772 B; candidate reverted |
+| 2026-10-18 | abad194 + WP-25a candidate dirty (REVERTED) | /shop/wallbox-home-7-4 | `npm run check` / route budget | 1 build | n/a | n/a | n/a | n/a | 122.991 KB | n/a | Candidate correctness/build/all caps passed; baseline product JS 127.640 KB; reverted after lab LCP regression, not retained gain |
+
+Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) reports of the 2026-10-17 runs; TTFB is the `server-response-time` audit on the local warm server (no cold/warm split yet); all numbers lab (mobile emulation, simulated throttling). Later rows explicitly marked representative use LHCI's selected median run, not independent per-metric medians.
 
 ## Open questions
+- WP-25a: candidate was measured and reverted after all four hard LCP selections failed.
+  Retained auth/product locale regressions pass the final full check (289 unit, 190 browser,
+  build and seven caps) and final reverted-production confirmation (2/2, exit 0).
+  Human review/acceptance and a separate optimization decision are pending; no new attempt
+  is authorized by the completed final-attempt approval.
+- Potential follow-up (not approved or implemented): the installed `@intlify/bundle-utils`
+  exports `generateJSON` with production JIT options, which omit development location metadata.
+  A real exact-file Rollup transform could replace the Vite-only lifecycle/adapter and its
+  type assertion. This remains version-coupled (`CodeGenOptions` is annotated internal),
+  requires compact-AST/translation/runtime/unchanged-gate proof, and is not a promised LCP fix.
+  Any raw-to-AST format change must also avoid reusing old browser-cached raw locale responses;
+  `serverRoutePrefix` is a documented i18n configuration point for versioned message URLs.
 - WP-22: Done; human accepted `60fd260` on 2026-10-18 and its GitHub Actions run passed.
 - WP-24: Done; human accepted `85f7c73` on 2026-10-18. Test-first request coalescing and router/busy
   candidates were measured then reverted because synthetic RUM did not establish a filter-INP
@@ -823,8 +849,9 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
   and is outside this package's source scope; the actual-observer scratch probe is narrowly
   described in the handoff below. The optional tooling correction remains unapproved.
   WP-25 is Blocked on the hard LCP gate after the scope approval below; WP-27 remains pending its prerequisites.
-- WP-25 constraint: the latest combined lab run still has three LCP values above 2500 ms.
-  Current warn-only assertions were not loosened or promoted during WP-22.
+- WP-25 constraint: the retained post-projection baseline has three LCP selections above
+  2500 ms. Assertions are now hard errors, unchanged by WP-25a; its four-route LCP failure
+  was reverted. Shop CI wiring remains unstarted until the hard gate passes.
 - WP-25's former scope blocker was resolved by explicit human approval for `app/components/shop/ShopProductCard.vue`,
   `shared/seo.ts`, `tests/unit/seo.test.ts`, `tests/e2e/shop-listing.spec.ts`, and
   `tests/e2e/shop-product.spec.ts`. Listing cards consume full `ShopProduct` contract objects
@@ -1004,3 +1031,86 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
   if the copied manifest's original absolute paths are later replaced. Owned ports are free.
   Stop per step 4: no further optimization was implemented, no thresholds were loosened,
   and `.github/workflows/ci.yml` is unchanged. WP-25 is not Review/Done; WP-27 is pending.
+
+## WP-25a — Precompiled translation experiment (Review; measured and reverted; 2026-10-18)
+- Base `abad194`, branch `codex/storefront-complete`. Actual human approved the experiment
+  and later one final Nitro-integration attempt; decisions above record both boundaries.
+- Tests first: a fresh baseline build exited 0; the initial artifact checker exited 1 on
+  actual raw DE/EN `shop.cartCount` messages and eight scanner/tokenizer properties in
+  minified client chunk `DQFPaqzK.js`. These are installed message-compiler object properties,
+  not guessed function names. The final checker additionally follows exact locale loader
+  keys (including `$` identifiers), requires distinct resources, validates every catalogue
+  string leaf's AST and source when present, verifies named interpolation, and rejects an
+  empty client chunk directory. Catalogues contain no plural-choice messages.
+- Options alone built but `/login` returned 500 (`unhandled node type: 0`); message endpoints
+  still delivered raw strings. The exposed `.rollup()` precompiler adapter rejects non-Vite/
+  Webpack frameworks; the `.vite()` adapter initially conflicted with Nitro's generic JSON
+  parser. These attempts were stopped and reverted before the final human-approved method.
+- The final method uses Nitro's typed `rollup:before` hook, requires one top-level JSON
+  plugin, and substitutes an exact-DE/EN precompiler plus generic JSON exclusion. Installed
+  Vite/Rolldown and Rollup declaration differences require a narrow adapter-boundary assertion;
+  no `any`, ignored type error, dependency change, or installed-module edit is used. This
+  deliberately couples to the installed transitive build APIs/plugin name and fails closed
+  on a missing/ambiguous integration point. Emitted ASTs retain source-location metadata;
+  no production-minification or performance benefit is inferred from their existence.
+- Guarded candidate build exited 0. The final strict artifact checker and targeted typecheck
+  both exited 0: exact unique locale keys, distinct `$`-safe resources, every message AST with
+  matching `loc.source`, named interpolation, and 33 nonempty client chunks without the
+  observed compiler markers. Production server
+  must use `NUXT_LEGACY_ORIGIN=http://localhost:18090`, not build-time `LEGACY_ORIGIN`:
+  an initially misconfigured broad production run yielded 39 passes/27 failures from 502s;
+  after correction login/listing returned 200, SSR/locale roundtrip passed 1/1, and focused
+  product/cart checks passed 45/45 (including 404, no-refetch and count interpolation).
+- Verification also caught an over-strict HTML-language whitespace assertion; it now permits
+  serialization whitespace while requiring the exact language. English axe coverage is
+  retained before switching back to German, where axe is checked again.
+- An intermediate full check passed lint/types and 289 unit tests but failed three existing
+  cache HTML-identity cases (187/190 browser tests). Their only mismatch was serialized old
+  `optimizeMessageBundling:true` versus current `false`, not locale/business content. With
+  owned servers stopped and paths verified, only `.nuxt/cache/nitro` was moved to recoverable
+  sibling `.nuxt/cache/nitro-wp25a-preserved-20261018`; all eight unchanged cache tests then
+  passed (exit 0). No cache test, route rule or runtime cache implementation was modified.
+- Current-source cold-cache `E2E_LEGACY_PORT=18090 ROUTE_BUDGET_LEGACY_PORT=18090 npm run
+  check` exited 0: 289 unit tests, 190 browser tests, fresh build and all seven unchanged route
+  budgets. Candidate listing/product/cart initial JS is 120.487/122.991/116.432 KB gzip
+  versus WP-25's 125.136/127.640/121.080 KB. No LCP improvement is inferred from the JS change.
+- Final fresh production checks repeated the strict artifact check (exit 0), login SSR DE/EN
+  and focused browser checks (1/1 auth, 45/45 product/cart). Both actual locale-message HTTP
+  endpoints returned 200 and AST type 0 with matching source and `{name}`/`{n}` nodes.
+  Identity response bodies are DE 55,750 B and EN 54,849 B (no Content-Encoding): compiled
+  source-location metadata creates a transfer trade-off that must be measured, not ignored.
+- All 20 hard Lighthouse audits completed; command exited 1 on LCP only. The primary agent
+  independently verified all four selected reports and five-run spreads in the 41-file backup
+  `.lighthouseci-shop-wp25a-final/` (resolve report basenames if its copied absolute manifest
+  paths no longer exist). All 20 have accessibility 1.00 and CLS 0; max TBT 73 ms, minimum
+  performance 0.90. Every candidate LCP range lies above the corresponding observed WP-25
+  range. These are lab observations, not synthetic RUM or a statistical causal estimate.
+- Network reports show DE locale response resource/transfer 4065/4317 B before versus
+  55750/56003 B in the candidate. Total representative transfer rose exactly 47662 B on each
+  route despite smaller initial JS. The unsupported Vite lifecycle leaves production ASTs
+  with development source-location metadata; no further variant was attempted after failure.
+- Per approval the config and experimental verifier were reverted; valid auth/product
+  language regressions remain. The candidate dev cache and uploaded duplicate are preserved
+  separately in recoverable local backups, not deleted. Final retained-source full check
+  exited 0 from a fresh cache generation: lint/types/tokens/inventory, 289 unit tests, 190
+  browser tests, build and all seven unchanged caps. Listing/product/cart returned to
+  125.136/127.640/121.080 KB gzip. Primary Git review confirms no diff in `nuxt.config.ts`,
+  dependencies/lockfile, hard gates, cache implementation or CI. Final production checks
+  against the reverted build passed 2/2, exit 0: SSR DE/EN roundtrip and product EN→DE
+  formatting/no-refetch. Both owned app/legacy processes were stopped and assigned ports
+  are clear; no WP-25 CI wiring or WP-27 work started. Human acceptance is pending.
+- Exact retained-production command: with `E2E_APP_PORT=3000`, `E2E_LEGACY_PORT=18090` and
+  `NUXT_LEGACY_ORIGIN=http://localhost:18090`, run `npx playwright test
+  --config=.wp25a-locale-production.config.ts tests/e2e/auth.spec.ts
+  tests/e2e/shop-product.spec.ts --project=auth --project=shop
+  --grep 'SSR serves both locales|related product labels and formatting follow the selected English locale'`.
+  The temporary config pointed at the already-running production server, set `de-DE`, selected
+  auth/shop projects and `webServer: []`; it was removed afterward. Earlier candidate focused
+  1/1 and 45/45 results were observed, but their exact CLI/config/filter text was not retained.
+- After the hard assertion prevented autorun upload, `node node_modules/@lhci/cli/src/cli.js
+  upload --config lighthouserc.shop.cjs` exited 0 using the configured local filesystem target;
+  no remote upload occurred. Primary review independently parsed all 20 backed-up reports.
+- Final diff retains only auth/product locale tests, this progress evidence and approved
+  package/index documentation. Candidate JS reductions and AST compiler removal are not
+  retained benefits; the three original WP-25 LCP misses remain. Review is for the reverted
+  experiment and regressions, not acceptance of a passing performance optimization.

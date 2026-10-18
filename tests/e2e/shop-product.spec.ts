@@ -216,6 +216,15 @@ test.describe('public shop product page', () => {
     await expect(relatedItem.getByText(relatedProduct.inStock ? 'In stock' : 'Out of stock', { exact: true })).toBeVisible()
     await page.waitForLoadState('networkidle', { timeout: 5_000 })
     expect(clientDataRequests).toEqual([])
+
+    await page.getByLabel('Language').selectOption('de')
+    await expect(page.locator('html')).toHaveAttribute('lang', 'de')
+    await expect(related.getByRole('heading', { level: 2, name: 'Produkte' })).toBeVisible()
+    const germanPrice = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' })
+      .format(relatedProduct.priceCents / 100)
+    await expect(relatedItem.getByText(germanPrice, { exact: true })).toBeVisible()
+    await expect(relatedItem.getByText(relatedProduct.inStock ? 'Auf Lager' : 'Nicht auf Lager', { exact: true })).toBeVisible()
+    expect(clientDataRequests).toEqual([])
   })
 
   test('returns a 404 response with a not-found heading for an unknown slug', async ({ page }) => {

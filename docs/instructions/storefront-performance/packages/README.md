@@ -1,6 +1,7 @@
 # Storefront performance: work packages
 
-The plan in `../instructions.md` split into 28 packages. Each one is sized for a local model
+The plan in `../instructions.md` split into 28 original packages; approved follow-up experiments
+are indexed alongside them below. Each package is sized for a local model
 with a **64K-token context**: it names the few files to read (with line limits), restates the
 repo facts it needs (`context.md`), and ends with commands that prove it is done.
 
@@ -61,6 +62,7 @@ Unmet dependencies stay pending. Load only the selected package and prerequisite
 | 23 | [Opt: lazy hydration](WP-23-opt-lazy-hydration.md) | 20 | model | optimize, measure |
 | 24 | [Opt: filter INP](WP-24-opt-filter-inp.md) | 19, 23 | model | optimize, measure |
 | 25 | [Opt: payload + error gates + CI](WP-25-opt-payload-and-gates.md) | 20–24 | model | optimize, CI |
+| 25a | [Experiment: precompiled translations](WP-25a-opt-i18n-bundle.md) | 20–24, retained 25 checkpoint | model, human review | optimize, measure |
 | 26 | [SEO basics](WP-26-seo.md) | 11 | model | code + unit + E2E |
 | 27 | [ADR 0008 and README](WP-27-docs.md) | all | model, human review | docs |
 
