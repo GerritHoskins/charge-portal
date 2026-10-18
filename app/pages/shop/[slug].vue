@@ -4,9 +4,9 @@ import { breadcrumbJsonLd, productJsonLd, serializeJsonLd } from '#shared/seo'
 
 definePageMeta({ layout: 'shop' })
 
-type ProductPageData = Pick<ShopProduct, 'slug' | 'name' | 'priceCents' | 'image' | 'inStock'> & {
-  customFields: { powerKw?: number; connectorType?: string }
-}
+type ProductPageData = Pick<ShopProduct,
+  'slug' | 'name' | 'priceCents' | 'image' | 'inStock' | 'description' | 'maxPowerKw' | 'connectorType'
+>
 type RelatedCardProduct = Pick<ShopProduct, 'id' | 'slug' | 'name' | 'priceCents' | 'image' | 'inStock'>
 type RelatedProductsData = { items: RelatedCardProduct[] }
 
@@ -33,12 +33,9 @@ const { data: product, error: productError } = await useFetch(
       priceCents: data.priceCents,
       image: data.image,
       inStock: data.inStock,
-      customFields: {
-        ...(typeof data.customFields.powerKw === 'number' ? { powerKw: data.customFields.powerKw } : {}),
-        ...(typeof data.customFields.connectorType === 'string'
-          ? { connectorType: data.customFields.connectorType }
-          : {}),
-      },
+      description: data.description,
+      maxPowerKw: data.maxPowerKw,
+      connectorType: data.connectorType,
     }),
   },
 )
@@ -54,9 +51,9 @@ onMounted(() => {
 })
 
 // The narrow ShopProduct contract has no category field. For this synthetic two-category
-// catalogue, powerKw identifies wallboxes; everything else belongs to accessories.
+// catalogue, a power rating identifies wallboxes; products without one are accessories.
 const category = computed(() => (
-  typeof product.value?.customFields.powerKw === 'number' ? 'wallboxes' : 'accessories'
+  product.value?.maxPowerKw !== null && product.value?.maxPowerKw !== undefined ? 'wallboxes' : 'accessories'
 ))
 const categoryName = computed(() => t(`shop.categories.${category.value}`))
 
@@ -85,20 +82,15 @@ const { data: categoryListing } = await useFetch(
 const relatedProducts = computed(() => categoryListing.value.items)
 
 const maxPower = computed(() => {
-  const value = product.value?.customFields.powerKw
-  return typeof value === 'number' ? `${value} kW` : '—'
+  const value = product.value?.maxPowerKw
+  return value !== null && value !== undefined ? `${value} kW` : '—'
 })
 const connectorType = computed(() => {
-  const value = product.value?.customFields.connectorType
-  return typeof value === 'string' ? value : '—'
+  const value = product.value?.connectorType
+  return value ? t(`shop.filter.connectorType.${value}`) : '—'
 })
 
 const canonicalUrl = computed(() => new URL(route.path, requestUrl.origin).toString())
-const productDescription = computed(() => (
-  product.value
-    ? `${product.value.name}. ${t('shop.listing.caption')}`.slice(0, 155)
-    : t('shop.product.notFound')
-))
 const productImage = computed(() => (
   product.value ? new URL(product.value.image.url, requestUrl.origin).toString() : undefined
 ))
@@ -107,7 +99,7 @@ const productHeroSrcset = computed(() => product.value ? shopImageSrcset(product
 
 useSeoMeta({
   title: () => product.value?.name ?? t('shop.product.notFound'),
-  description: () => productDescription.value,
+  description: () => product.value ? product.value.description.slice(0, 155) : t('shop.product.notFound'),
   ogTitle: () => product.value?.name ?? t('shop.product.notFound'),
   ogImage: () => productImage.value,
   ogType: 'website',
@@ -178,13 +170,13 @@ const onAddToCart = async () => {
       :srcset="productHeroSrcset"
       sizes="100vw"
       :alt="product.image.alt"
-      width="1600"
-      height="1600"
+      :width="product.image.width"
+      :height="product.image.height"
       loading="eager"
       fetchpriority="high"
     >
 
-    <p>{{ t('shop.listing.caption') }}</p>
+    <p id="product-description">{{ product.description }}</p>
     <p>{{ fmt.money(product.priceCents) }}</p>
     <p id="product-stock">{{ t(product.inStock ? 'shop.product.inStock' : 'shop.product.outOfStock') }}</p>
 

@@ -1,6 +1,8 @@
 import type { ShopProduct } from './contracts/catalog'
 
-export type ProductJsonLdInput = Pick<ShopProduct, 'name' | 'priceCents' | 'image' | 'inStock'>
+export type ProductJsonLdInput = Pick<ShopProduct, 'name' | 'description' | 'priceCents' | 'inStock'> & {
+  image: Pick<ShopProduct['image'], 'url'>
+}
 
 export type BreadcrumbItem = {
   name: string
@@ -11,6 +13,7 @@ export const productJsonLd = (product: ProductJsonLdInput, url: string) => ({
   '@context': 'https://schema.org',
   '@type': 'Product',
   name: product.name,
+  description: product.description,
   image: new URL(product.image.url, url).toString(),
   url,
   offers: {

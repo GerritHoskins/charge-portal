@@ -1,11 +1,22 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-25 Done by explicit human-directed time-boxed acceptance; final correction passes local full/production checks, new Linux CI not yet confirmed
-Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-21, WP-22, WP-23, WP-24, WP-25, WP-25a, WP-25b, WP-25c, WP-25d, WP-26
-Next step: No further WP-25 implementation in this time box; report actual pushed CI state without presuming success. WP-27 is optional/deferred by the human's revised scope, not implemented or marked Done
+Current step: WP-02 reopened; Blocked on verification (implementation complete; default full check and shop LCP gates do not pass)
+Completed steps: WP-00, WP-01, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-21, WP-22, WP-23, WP-24, WP-25, WP-25a, WP-25b, WP-25c, WP-25d, WP-26
+Next step: Hand off the committed/pushed bounded repair with explicit verification limitations. Do not mark WP-02 Review/Done or change tests/config/thresholds to clear the failures; further scope needs a human decision. WP-25 stays Done; WP-27 remains optional/deferred, not implemented or marked Done.
 
 ## Decisions
+- 2026-10-18: Human declined the proposed `playwright.config.ts` worker override and explicitly
+  chose "Keep scope unchanged; report the check limitation". Do not modify that config,
+  telemetry tests/transport, assertions, thresholds or dependencies. Preserve the actual
+  default `npm run check` failure in the handoff; serial production checks and hard audits
+  remain approved but do not substitute for a passing literal full check. Commit/push of
+  the bounded repair remains authorized; do not mark WP-02 Review/Done with this unmet gate.
+- WP-02 RED evidence (2026-10-18): `npx vitest run tests/unit/catalog-contract.test.ts` exited 1 with 29 failed/30 passed tests, exposing absent translated/media/typed fields, permissive invalid custom fields and untyped/missing listing metadata. Producer tests exited 1 with 10 failed/15 passed on the same missing data and canonical filter parity; corrected two test expectations against the unchanged catalogue (mixed includes AC-1024; default name ordering is not product-number ordering). The full 48-product identity/price/stock/image/category SHA-256 baseline was captured before implementation as `fb470bc38516dd05b629633b267d0ebe5b5121014027885f1a3ec6626cc8faf1` and frozen in a permanent test. No product identity is authorized to change.
+- 2026-10-18: Human explicitly approved the bounded WP-02 extension below and requested preservation of existing products, URLs, filters and budgets, followed by testing, commit and push. The listed pending file/representation proposal is now authorized; no wider files, dependency/lock changes, thresholds or WP-25 work are included. Parent owns integration, Git and all serialized runtime/build/test validation. Two GPT-6 Luna high agents own disjoint producer and consumer slices, tests first; neither may run shared-cache commands or commit.
+- Pending WP-02 scope decision (not authorization): retain the original editable files `shared/contracts/catalog.ts` and `tests/unit/catalog-contract.test.ts`, and extend only to `legacy/catalog.mjs`, `tests/unit/legacy-catalog.test.ts`, `server/api/shop/listing/[category].get.ts`, `app/pages/shop/c/[category].vue`, `app/pages/shop/[slug].vue`, `app/components/shop/ShopProductCard.vue`, `app/components/shop/ShopProductCard.stories.ts`, `shared/seo.ts`, `tests/unit/seo.test.ts`, `tests/e2e/shop-listing.spec.ts`, `tests/e2e/shop-product.spec.ts`, `tests/e2e/shop-public.spec.ts`, `i18n/locales/de.json`, `i18n/locales/en.json`, `docs/instructions/storefront-performance/packages/WP-02-catalog-contract.md`, and this authoritative log. Proposed canonical connector vocabulary is `type1 | type2 | ccs | card | cee | schuko | mixed`, with null for non-applicable power/connector fields; preserve precise visible labels and the existing three public filter options. Add the literal sorting and simplified min/max/count metadata, not an expanded filter UI. Narrow SEO input types as needed rather than leaking unused metadata into page payloads. Any newly discovered file still needs a separate scope decision. Required verification: semantic failing-first contract/producer/browser regressions, full `npm run check`, production correctness and unchanged performance gates; no dependency or threshold changes.
+- 2026-10-18: Human chose "Reopen contract requirements" after the read-only closeout audit found omitted WP-02 fields. Preserve historical acceptance of the reduced baseline, but no longer claim the literal WP-02 specification is complete. GPT-6 Luna high read-only consultation confirmed producer/consumer changes are required beyond the original contract and unit-test file; no implementation changes have been made. Proposed extension preserves all product identities, URLs, prices and existing filter options; accurately models Type 1/CEE/Schuko/mixed connectors instead of relabelling them Type 2, and uses null for non-applicable power/connector values. Add translated plain descriptions, actual media dimensions/alt text and the originally required sorting/min-max/count metadata, with explicit narrow page projections and regression tests. Exact additional file scope and representation await the human's decision; no dependencies, thresholds or WP-25 optimizations are included.
+- 2026-10-18: Reverified pushed `b48bd32` on `codex/storefront-complete`: GitHub Actions run `39145731377`, job `117729052832`, completed successfully at 16:46:20 UTC. Full check, portal Lighthouse, shop Lighthouse and artifact uploads all succeeded. This resolves the WP-25 remote-CI caveat without further product/test changes. WP-27 remains optional/deferred under the revised human scope; no implementation is claimed.
 - 2026-10-18: Human instructed "spend 5 more minutes on wp-25 and then mark as complete. Start WP27 if possible, if not, omit it as optional". WP-25 closeout is time-boxed from 16:32:15 to 16:37:15 UTC; preserve actual verification results and any unresolved CI caveat instead of claiming unrun checks passed. Record the human-directed completion by the cutoff; start WP-27 only if its prerequisites are clear, otherwise mark it optional/deferred as explicitly permitted. No new optimization or gate relaxation is authorized. Final local full and 19 production checks passed within the window; complete WP-25 by this explicit acceptance, with new Linux CI unresolved. Defer optional WP-27 because its previously required green-CI prerequisite is not yet established. The package index may reflect this explicitly requested optional classification only; no ADR/README implementation is claimed.
 - 2026-10-18: Human accepted diagnostic `bf1b434` and separately approved one bounded source-prefix correction in the existing compression E2E and this log only. Canonicalize only the prefix of the exact unused Nuxt framework error-style identity; preserve full dependency suffix/query/scope/attributes and reject different canonical tags or active scope markers. All other shop HTML/styles and production byte/304 checks, product code, dependencies, budgets and thresholds stay unchanged. Run failing-first fixtures, full check, production regressions and CI; stop if this attempt fails. This is a new explicit scope decision, not an inferred reset of prior retry limits.
 - 2026-10-18: Human approved a bounded diagnostic-only follow-up after run `39143904373` failed again. Editable files are only the existing compression E2E and this log. Add sanitized details of distinct framework development stylesheet tags to the existing failure output, run local checks, commit/push and inspect one new CI run. No product/comparator acceptance/budget/threshold changes; any further fix needs a separate bounded decision. Existing correction retry limit is exhausted and is not reset by this diagnostic approval.
@@ -1767,3 +1778,131 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
 - WP-27: optional/deferred, not started. Its required prior green-CI condition was not clear
   within the closeout window. ADR 0008/README wrap-up/ADR 0007 final-budget update are omitted
   optional documentation, not completed work. No all-original-packages-done claim is made.
+
+## WP-02 — Reopened catalogue contract repair (Blocked on verification; 2026-10-18)
+- Human approved the exact producer/consumer extension recorded in Decisions, with explicit
+  test/commit/push authority. Integration `codex/storefront-complete`, starting HEAD `b48bd32`;
+  primary checkout's unrelated package/.claude changes and local audit archives are untouched.
+- Reverified the official Shopware Store API OpenAPI 6.7.9999999-dev reference on 2026-10-18:
+  https://raw.githubusercontent.com/shopware/store-api-reference/main/storeapi.json.
+  Both product listing and product detail expose POST/GET; translated text and Media
+  alt/metaData fields are present. Synthetic custom fields and simplified aggregation
+  conventions are explicitly distinguished from official defaults in the schema header.
+- Tests first: contract RED 29 failed/30 passed; producer RED 10 failed/15 passed. Browser
+  RED 2/2 on missing flat connector data and missing sorting despite successful API responses.
+  Fixed test-only mistaken assumptions about existing accessory name ordering/mixed membership
+  against the baseline, not by changing products. Frozen all-48 identity digest remains exact.
+- Implemented required translated plain text, media alt/dimensions, typed nullable power and
+  seven accurate connector codes, strict sorting and simplified filtered min/max/count metadata.
+  Pure BFF mappings convert euros to cents and preserve legacy customFields power/label callers.
+  Legacy filter labels and the public three-option filter remain compatible; no routes change.
+- Two GPT-6 Luna high implementation agents worked in disjoint producer/consumer files; parent
+  alone ran validation. An independent GPT-6 Luna high reviewer found no concrete contract or
+  producer defect; optional duplicate-bucket hardening was not added as unrelated hardening.
+- Product details render actual descriptions/specifications and dimensions, SEO uses the plain
+  description, and card/related payloads retain only rendered fields. No raw customFields or
+  translations are serialized into pages; no full listing envelope is added to related data.
+- Initial coverage run passed 378 tests in 25 files: 96.22% lines, 95.86% statements,
+  90.94% branches, 98.88% functions. Initial lint/typecheck passed. Full integrated check is
+  running; production correctness and unchanged performance gates remain to be verified.
+- WP-25 stays Done with verified successful Linux CI; WP-27 stays optional/deferred.
+- First full integrated check: lint/types/tokens/inventory and 378 unit tests passed;
+  browser suite exited 1 (188 passed, 10 failed), so build/budgets were not reached.
+  Fresh API metadata and rendered product/connector tests passed, but saved external route
+  payloads still contained old customFields and images without dimensions, causing hydration
+  and navigation cascades. Read-only scan found eight such old payload cache entries among
+  485 generated cache files, with no new description key and prior-build timestamps.
+- After all test servers exited and ports were free, verified `.nuxt`, cache and nitro were
+  ordinary directories, resolved source/destination inside this integration workspace, and
+  recoverably renamed only `.nuxt/cache/nitro` to
+  `.nuxt/cache/nitro-wp02-precheck-preserved-20261018T1705`. No source/test/config/assertion
+  changed and nothing was deleted. A fresh-cache full check is running.
+- Final independent GPT-6 Luna high consumer review found no concrete regression or scope
+  issue in the frozen approved diff: actual dimensions, unchanged native IPX srcset/loading
+  priorities, precise DE/EN connector labels, three existing filters, plain description SEO,
+  narrow payload projections and native related links/no client refetches are preserved.
+  No extra category-page or listing-BFF edit was necessary: their existing projections and
+  legacy-label query forwarding already work with the repaired parsed contract/producer.
+- Fresh-cache full check: 378 unit tests passed; 196/198 browser tests passed, including all
+  prior payload/hydration failures. Two remaining failures: the new connector-options assertion
+  assumed type2 before CCS, but `git show b48bd32:app/pages/shop/c/[category].vue` proves the
+  unchanged existing order is empty/CCS/type2/card; corrected only that new assertion.
+  Existing unedited telemetry lifecycle test measured 257.3 ms against its strict <250 ms
+  scheduling window under eight workers. No transport/assertion/threshold change is made;
+  run the two focused tests serially and consult the independent reviewer before full retry.
+- Independent reviewer confirmed the unchanged lifecycle test schedules a zero-delay real
+  navigation at load and can miss its strict 250 ms window under worker contention; this is
+  consistent with the observed 257.3 ms result, not proof of a product defect. The test and
+  transport are byte-unchanged versus `b48bd32`. Focused workers=1 run passed both CCS filter
+  and lifecycle cases (2/2, exit 0). Preserve strict assertions and repeat the default full
+  check after measuring bundle sizes; stop for diagnosis if the serial failure recurs.
+- Initial production build succeeded; six route budgets passed but product measured
+  128.049 KB against the unchanged 128.045 KB cap (4 bytes over). No threshold change.
+  Simplified two equivalent number/null checks in the approved product page to `typeof`
+  number checks, preserving zero/null/undefined behavior on the parsed nullable numeric
+  contract. Existing powered/accessory/not-found tests cover these branches. Rebuilding
+  and remeasuring before the final full check; no additional file or feature is introduced.
+- The equivalent typeof attempt measured 128.053 KB and did not meet the unchanged cap.
+  Consulted GPT-6 Luna high before another correction; reviewer recommended inlining the
+  SEO description getter (already the page's useSeoMeta pattern) instead of an unnecessary
+  computed plus forwarding closure. Reverted the ineffective typeof edit and applied only
+  that bounded refactor, preserving product/locale reactivity, fallback and 155-character
+  truncation. Measure this focused correction; do not alter caps or continue compression chasing.
+- Focused reviewed refactor passed the build and all seven unchanged route budgets (exit 0):
+  stations/sessions 117.654/119.5 KB, invoices/dispute 120.423/122.4 KB,
+  listing 125.559/126 KB, product 128.045/128.045 KB, cart 121.546/123 KB.
+  Product remains at its strict allowance; no extra headroom is claimed. After ports were
+  free, recoverably preserved the current generated Nitro cache as
+  `.nuxt/cache/nitro-wp02-prefinal-preserved` using the same resolved-path/link checks.
+  Code is frozen for the final default full check, production regressions and hard audits.
+- Final default full check on the frozen candidate: lint/types/tokens/inventory and all
+  378 unit tests passed; browser suite 197/198 passed, exit 1, so its build/budget stage did
+  not run. Only the unchanged telemetry pagehide test failed its <250 ms scheduling window
+  at 267.8 ms under eight workers. The same strict test passed workers=1 earlier. Independent
+  review verified Playwright uses os.cpus().length for the default 50% workers and has no
+  existing worker env override; CPU-affinity workarounds are not evidenced and were not used.
+  Requested a bounded optional config override; human declined and requested reporting the
+  check limitation. No further default-check retries or test/config changes are planned.
+- Started explicitly owned legacy PID 30180 and production PID 27164 on 18090/3000 after
+  checking all verification ports free; verified HTTP 200, actual description and no Vite
+  client before the unchanged serial production shop/auth suite. This is production evidence,
+  not a claim that the failed default full check passed. Stop only those verified processes
+  after production checks, then run the unchanged hard audit suites on the same source.
+- Production `E2E_LEGACY_PORT=18090 npx playwright test --project=shop --project=auth --workers=1`
+  passed 105/105 (exit 0), covering actual contract metadata/rendered copy, narrow external
+  payloads, all connector displays, native related links/no refetch, cart/locale/a11y,
+  cache safety, byte-exact gzip/first conditional 304 and real telemetry/funnel lifecycle.
+  Verified exact command lines of the two owned PIDs before stopping them; ports cleared.
+  Preserved existing default audit directories by validated in-workspace renames to
+  `.lighthouseci-wp02-before` and `.lighthouseci-shop-wp02-before`; nothing deleted.
+  Started `LIGHTHOUSE_LEGACY_PORT=18090 node scripts/lighthouse.mjs --config lighthouserc.shop.cjs --public`
+  against the already verified production build. All twenty unchanged shop audits are required.
+- Early shop measurements already show all five unfiltered listing LCP samples above its
+  unchanged 2500 ms gate (2848/2671/2562/2652/2578 ms rounded); all five have accessibility
+  100 and CLS zero. These are current measurements, not proof of a WP-02 causal regression
+  versus historical runs. Finish/preserve all twenty captures and report failed gates;
+  do not reopen WP-25 optimization, relax thresholds, or claim performance acceptance.
+- Completed shop hard audit command exited 1 after all twenty captures. Independent report
+  parsing confirms exactly three selected LCP failures: unfiltered listing 2577.728/2500 ms,
+  CCS listing 2657.228/2600 ms, product 2629.8/2500 ms; cart and all other assertions passed.
+  Across all twenty: accessibility 100, CLS zero, minimum performance 0.91, maximum TBT
+  175.604 ms. Budgets/threshold files remain byte-unchanged; no passing-gate claim or causal
+  comparison against the historical baseline is made.
+- Preserved all twenty raw shop reports/assertion results in `.lighthouseci-wp02-shop-final`
+  and the 41-file upload in `.lighthouseci-shop-wp02-final` via validated recoverable renames.
+  Shop audit servers stopped and ports cleared. Portal's unchanged twelve-audit command
+  `LIGHTHOUSE_LEGACY_PORT=18090 node scripts/lighthouse.mjs` is running on the same build.
+- Portal command completed successfully (exit 0), all twelve unchanged audits and assertions
+  passed. Reparsed exactly twelve raw reports; no assertion failures, accessibility 100 and
+  CLS zero throughout. Preserved the raw/upload directory as `.lighthouseci-wp02-portal-final`
+  after validated path/link checks. Both audit runners stopped their owned servers; all four
+  verification ports are free. No dependencies, test-runner/telemetry/configuration, route
+  rules, budget or threshold files changed, and the primary checkout's unrelated changes remain.
+- Final outcome: bounded contract/producer/view repair implemented and independently reviewed;
+  378 unit tests, 105 serial production tests, build/all seven JS budgets and twelve portal
+  audits pass. Default full check remains exit 1 (197/198 browser tests; unedited telemetry
+  timing), and the twenty shop audits remain exit 1 (three selected LCP failures above).
+  Per the human's decision, report these limitations without a worker override or threshold
+  waiver. WP-02 is Blocked on verification, not Review/Done. Commit/push only the sixteen
+  approved changed source/test/documentation files as an explicit draft checkpoint; local
+  preserved caches/audit archives are not product source and must not be staged.

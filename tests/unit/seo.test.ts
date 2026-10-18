@@ -8,6 +8,7 @@ import {
 
 const product = {
   name: 'Wallbox Test 11',
+  description: 'Wallbox Test 11. WP-11; 11 kW; Type 2.',
   priceCents: 1999,
   image: { url: '/shop/wallbox-test-11-1600.jpg', alt: 'Wallbox Test 11' },
   inStock: true,
@@ -19,6 +20,7 @@ describe('product JSON-LD', () => {
       '@context': 'https://schema.org',
       '@type': 'Product',
       name: 'Wallbox Test 11',
+      description: 'Wallbox Test 11. WP-11; 11 kW; Type 2.',
       image: 'https://shop.example/shop/wallbox-test-11-1600.jpg',
       url: 'https://shop.example/shop/wallbox-test-11',
       offers: {

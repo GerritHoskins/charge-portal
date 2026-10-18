@@ -98,9 +98,13 @@
       "connector": "Connector type",
       "connectorAll": "All connector types",
       "connectorType": {
+        "type1": "Type 1",
         "type2": "Type 2",
         "ccs": "CCS",
-        "card": "Charging card"
+        "card": "Charging card",
+        "cee": "CEE",
+        "schuko": "Schuko",
+        "mixed": "Type 1/Type 2"
       }
     },
     "sort": {

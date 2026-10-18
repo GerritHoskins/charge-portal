@@ -72,24 +72,26 @@ test.describe('public shop product page', () => {
 
   test('serializes a narrow detail and eight rendered related products', async ({ request }) => {
     const listing = await loadCategory(request)
-    const product = requireProduct(listing, ({ customFields }) => (
-      typeof customFields.powerKw === 'number' && typeof customFields.connectorType === 'string'
+    const product = requireProduct(listing, ({ maxPowerKw, connectorType }) => (
+      maxPowerKw !== null && connectorType !== null
     ))
     const payload = await loadNuxtPayload(request, `/shop/${product.slug}`)
     const records = collectPayloadRecords(payload)
     const products = records.filter((record) => (
       typeof record.slug === 'string' && typeof record.priceCents === 'number'
     ))
-    const detail = products.find((record) => 'customFields' in record)
+    const detail = products.find((record) => 'description' in record)
     const related = products.filter((record) => 'id' in record)
 
     expect(products).toHaveLength(9)
     expect(detail).toBeDefined()
     if (!detail) return
-    expect(Object.keys(detail).sort()).toEqual(['customFields', 'image', 'inStock', 'name', 'priceCents', 'slug'])
-    const customFields = detail.customFields
-    expect(isPayloadRecord(customFields)).toBe(true)
-    if (isPayloadRecord(customFields)) expect(Object.keys(customFields).sort()).toEqual(['connectorType', 'powerKw'])
+    expect(Object.keys(detail).sort()).toEqual(['connectorType', 'description', 'image', 'inStock', 'maxPowerKw', 'name', 'priceCents', 'slug'])
+    expect(typeof detail.description).toBe('string')
+    expect((detail.description as string).trim().length).toBeGreaterThan(0)
+    expect(detail.maxPowerKw === null || typeof detail.maxPowerKw === 'number').toBe(true)
+    expect(isPayloadRecord(detail.image)).toBe(true)
+    if (isPayloadRecord(detail.image)) expect(Object.keys(detail.image).sort()).toEqual(['alt', 'height', 'url', 'width'])
     expect(related).toHaveLength(8)
     for (const item of related) {
       expect(Object.keys(item).sort()).toEqual(['id', 'image', 'inStock', 'name', 'priceCents', 'slug'])
@@ -99,8 +101,8 @@ test.describe('public shop product page', () => {
 
   test('renders product details, the cart action, and eight same-category related products', async ({ page, request }) => {
     const listing = await loadCategory(request)
-    const product = requireProduct(listing, ({ inStock, customFields }) => (
-      inStock && typeof customFields.powerKw === 'number' && typeof customFields.connectorType === 'string'
+    const product = requireProduct(listing, ({ inStock, maxPowerKw, connectorType }) => (
+      inStock && maxPowerKw !== null && connectorType === 'ccs'
     ))
     const expectedPrice = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' })
       .format(product.priceCents / 100)
@@ -111,12 +113,14 @@ test.describe('public shop product page', () => {
     await expect(page.getByText(expectedPrice, { exact: true })).toBeVisible()
     await expect(page.locator('#product-stock')).toHaveText('Auf Lager')
     await expect(page.getByRole('heading', { level: 2, name: 'Technische Daten' })).toBeVisible()
-    await expect(page.getByText(`${String(product.customFields.powerKw)} kW`, { exact: true })).toBeVisible()
-    await expect(page.getByText(String(product.customFields.connectorType), { exact: true })).toBeVisible()
-    await expect(page.getByText('Ladekarten, Wallboxen, Kabel und Adapter', { exact: true })).toBeVisible()
+    await expect(page.getByText(`${String(product.maxPowerKw)} kW`, { exact: true })).toBeVisible()
+    await expect(page.getByText('CCS', { exact: true })).toBeVisible()
+    await expect(page.getByText(product.description, { exact: true })).toBeVisible()
+    await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', product.description.slice(0, 155))
     const hero = page.locator('.product-hero')
-    await expect(hero).toHaveAttribute('width', '1600')
-    await expect(hero).toHaveAttribute('height', '1600')
+    await expect(hero).toHaveAttribute('alt', product.image.alt)
+    await expect(hero).toHaveAttribute('width', String(product.image.width))
+    await expect(hero).toHaveAttribute('height', String(product.image.height))
     await expect(hero).toHaveAttribute('srcset', /\S+/)
     await expect(hero).toHaveAttribute('loading', 'eager')
     await expect(hero).toHaveAttribute('fetchpriority', 'high')
@@ -134,10 +138,32 @@ test.describe('public shop product page', () => {
     await expect(related.getByRole('link', { name: product.name })).toHaveCount(0)
   })
 
+  test('shows precise connector labels and the missing power value for accessory products', async ({ page, request }) => {
+    const accessories = await loadCategory(request, 'accessories')
+    const expectedLabels = {
+      type1: 'Typ 1',
+      type2: 'Typ 2',
+      ccs: 'CCS',
+      cee: 'CEE',
+      schuko: 'Schuko',
+      mixed: 'Typ 1/Typ 2',
+    } as const
+
+    for (const [connectorType, label] of Object.entries(expectedLabels)) {
+      const product = requireProduct(accessories, (item) => item.connectorType === connectorType)
+      expect(product.maxPowerKw).toBeNull()
+      await page.goto(`/shop/${product.slug}`)
+      await expect(page.getByRole('heading', { level: 2, name: 'Technische Daten' })).toBeVisible()
+      const specs = page.locator('.product-specs dd')
+      await expect(specs.nth(0)).toHaveText('—')
+      await expect(specs.nth(1)).toHaveText(label)
+    }
+  })
+
   test('does not repeat the current product when opened by its stable id', async ({ page, request }) => {
     const listing = await loadCategory(request)
-    const product = requireProduct(listing, ({ customFields }) => (
-      typeof customFields.powerKw === 'number' && typeof customFields.connectorType === 'string'
+    const product = requireProduct(listing, ({ maxPowerKw, connectorType }) => (
+      maxPowerKw !== null && connectorType !== null
     ))
 
     const productPath = `/shop/${product.id}?wp25-cache-probe=${Date.now()}`
@@ -156,7 +182,7 @@ test.describe('public shop product page', () => {
 
   test('server-renders related products with native links and no client refetches', async ({ page, request }) => {
     const listing = await loadCategory(request)
-    const product = requireProduct(listing, ({ customFields }) => typeof customFields.powerKw === 'number')
+    const product = requireProduct(listing, ({ maxPowerKw }) => maxPowerKw !== null)
     const relatedProduct = requireProduct(listing, ({ slug }) => slug !== product.slug)
     const productPath = `/shop/${product.slug}`
     const relatedHref = `/shop/${relatedProduct.slug}`
@@ -187,7 +213,7 @@ test.describe('public shop product page', () => {
 
   test('related product labels and formatting follow the selected English locale', async ({ page, request }) => {
     const listing = await loadCategory(request)
-    const product = requireProduct(listing, ({ customFields }) => typeof customFields.powerKw === 'number')
+    const product = requireProduct(listing, ({ maxPowerKw }) => maxPowerKw !== null)
     const relatedProduct = requireProduct(listing, ({ slug }) => slug !== product.slug)
     const clientDataRequests: string[] = []
     page.on('request', (browserRequest) => {

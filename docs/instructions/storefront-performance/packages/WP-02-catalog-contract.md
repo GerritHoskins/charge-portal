@@ -58,6 +58,35 @@ Fields to model (only these; the pages need nothing else):
 
 `shared/contracts/catalog.ts` (new), `tests/unit/catalog-contract.test.ts` (new).
 
+### Approved reopened extension (2026-10-18)
+
+The accepted baseline omitted the translated text, media metadata, typed specifications,
+sorting and aggregation fields above. The human reopened these requirements and explicitly
+approved the bounded producer/consumer repair, testing, commit and push.
+
+- Preserve all 48 product identities, names, URLs, prices, stock and images. Keep the public
+  `type2 | ccs | card` filter choices and their result sets; do not add a filter UI.
+- Model existing connectors honestly as `type1 | type2 | ccs | card | cee | schuko | mixed`.
+  Use explicit null for non-applicable power/connector values, not fabricated zero/Type 2.
+  The synthetic raw custom fields use these codes; the existing BFF `customFields` legacy
+  power/label compatibility remains available, alongside the typed flat product fields.
+- Require translated name/plain description, media alt/positive dimensions, current sorting
+  and simplified typed aggregations (power min/max, both null when absent; connector counts
+  over the filtered full result before pagination). These custom fields and aggregation
+  conventions are synthetic, not an assertion of the official Shopware aggregation shape.
+- Render actual plain product descriptions and image dimensions. Keep explicit page data
+  projections limited to rendered fields; omit raw custom fields, translations, stock,
+  product numbers and listing metadata from page payloads when not rendered.
+- Additional editable files: `legacy/catalog.mjs`, `tests/unit/legacy-catalog.test.ts`,
+  `server/api/shop/listing/[category].get.ts`, both shop product/category pages,
+  `app/components/shop/ShopProductCard.vue` and its `.stories.ts`, `shared/seo.ts`,
+  `tests/unit/seo.test.ts`, existing `shop-listing`, `shop-product` and `shop-public` E2E
+  specs, `i18n/locales/de.json` and `en.json`, this package and the authoritative progress log.
+  The log records the exact paths. Any additional file still needs a scope decision.
+- No dependencies, lockfiles, thresholds, route rules, WP-25 optimization or WP-27 work.
+  Required checks include semantic failing-first regressions, full `npm run check`,
+  production correctness and the unchanged performance gates. Review still needs human acceptance.
+
 ## Done when
 
 The new tests pass, `npm run test:coverage`, `npm run lint`, `npm run typecheck` pass.

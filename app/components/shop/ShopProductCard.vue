@@ -45,8 +45,8 @@ const imageSource = computed(() => {
       :alt="product.image.alt"
       :loading="imageLoading"
       :fetchpriority="imageFetchPriority"
-      width="1600"
-      height="1600"
+      :width="product.image.width"
+      :height="product.image.height"
     >
     <h2><a :href="href">{{ product.name }}</a></h2>
     <p class="product-card__price">{{ price }}</p>

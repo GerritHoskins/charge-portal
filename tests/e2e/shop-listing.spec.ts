@@ -58,7 +58,13 @@ test.describe('public shop listing', () => {
     const expectedProductKeys = ['id', 'image', 'inStock', 'name', 'priceCents', 'slug'].sort()
 
     expect(products).toHaveLength(12)
-    for (const product of products) expect(Object.keys(product).sort()).toEqual(expectedProductKeys)
+    for (const product of products) {
+      expect(Object.keys(product).sort()).toEqual(expectedProductKeys)
+      expect(isPayloadRecord(product.image)).toBe(true)
+      if (isPayloadRecord(product.image)) {
+        expect(Object.keys(product.image).sort()).toEqual(['alt', 'height', 'url', 'width'])
+      }
+    }
     const listing = records.find((record) => 'total' in record && 'page' in record && 'limit' in record && 'items' in record)
     expect(listing).toBeDefined()
     if (!listing) return
@@ -152,7 +158,12 @@ test.describe('public shop listing', () => {
     await page.goto('/shop/c/wallboxes?page=2')
     await expect(page.locator('html')).toHaveAttribute('data-hydrated', '')
 
-    await page.getByLabel('Anschlusstyp').selectOption('ccs')
+    const connector = page.getByLabel('Anschlusstyp')
+    const connectorOptions = await connector.locator('option').evaluateAll((options) => (
+      options.map((option) => (option as HTMLOptionElement).value)
+    ))
+    expect(connectorOptions).toEqual(['', 'ccs', 'type2', 'card'])
+    await connector.selectOption('ccs')
 
     await expect(page).toHaveURL(/\/shop\/c\/wallboxes\?connector=ccs$/)
     await expect(page.getByRole('status')).toHaveText('2 Produkte angezeigt')
@@ -166,7 +177,7 @@ test.describe('public shop listing', () => {
     await expect(page.locator('html')).toHaveAttribute('data-hydrated', '')
     const all = await (await page.request.get('/api/shop/listing/wallboxes?limit=48')).json()
     const belowMinimum = all.items
-      .filter((product: { customFields: { powerKw?: number } }) => (product.customFields.powerKw ?? 0) < 22)
+      .filter((product: { maxPowerKw: number | null }) => (product.maxPowerKw ?? 0) < 22)
       .map((product: { name: string }) => product.name)
 
     await page.getByLabel('Mindestleistung (kW)').fill('22')
@@ -187,6 +198,15 @@ test.describe('public shop listing', () => {
     expect(expectedResponse.status()).toBe(200)
     const expected = shopListingSchema.parse(await expectedResponse.json())
     expect(expected.items).toHaveLength(12)
+    expect(expected).toEqual(expect.objectContaining({
+      sorting: 'price-desc',
+      aggregations: expect.objectContaining({
+        maxPowerKw: expect.objectContaining({ min: expect.any(Number), max: expect.any(Number) }),
+        connectorType: expect.arrayContaining([
+          expect.objectContaining({ key: expect.any(String), count: expect.any(Number) }),
+        ]),
+      }),
+    }))
     const expectedProducts = expected.items.map(({ slug, priceCents }) => ({ slug, priceCents }))
     expect(expectedProducts).toEqual([...expectedProducts].sort((left, right) => right.priceCents - left.priceCents))
 
