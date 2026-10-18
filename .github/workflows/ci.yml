@@ -21,3 +21,10 @@ jobs:
           name: lighthouse-reports
           path: .lighthouseci
           if-no-files-found: ignore
+      - run: npm run lighthouse:shop
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lighthouse-shop-reports
+          path: .lighthouseci-shop
+          if-no-files-found: ignore

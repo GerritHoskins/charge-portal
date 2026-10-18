@@ -34,6 +34,29 @@ function uuid(seed) {
 
 const round2 = (value) => Math.round(value * 100) / 100
 
+const CONNECTOR_TYPES = ['type1', 'type2', 'ccs', 'card', 'cee', 'schuko', 'mixed']
+const CONNECTOR_DISPLAY_LABELS = {
+  type1: 'Typ 1',
+  type2: 'Typ 2',
+  ccs: 'CCS',
+  card: 'Ladekarte',
+  cee: 'CEE',
+  schuko: 'Schuko',
+  mixed: 'Typ 1/Typ 2',
+}
+const CONNECTOR_LABELS = {
+  'Typ 1': 'type1',
+  'Typ 2': 'type2',
+  CCS: 'ccs',
+  Ladekarte: 'card',
+  CEE: 'cee',
+  Schuko: 'schuko',
+  'Typ 1/Typ 2': 'mixed',
+}
+const canonicalConnector = (connector) => CONNECTOR_TYPES.includes(connector)
+  ? connector
+  : CONNECTOR_LABELS[connector] ?? null
+
 const WALLBOX_MODELS = ['Home', 'Pro', 'Plus', 'Compact', 'Garage', 'Smart']
 const WALLBOX_KW = [7.4, 11, 22]
 
@@ -140,18 +163,40 @@ function makeProducts(category, prefix, entries, priceAt, fieldsAt) {
     const available = index % 9 !== 0
     const price = typeof entry === 'string' ? undefined : entry.price
     const imageUrl = typeof entry === 'string' ? undefined : entry.imageUrl
+    const fields = fieldsAt(entry, index)
+    const maxPowerKw = typeof fields.maxPowerKw === 'number' ? fields.maxPowerKw : null
+    const connectorType = canonicalConnector(fields.connectorType)
+    const descriptionFacts = [
+      `${prefix}-${1001 + index}`,
+      ...(maxPowerKw === null ? [] : [`${maxPowerKw} kW`]),
+      ...(connectorType === null ? [] : [CONNECTOR_DISPLAY_LABELS[connectorType]]),
+    ]
     return {
       categoryId: category.id,
       slug,
       id: uuid(`product:${slug}`),
       productNumber: `${prefix}-${1001 + index}`,
       name,
+      translated: {
+        name,
+        description: `${name}. ${descriptionFacts.join('; ')}.`,
+      },
       available,
       availableStock: available ? 4 + ((index * 7) % 40) : 0,
       calculatedPrice: { unitPrice: price ?? priceAt(index) },
-      cover: { media: { url: imageUrl ?? `/shop/${slug}-1600.jpg` } },
+      cover: {
+        media: {
+          url: imageUrl ?? `/shop/${slug}-1600.jpg`,
+          alt: name,
+          metaData: { width: 1600, height: 1600 },
+        },
+      },
       seoUrls: [{ seoPathInfo: slug }],
-      customFields: fieldsAt(entry, index),
+      customFields: {
+        ...fields,
+        maxPowerKw,
+        connectorType,
+      },
     }
   })
 }
@@ -166,7 +211,7 @@ export const wallboxes = makeProducts(
   'WB',
   wallboxEntries,
   (index) => round2(399 + index * 46.75),
-  (entry) => ({ powerKw: entry.powerKw, connectorType: entry.connectorType ?? 'Typ 2' }),
+  (entry) => ({ powerKw: entry.powerKw, maxPowerKw: entry.powerKw, connectorType: entry.connectorType ?? 'Typ 2' }),
 )
 
 export const accessories = makeProducts(
@@ -197,12 +242,15 @@ export function queryListing(categoryId, params = {}) {
   const page = boundedInteger(params.page, 1)
   const limit = boundedInteger(params.limit, 24, 48)
   const minPower = Number(params['min-power'])
-  const connector = typeof params.connector === 'string' && params.connector ? params.connector : undefined
+  const requestedConnector = typeof params.connector === 'string' && params.connector ? params.connector : undefined
+  const connector = requestedConnector ? canonicalConnector(requestedConnector) ?? requestedConnector : undefined
   const order = ['price-asc', 'price-desc', 'name-asc'].includes(params.order) ? params.order : 'name-asc'
 
   const matches = products
     .filter((product) => product.categoryId === categoryId)
-    .filter((product) => !Number.isFinite(minPower) || Number(product.customFields.powerKw) >= minPower)
+    .filter((product) => !Number.isFinite(minPower) || (
+      typeof product.customFields.maxPowerKw === 'number' && product.customFields.maxPowerKw >= minPower
+    ))
     .filter((product) => !connector || product.customFields.connectorType === connector)
     .sort((left, right) => {
       if (order === 'price-asc') return left.calculatedPrice.unitPrice - right.calculatedPrice.unitPrice
@@ -210,21 +258,30 @@ export function queryListing(categoryId, params = {}) {
       return left.name.localeCompare(right.name, 'de')
     })
 
+  const powers = matches
+    .map((product) => product.customFields.maxPowerKw)
+    .filter((value) => typeof value === 'number')
   const offset = (page - 1) * limit
   return {
     elements: matches.slice(offset, offset + limit).map(publicProduct),
     total: matches.length,
     page,
     limit,
+    sorting: order,
     availableSortings: [
       { key: 'name-asc', label: 'Name' },
       { key: 'price-asc', label: 'Price ascending' },
       { key: 'price-desc', label: 'Price descending' },
     ],
-    currentFilters: { order, ...(Number.isFinite(minPower) ? { 'min-power': minPower } : {}), ...(connector ? { connector } : {}) },
+    currentFilters: { order, ...(Number.isFinite(minPower) ? { 'min-power': minPower } : {}), ...(requestedConnector ? { connector: requestedConnector } : {}) },
     aggregations: {
-      power: [...new Set(matches.map((product) => product.customFields.powerKw).filter((value) => typeof value === 'number'))].sort((a, b) => a - b),
-      connector: [...new Set(matches.map((product) => product.customFields.connectorType).filter((value) => typeof value === 'string'))].sort(),
+      maxPowerKw: {
+        min: powers.length ? Math.min(...powers) : null,
+        max: powers.length ? Math.max(...powers) : null,
+      },
+      connectorType: CONNECTOR_TYPES
+        .map((key) => ({ key, count: matches.filter((product) => product.customFields.connectorType === key).length }))
+        .filter(({ count }) => count > 0),
     },
   }
 }

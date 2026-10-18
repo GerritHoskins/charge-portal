@@ -98,9 +98,13 @@
       "connector": "Anschlusstyp",
       "connectorAll": "Alle Anschlusstypen",
       "connectorType": {
+        "type1": "Typ 1",
         "type2": "Typ 2",
         "ccs": "CCS",
-        "card": "Ladekarte"
+        "card": "Ladekarte",
+        "cee": "CEE",
+        "schuko": "Schuko",
+        "mixed": "Typ 1/Typ 2"
       }
     },
     "sort": {

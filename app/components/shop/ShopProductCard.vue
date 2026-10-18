@@ -1,18 +1,53 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { ShopProduct } from '#shared/contracts/catalog'
 
-defineProps<{
-  product: ShopProduct
+type ShopProductCardProduct = Pick<ShopProduct, 'name' | 'image'> & Partial<ShopProduct>
+
+const props = withDefaults(defineProps<{
+  product: ShopProductCardProduct
   href: string
   price: string
   stockLabel: string
-}>()
+  imageLoading?: 'eager' | 'lazy'
+  imageFetchPriority?: 'high' | 'low' | 'auto'
+  imageOptimized?: boolean
+}>(), {
+  imageLoading: 'lazy',
+  imageFetchPriority: undefined,
+  imageOptimized: false,
+})
+
+const imageWidths = [320, 400, 448, 640, 800, 1200, 1600] as const
+const imageSizes = '(min-width: 1352px) 25vw, (min-width: 1008px) 33vw, (min-width: 664px) 50vw, 100vw'
+const imageSource = computed(() => {
+  const url = props.product.image.url
+  const canOptimize = props.imageOptimized
+    && url.startsWith('/shop/')
+    && url.endsWith('-1600.jpg')
+    && !url.includes('..')
+  return {
+    src: canOptimize ? `/_ipx/f_webp&w_800${url}` : url,
+    srcset: canOptimize
+      ? imageWidths.map((width) => `/_ipx/f_webp&w_${width}${url} ${width}w`).join(', ')
+      : undefined,
+  }
+})
 </script>
 
 <template>
   <article class="product-card">
-    <!-- baseline (WP-09): unoptimized on purpose, see WP-20 -->
-    <img class="product-card__image" :src="product.image.url" :alt="product.image.alt">
+    <img
+      class="product-card__image"
+      :src="imageSource.src"
+      :srcset="imageSource.srcset"
+      :sizes="imageSource.srcset ? imageSizes : undefined"
+      :alt="product.image.alt"
+      :loading="imageLoading"
+      :fetchpriority="imageFetchPriority"
+      :width="product.image.width"
+      :height="product.image.height"
+    >
     <h2><a :href="href">{{ product.name }}</a></h2>
     <p class="product-card__price">{{ price }}</p>
     <p class="product-card__stock">{{ stockLabel }}</p>

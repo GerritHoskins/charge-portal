@@ -9,9 +9,15 @@ const logIn = async (page: Page, password = DEMO_LOGIN.password) => {
 }
 
 test.describe('login/logout in Nuxt, session owned by legacy (logged-out browser)', () => {
-  test('migrated page redirects to login and returns after login', async ({ page }) => {
+  test('migrated page redirects to login and returns after login', async ({ page, baseURL }) => {
+    const expectedLoginUrl = new URL('/login?next=%2Fportal%2Fsessions', baseURL).href
     await page.goto('/portal/sessions')
-    await expect(page).toHaveURL('/login?next=%2Fportal%2Fsessions')
+    await expect(page).toHaveURL((url) => {
+      // Production hydration can normalize equivalent query percent-encoding.
+      // Canonicalization preserves the exact origin, path, values, parameters and hash.
+      url.searchParams.sort()
+      return url.href === expectedLoginUrl
+    })
     await logIn(page)
     await expect(page).toHaveURL('/portal/sessions')
     await expect(page.getByRole('heading', { level: 1, name: 'Ladevorgänge' })).toBeVisible()
@@ -193,13 +199,30 @@ test.describe('keyboard and language (logged-out browser)', () => {
     await expect(page.getByLabel('Benutzername')).toBeVisible()
   })
 
-  test('the UI switches to English and sets the html lang', async ({ page }) => {
+  test('SSR serves both locales and the UI switches back and forth', async ({ page, request }) => {
+    const germanSsr = await request.get('/login')
+    expect(germanSsr.ok()).toBe(true)
+    const germanHtml = await germanSsr.text()
+    expect(germanHtml).toMatch(/<html\s+lang="de"/)
+    expect(germanHtml).toMatch(/<h1\b[^>]*>Anmelden<\/h1>/)
+
+    const englishSsr = await request.get('/login', { headers: { cookie: 'i18n_locale=en' } })
+    expect(englishSsr.ok()).toBe(true)
+    const englishHtml = await englishSsr.text()
+    expect(englishHtml).toMatch(/<html\s+lang="en"/)
+    expect(englishHtml).toMatch(/<h1\b[^>]*>Sign in<\/h1>/)
+
     await page.goto('/login')
     await expect(page.locator('html')).toHaveAttribute('data-hydrated', '')
     await expect(page.locator('html')).toHaveAttribute('lang', 'de')
     await page.getByLabel('Sprache').selectOption('en')
     await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible()
     await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+    const englishResults = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()
+    expect(englishResults.violations).toEqual([])
+    await page.getByLabel('Language').selectOption('de')
+    await expect(page.getByRole('heading', { level: 1, name: 'Anmelden' })).toBeVisible()
+    await expect(page.locator('html')).toHaveAttribute('lang', 'de')
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()
     expect(results.violations).toEqual([])
   })

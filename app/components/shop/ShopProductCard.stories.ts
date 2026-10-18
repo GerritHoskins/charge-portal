@@ -2,14 +2,8 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import ShopProductCard from './ShopProductCard.vue'
 
 const product = {
-  id: '11111111111111111111111111111111',
   name: 'Wallbox Demo 11',
-  priceCents: 49900,
-  image: { url: '/shop/wallbox-home-11-1600.jpg', alt: 'Wallbox Demo 11' },
-  inStock: true,
-  stock: 8,
-  slug: 'wallbox-demo-11',
-  customFields: { powerKw: 11, connectorType: 'Typ 2' },
+  image: { url: '/shop/wallbox-home-11-1600.jpg', alt: 'Wallbox Demo 11', width: 1600, height: 1600 },
 }
 
 const meta = {

@@ -7,25 +7,49 @@ import { z } from 'zod'
 // that components are allowed to consume.
 //
 // Field names verified against the official Shopware Store API reference
-// (OpenAPI spec 6.7.9999999-dev, https://shopware.stoplight.io/docs/store-api,
-// consulted 2026-10-17): POST /store-api/product-listing/{categoryId} returns
+// (OpenAPI spec 6.7.9999999-dev,
+// https://raw.githubusercontent.com/shopware/store-api-reference/main/storeapi.json,
+// consulted 2026-10-18): POST /store-api/product-listing/{categoryId} returns
 // ProductListingResult (elements, total, page, limit, availableSortings,
-// currentFilters, aggregations); GET /store-api/product/{productId} returns a
-// Product (id, productNumber, name, available, availableStock,
-// calculatedPrice.unitPrice, cover.media.url, seoUrls, customFields).
+// currentFilters, sorting, aggregations); POST/GET /store-api/product/{productId}
+// returns product detail. Product.translated and Media.alt/metaData.width/height
+// are official field names. Required plain translated text, connector codes,
+// custom power fields and simplified aggregations below are our synthetic subset,
+// not a claim that these custom fields or aggregation layout are Shopware defaults.
 
 const shopwareUuid = z.string().regex(/^[0-9a-f]{32}$/)
+const plainDescription = z.string().min(1).regex(/^[^<>]+$/)
+const connectorTypeSchema = z.enum(['type1', 'type2', 'ccs', 'card', 'cee', 'schuko', 'mixed'])
+const sortingSchema = z.enum(['price-asc', 'price-desc', 'name-asc'])
+
+// Simplified synthetic aggregation over all filtered matches, before pagination.
+// Null/null means there are no applicable power specifications, not zero power.
+const listingAggregationsSchema = z.object({
+  maxPowerKw: z.object({
+    min: z.number().nonnegative().nullable(),
+    max: z.number().nonnegative().nullable(),
+  }).refine(({ min, max }) => min === null ? max === null : max !== null && min <= max),
+  connectorType: z.array(z.object({ key: connectorTypeSchema, count: z.number().int().positive() })),
+})
 
 export const storeApiProductSchema = z.object({
   id: shopwareUuid,
   productNumber: z.string(),
   name: z.string().min(1),
+  translated: z.object({ name: z.string().min(1), description: plainDescription }),
   available: z.boolean(),
   availableStock: z.number().int().nonnegative(),
   calculatedPrice: z.object({ unitPrice: z.number().nonnegative() }),
-  cover: z.object({ media: z.object({ url: z.string().min(1) }) }),
+  cover: z.object({ media: z.object({
+    url: z.string().min(1),
+    alt: z.string().min(1),
+    metaData: z.object({ width: z.number().int().positive(), height: z.number().int().positive() }),
+  }) }),
   seoUrls: z.array(z.object({ seoPathInfo: z.string().min(1) })).min(1),
-  customFields: z.record(z.string(), z.unknown()),
+  customFields: z.object({
+    maxPowerKw: z.number().nonnegative().nullable(),
+    connectorType: connectorTypeSchema.nullable(),
+  }).catchall(z.unknown()),
 })
 
 export const storeApiProductListingSchema = z.object({
@@ -33,9 +57,10 @@ export const storeApiProductListingSchema = z.object({
   total: z.number().int().nonnegative(),
   page: z.number().int().positive(),
   limit: z.number().int().positive(),
+  sorting: sortingSchema,
   availableSortings: z.array(z.object({ key: z.string(), label: z.string() })).optional(),
   currentFilters: z.record(z.string(), z.unknown()).optional(),
-  aggregations: z.unknown().optional(),
+  aggregations: listingAggregationsSchema,
 })
 
 export const storeApiProductDetailSchema = z.object({
@@ -45,7 +70,7 @@ export const storeApiProductDetailSchema = z.object({
 export const shopListingQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(48).default(24),
-  order: z.enum(['price-asc', 'price-desc', 'name-asc']).default('name-asc'),
+  order: sortingSchema.default('name-asc'),
   minPower: z.coerce.number().nonnegative().optional(),
   connector: z.enum(['type2', 'ccs', 'card']).optional(),
 })
@@ -65,14 +90,19 @@ export const catalogProductSchema = z.object({
 export const shopProductSchema = z.object({
   id: shopwareUuid,
   name: z.string().min(1),
+  description: plainDescription,
   priceCents: z.number().int().nonnegative(),
   image: z.object({
     url: z.string().min(1),
     alt: z.string().min(1),
+    width: z.number().int().positive(),
+    height: z.number().int().positive(),
   }),
   inStock: z.boolean(),
   stock: z.number().int().nonnegative(),
   slug: z.string().min(1),
+  maxPowerKw: z.number().nonnegative().nullable(),
+  connectorType: connectorTypeSchema.nullable(),
   customFields: z.record(z.string(), z.unknown()),
 })
 
@@ -80,6 +110,8 @@ export const shopListingSchema = z.object({
   total: z.number().int().nonnegative(),
   page: z.number().int().positive(),
   limit: z.number().int().positive(),
+  sorting: sortingSchema,
+  aggregations: listingAggregationsSchema,
   items: z.array(shopProductSchema),
 })
 
@@ -97,7 +129,7 @@ export function toCatalogProduct(product: StoreApiProduct): CatalogProduct {
   }
   return {
     id: product.id,
-    name: product.name,
+    name: product.translated.name,
     price: product.calculatedPrice.unitPrice,
     imageUrl: product.cover.media.url,
     inStock: product.available,
@@ -119,18 +151,35 @@ export function toShopProduct(product: StoreApiProduct): ShopProduct {
   if (!slug) {
     throw new Error('toShopProduct: store-api product without seo url')
   }
+  const { maxPowerKw, connectorType, ...customFields } = product.customFields
+  // Preserve existing BFF specification labels for older callers. Pages use the
+  // typed flat fields instead and must not serialize this compatibility object.
+  const connectorLabels = {
+    type1: 'Typ 1', type2: 'Typ 2', ccs: 'CCS', card: 'Ladekarte',
+    cee: 'CEE', schuko: 'Schuko', mixed: 'Typ 1/Typ 2',
+  } as const
   return {
     id: product.id,
-    name: product.name,
+    name: product.translated.name,
+    description: product.translated.description,
     priceCents: Math.round(product.calculatedPrice.unitPrice * 100),
     image: {
       url: product.cover.media.url,
-      alt: product.name,
+      alt: product.cover.media.alt,
+      width: product.cover.media.metaData.width,
+      height: product.cover.media.metaData.height,
     },
     inStock: product.available,
     stock: product.availableStock,
     slug,
-    customFields: product.customFields,
+    maxPowerKw,
+    connectorType,
+    customFields: {
+      ...customFields,
+      maxPowerKw,
+      ...(maxPowerKw === null ? {} : { powerKw: maxPowerKw }),
+      ...(connectorType === null ? {} : { connectorType: connectorLabels[connectorType] }),
+    },
   }
 }
 
@@ -139,6 +188,8 @@ export function toShopListing(listing: StoreApiProductListing): ShopListing {
     total: listing.total,
     page: listing.page,
     limit: listing.limit,
+    sorting: listing.sorting,
+    aggregations: listing.aggregations,
     items: listing.elements.map(toShopProduct),
   }
 }

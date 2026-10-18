@@ -4,16 +4,40 @@ import { breadcrumbJsonLd, productJsonLd, serializeJsonLd } from '#shared/seo'
 
 definePageMeta({ layout: 'shop' })
 
+type ProductPageData = Pick<ShopProduct,
+  'slug' | 'name' | 'priceCents' | 'image' | 'inStock' | 'description' | 'maxPowerKw' | 'connectorType'
+>
+type RelatedCardProduct = Pick<ShopProduct, 'id' | 'slug' | 'name' | 'priceCents' | 'image' | 'inStock'>
+type RelatedProductsData = { items: RelatedCardProduct[] }
+
 const route = useRoute()
 const { t } = useI18n()
 const fmt = useFormatters()
 const announcement = ref('')
 const { addItem } = useCart()
+const { track } = useShopEvents()
 const requestUrl = useRequestURL()
+const isShopImage = (url: string) => url.startsWith('/shop/') && url.endsWith('-1600.jpg') && !url.includes('..')
+const shopImageUrl = (url: string) => isShopImage(url) ? `/_ipx/f_webp&w_800${url}` : url
+const shopImageSrcset = (url: string) => isShopImage(url)
+  ? `/_ipx/f_webp&w_320${url} 320w, /_ipx/f_webp&w_400${url} 400w, /_ipx/f_webp&w_448${url} 448w, /_ipx/f_webp&w_640${url} 640w, /_ipx/f_webp&w_800${url} 800w, /_ipx/f_webp&w_1200${url} 1200w, /_ipx/f_webp&w_1600${url} 1600w`
+  : undefined
 
 const slug = computed(() => String(route.params.slug))
-const { data: product, error: productError } = await useFetch<ShopProduct>(
+const { data: product, error: productError } = await useFetch(
   () => `/api/shop/products/${encodeURIComponent(slug.value)}`,
+  {
+    transform: (data: ShopProduct): ProductPageData => ({
+      slug: data.slug,
+      name: data.name,
+      priceCents: data.priceCents,
+      image: data.image,
+      inStock: data.inStock,
+      description: data.description,
+      maxPowerKw: data.maxPowerKw,
+      connectorType: data.connectorType,
+    }),
+  },
 )
 
 const notFound = computed(() => productError.value?.statusCode === 404)
@@ -22,53 +46,79 @@ if (import.meta.server && notFound.value) {
   if (event) setResponseStatus(event, 404)
 }
 
+onMounted(() => {
+  if (product.value) track('product_view')
+})
+
 // The narrow ShopProduct contract has no category field. For this synthetic two-category
-// catalogue, powerKw identifies wallboxes; everything else belongs to accessories.
+// catalogue, a power rating identifies wallboxes; products without one are accessories.
 const category = computed(() => (
-  typeof product.value?.customFields.powerKw === 'number' ? 'wallboxes' : 'accessories'
+  product.value?.maxPowerKw !== null && product.value?.maxPowerKw !== undefined ? 'wallboxes' : 'accessories'
 ))
 const categoryName = computed(() => t(`shop.categories.${category.value}`))
 
-const { data: categoryListing } = await useFetch<ShopListing>(
+const { data: categoryListing } = await useFetch(
   () => `/api/shop/listing/${category.value}`,
   {
+    key: computed(() => `shop-related-${category.value}-${slug.value}`),
     query: { limit: 48 },
-    default: () => ({ total: 0, page: 1, limit: 48, items: [] }),
+    immediate: Boolean(product.value),
+    default: () => ({ items: [] } satisfies RelatedProductsData),
+    transform: (data: ShopListing): RelatedProductsData => ({
+      items: data.items
+        .filter(({ slug: relatedSlug }) => relatedSlug !== product.value?.slug)
+        .slice(0, 8)
+        .map(({ id, slug: relatedSlug, name, priceCents, image, inStock }) => ({
+          id,
+          slug: relatedSlug,
+          name,
+          priceCents,
+          image,
+          inStock,
+        })),
+    }),
   },
 )
-const relatedProducts = computed(() => categoryListing.value.items
-  .filter(({ slug: relatedSlug }) => relatedSlug !== product.value?.slug)
-  .slice(0, 8))
+const relatedProducts = computed(() => categoryListing.value.items)
 
 const maxPower = computed(() => {
-  const value = product.value?.customFields.powerKw
-  return typeof value === 'number' ? `${value} kW` : '—'
+  const value = product.value?.maxPowerKw
+  return value !== null && value !== undefined ? `${value} kW` : '—'
 })
 const connectorType = computed(() => {
-  const value = product.value?.customFields.connectorType
-  return typeof value === 'string' ? value : '—'
+  const value = product.value?.connectorType
+  return value ? t(`shop.filter.connectorType.${value}`) : '—'
 })
 
 const canonicalUrl = computed(() => new URL(route.path, requestUrl.origin).toString())
-const productDescription = computed(() => (
-  product.value
-    ? `${product.value.name}. ${t('shop.listing.caption')}`.slice(0, 155)
-    : t('shop.product.notFound')
-))
 const productImage = computed(() => (
   product.value ? new URL(product.value.image.url, requestUrl.origin).toString() : undefined
 ))
+const productHeroUrl = computed(() => product.value ? shopImageUrl(product.value.image.url) : undefined)
+const productHeroSrcset = computed(() => product.value ? shopImageSrcset(product.value.image.url) : undefined)
 
 useSeoMeta({
   title: () => product.value?.name ?? t('shop.product.notFound'),
-  description: () => productDescription.value,
+  description: () => product.value ? product.value.description.slice(0, 155) : t('shop.product.notFound'),
   ogTitle: () => product.value?.name ?? t('shop.product.notFound'),
   ogImage: () => productImage.value,
   ogType: 'website',
 })
 
 useHead(() => ({
-  link: [{ rel: 'canonical', href: canonicalUrl.value }],
+  link: [
+    { rel: 'canonical', href: canonicalUrl.value },
+    ...(productHeroUrl.value && productHeroSrcset.value
+      ? [{
+          rel: 'preload' as const,
+          as: 'image' as const,
+          href: productHeroUrl.value,
+          imagesrcset: productHeroSrcset.value,
+          imagesizes: '100vw',
+          fetchpriority: 'high' as const,
+        }]
+      : []),
+  ],
   script: product.value
     ? [
         {
@@ -96,6 +146,7 @@ const onAddToCart = async () => {
     name: product.value.name,
     priceCents: product.value.priceCents,
   })
+  track('add_to_cart')
   announcement.value = ''
   await nextTick()
   announcement.value = t('shop.product.added')
@@ -113,10 +164,19 @@ const onAddToCart = async () => {
     </nav>
 
     <h1 id="product-heading">{{ product.name }}</h1>
-    <!-- baseline (WP-09): unoptimized on purpose, see WP-20 -->
-    <img class="product-hero" :src="product.image.url" :alt="product.image.alt">
+    <img
+      class="product-hero"
+      :src="productHeroUrl"
+      :srcset="productHeroSrcset"
+      sizes="100vw"
+      :alt="product.image.alt"
+      :width="product.image.width"
+      :height="product.image.height"
+      loading="eager"
+      fetchpriority="high"
+    >
 
-    <p>{{ t('shop.listing.caption') }}</p>
+    <p id="product-description">{{ product.description }}</p>
     <p>{{ fmt.money(product.priceCents) }}</p>
     <p id="product-stock">{{ t(product.inStock ? 'shop.product.inStock' : 'shop.product.outOfStock') }}</p>
 
@@ -152,6 +212,7 @@ const onAddToCart = async () => {
             :href="`/shop/${related.slug}`"
             :price="fmt.money(related.priceCents)"
             :stock-label="t(related.inStock ? 'shop.product.inStock' : 'shop.product.outOfStock')"
+            image-optimized
           />
         </li>
       </ul>

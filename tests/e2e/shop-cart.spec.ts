@@ -22,6 +22,78 @@ const tabTo = async (page: Page, target: Locator, maximumTabs = 40) => {
 }
 
 test.describe('client-side shop cart', () => {
+  for (const locale of ['de', 'en'] as const) {
+    for (const width of [320, 390, 650, 1280] as const) {
+      for (const count of [0, 1, 12, 480] as const) test(`reserves the header width (${locale}, ${width}px, ${count} items)`, async ({ page, baseURL }) => {
+        if (!baseURL) throw new Error('Playwright baseURL is required to seed the locale cookie')
+        await page.setViewportSize({ width, height: 900 })
+        await page.context().addCookies([{ name: 'i18n_locale', value: locale, url: baseURL }])
+        const items = Array.from({ length: Math.ceil(count / 10) }, (_, index) => ({
+          slug: `geometry-${index}`,
+          name: `Geometry ${index}`,
+          priceCents: 100,
+          quantity: Math.min(10, count - index * 10),
+        }))
+        await page.addInitScript((seededItems) => {
+          localStorage.setItem('charge-portal-cart', JSON.stringify(seededItems))
+        }, items)
+
+        let resumeScripts: (() => void) | undefined
+        let notifyScriptPause: (() => void) | undefined
+        let holdScripts = true
+        const scriptsResumed = new Promise<void>((resolve) => { resumeScripts = resolve })
+        const scriptPaused = new Promise<void>((resolve) => { notifyScriptPause = resolve })
+        await page.route('**/_nuxt/**', async (route) => {
+          if (route.request().resourceType() === 'script' && holdScripts) {
+            notifyScriptPause?.()
+            await scriptsResumed
+          }
+          await route.continue()
+        })
+
+        const headerGeometry = () => page.evaluate(() => {
+          const bounds = (selector: string) => {
+            const rect = document.querySelector(selector)?.getBoundingClientRect()
+            if (!rect) throw new Error(`Missing header geometry target: ${selector}`)
+            return [rect.x, rect.y, rect.width, rect.height].map((value) => Number(value.toFixed(2)))
+          }
+          return {
+            tools: bounds('.app-header .tools'),
+            cart: bounds('.app-header .tools a[href="/shop/cart"]'),
+            locale: bounds('.app-header .lang'),
+            scrollWidth: document.documentElement.scrollWidth,
+          }
+        })
+
+        try {
+          await page.goto('/shop/ladekabel-typ-1-10-m', { waitUntil: 'commit' })
+          await expect(page.locator('.app-header .tools')).toBeVisible()
+          await scriptPaused
+          await page.waitForFunction(() => {
+            const stylesheets = [...document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')]
+            return stylesheets.length > 0 && stylesheets.every((stylesheet) => stylesheet.sheet)
+          })
+          await expect(page.locator('html')).toHaveAttribute('lang', locale)
+          await expect(page.locator('html')).not.toHaveAttribute('data-hydrated', '')
+          const beforeHydration = await headerGeometry()
+
+          holdScripts = false
+          resumeScripts?.()
+          await expect(page.locator('html')).toHaveAttribute('data-hydrated', '', { timeout: 15_000 })
+          const countLabel = locale === 'de' ? `(${count} Artikel)` : `(${count} items)`
+          await expect(page.getByRole('link', { name: `${locale === 'de' ? 'Warenkorb' : 'Cart'} ${countLabel}` })).toBeVisible({ timeout: 15_000 })
+          const afterHydration = await headerGeometry()
+
+          expect(afterHydration).toEqual(beforeHydration)
+          expect(afterHydration.scrollWidth).toBeLessThanOrEqual(width)
+        } finally {
+          resumeScripts?.()
+          await page.unroute('**/_nuxt/**')
+        }
+      })
+    }
+  }
+
   test('supports the complete cart journey with a keyboard and persists the item', async ({ page, request }) => {
     const product = await loadFirstPageProduct(request)
     const expectedTotal = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' })
@@ -74,6 +146,13 @@ test.describe('client-side shop cart', () => {
 
     await expect(page.getByRole('link', { name: /Warenkorb.*3 Artikel/ })).toBeVisible()
     await expect(page.getByText(expectedTotal, { exact: true })).toBeVisible()
+
+    await page.getByLabel('Sprache').selectOption('en')
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+    await expect(page.getByRole('link', { name: 'Cart (3 items)' })).toBeVisible()
+    await page.getByLabel('Language').selectOption('de')
+    await expect(page.locator('html')).toHaveAttribute('lang', 'de')
+    await expect(page.getByRole('link', { name: /Warenkorb.*3 Artikel/ })).toBeVisible()
 
     const results = await new AxeBuilder({ page }).withTags(WCAG).analyze()
     expect(results.violations).toEqual([])

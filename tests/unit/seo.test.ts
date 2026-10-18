@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import type { ShopProduct } from '#shared/contracts/catalog'
 import {
   breadcrumbJsonLd,
   listingCanonicalUrl,
@@ -7,16 +6,13 @@ import {
   serializeJsonLd,
 } from '#shared/seo'
 
-const product: ShopProduct = {
-  id: '0123456789abcdef0123456789abcdef',
+const product = {
   name: 'Wallbox Test 11',
+  description: 'Wallbox Test 11. WP-11; 11 kW; Type 2.',
   priceCents: 1999,
   image: { url: '/shop/wallbox-test-11-1600.jpg', alt: 'Wallbox Test 11' },
   inStock: true,
-  stock: 4,
-  slug: 'wallbox-test-11',
-  customFields: { powerKw: 11 },
-}
+} satisfies Parameters<typeof productJsonLd>[0]
 
 describe('product JSON-LD', () => {
   it('builds an exact schema.org Product with decimal euro pricing', () => {
@@ -24,6 +20,7 @@ describe('product JSON-LD', () => {
       '@context': 'https://schema.org',
       '@type': 'Product',
       name: 'Wallbox Test 11',
+      description: 'Wallbox Test 11. WP-11; 11 kW; Type 2.',
       image: 'https://shop.example/shop/wallbox-test-11-1600.jpg',
       url: 'https://shop.example/shop/wallbox-test-11',
       offers: {
@@ -37,7 +34,7 @@ describe('product JSON-LD', () => {
   })
 
   it('maps unavailable products to schema.org OutOfStock', () => {
-    const jsonLd = productJsonLd({ ...product, inStock: false, stock: 0 }, 'https://shop.example/shop/wallbox-test-11')
+    const jsonLd = productJsonLd({ ...product, inStock: false }, 'https://shop.example/shop/wallbox-test-11')
 
     expect(jsonLd.offers.availability).toBe('https://schema.org/OutOfStock')
   })

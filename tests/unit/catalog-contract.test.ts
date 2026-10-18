@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   catalogProductSchema,
   mapProductListing,
+  shopListingSchema,
+  shopProductSchema,
   shopListingQuerySchema,
   storeApiProductListingSchema,
   storeApiProductSchema,
@@ -19,25 +21,27 @@ const validProduct = {
   id: idA,
   productNumber: 'SW-14573',
   name: 'AC/DC Wallbox Pro',
+  translated: { name: 'AC/DC Wallbox Pro', description: 'AC/DC Wallbox Pro. 22 kW; Typ 2.' },
   available: true,
   availableStock: 3,
   calculatedPrice: { apiAlias: 'calculated_price', unitPrice: 49999, totalPrice: 49999, quantity: 1 },
-  cover: { id: idB, mediaId: idC, productId: idA, media: { id: idC, url: 'https://cdn.example/media/thumbnail/box.jpg', alt: 'Wallbox' } },
+  cover: { id: idB, mediaId: idC, productId: idA, media: { id: idC, url: 'https://cdn.example/media/thumbnail/box.jpg', alt: 'Wallbox', metaData: { width: 1600, height: 1200 } } },
   seoUrls: [
     { id: idB, routeName: 'product', pathInfo: 'a1b2', seoPathInfo: '/catalog/ac-dc-wallbox-pro' },
   ],
-  customFields: { bundleCode: 'WBX-PRO' },
+  customFields: { bundleCode: 'WBX-PRO', maxPowerKw: 22, connectorType: 'type2' as const },
 }
 
 const validListing = {
   total: 2,
   page: 1,
   limit: 24,
+  sorting: 'name-asc' as const,
   apiAlias: 'product_listing',
   elements: [validProduct, { ...validProduct, id: idD, productNumber: 'SW-20007', name: 'Wallbox Lite', availableStock: 1 }],
   availableSortings: [{ key: 'name-asc', label: 'Name A-Z' }],
   currentFilters: { manufacturer: [], price: { min: 0, max: 0 }, properties: [], rating: null, 'shipping-free': false },
-  aggregations: [],
+  aggregations: { maxPowerKw: { min: 22, max: 22 }, connectorType: [{ key: 'type2' as const, count: 2 }] },
 }
 
 describe('store-api catalog response contract', () => {
@@ -102,7 +106,7 @@ describe('catalog contract mapping', () => {
       inStock: true,
       stock: 3,
       slug: '/catalog/ac-dc-wallbox-pro',
-      customFields: { bundleCode: 'WBX-PRO' },
+      customFields: validProduct.customFields,
     })
   })
 
@@ -162,15 +166,20 @@ describe('shop response mapping', () => {
     expect(toShopProduct({ ...validProduct, calculatedPrice: { unitPrice: 499.99 } })).toEqual({
       id: idA,
       name: 'AC/DC Wallbox Pro',
+      description: validProduct.translated.description,
       priceCents: 49999,
       image: {
         url: 'https://cdn.example/media/thumbnail/box.jpg',
-        alt: 'AC/DC Wallbox Pro',
+        alt: 'Wallbox',
+        width: 1600,
+        height: 1200,
       },
       inStock: true,
       stock: 3,
       slug: '/catalog/ac-dc-wallbox-pro',
-      customFields: { bundleCode: 'WBX-PRO' },
+      maxPowerKw: 22,
+      connectorType: 'type2',
+      customFields: { bundleCode: 'WBX-PRO', maxPowerKw: 22, powerKw: 22, connectorType: 'Typ 2' },
     })
   })
 
@@ -180,7 +189,79 @@ describe('shop response mapping', () => {
       total: 2,
       page: 1,
       limit: 24,
+      sorting: 'name-asc',
+      aggregations: listing.aggregations,
       items: [toShopProduct(listing.elements[0])],
     })
+  })
+})
+
+describe('reopened WP-02 required fields and typed metadata', () => {
+  it.each([
+    { translated: undefined },
+    { translated: { name: '', description: 'Description' } },
+    { translated: { name: 'Name', description: '' } },
+    { translated: { name: 'Name', description: '<p>Not plain text</p>' } },
+    { cover: undefined },
+    { cover: { media: { url: '/image.jpg', alt: 'Image', metaData: { width: 0, height: 100 } } } },
+    { cover: { media: { url: '/image.jpg', alt: '', metaData: { width: 100, height: 100 } } } },
+    { cover: { media: { url: '/image.jpg', alt: 'Image' } } },
+    { calculatedPrice: { unitPrice: '19.99' } },
+    { calculatedPrice: { unitPrice: -1 } },
+    { calculatedPrice: { unitPrice: Number.NaN } },
+    { calculatedPrice: { unitPrice: Number.POSITIVE_INFINITY } },
+    { availableStock: -1 },
+    { customFields: { maxPowerKw: 11, connectorType: 'unknown' } },
+    { customFields: { maxPowerKw: -1, connectorType: 'type2' } },
+    { customFields: {} },
+  ])('rejects required-field drift %#', (patch) => {
+    expect(storeApiProductSchema.safeParse({ ...validProduct, ...patch }).success).toBe(false)
+  })
+
+  it.each(['type1', 'type2', 'ccs', 'card', 'cee', 'schuko', 'mixed', null] as const)('faithfully maps connector %s', (connectorType) => {
+    const raw = storeApiProductSchema.parse({ ...validProduct, customFields: { maxPowerKw: null, connectorType } })
+    const mapped = toShopProduct(raw)
+    expect(mapped.connectorType).toBe(connectorType)
+    expect(mapped.maxPowerKw).toBeNull()
+    expect(shopProductSchema.safeParse(mapped).success).toBe(true)
+  })
+
+  it('uses translated fields and real image metadata rather than top-level fallback text', () => {
+    const raw = storeApiProductSchema.parse({ ...validProduct, name: 'Untranslated fallback' })
+    expect(toShopProduct(raw)).toMatchObject({
+      name: validProduct.translated.name,
+      description: validProduct.translated.description,
+      image: { alt: 'Wallbox', width: 1600, height: 1200 },
+    })
+    expect(toCatalogProduct(raw).name).toBe(validProduct.translated.name)
+  })
+
+  it.each([[19.99, 1999], [0.1 + 0.2, 30]])('rounds %s euros to %s integer cents', (unitPrice, cents) => {
+    expect(toShopProduct(storeApiProductSchema.parse({ ...validProduct, calculatedPrice: { unitPrice } })).priceCents).toBe(cents)
+  })
+
+  it.each([
+    { sorting: undefined },
+    { sorting: 'unknown' },
+    { aggregations: undefined },
+    { aggregations: { maxPowerKw: { min: 22, max: 11 }, connectorType: [] } },
+    { aggregations: { maxPowerKw: { min: null, max: 11 }, connectorType: [] } },
+    { aggregations: { maxPowerKw: { min: 0, max: 22 }, connectorType: [{ key: 'unknown', count: 1 }] } },
+    { aggregations: { maxPowerKw: { min: 0, max: 22 }, connectorType: [{ key: 'type2', count: -1 }] } },
+  ])('rejects listing metadata drift %#', (patch) => {
+    expect(storeApiProductListingSchema.safeParse({ ...validListing, ...patch }).success).toBe(false)
+  })
+
+  it('maps a no-power empty listing with null range and no connector buckets', () => {
+    const raw = storeApiProductListingSchema.parse({ ...validListing, elements: [], total: 0, aggregations: { maxPowerKw: { min: null, max: null }, connectorType: [] } })
+    expect(shopListingSchema.parse(toShopListing(raw))).toMatchObject({ sorting: 'name-asc', aggregations: raw.aggregations, items: [] })
+  })
+
+  it('does not mutate parsed inputs or broaden the public query options', () => {
+    const raw = storeApiProductListingSchema.parse(validListing)
+    const before = structuredClone(raw)
+    toShopListing(raw)
+    expect(raw).toEqual(before)
+    expect(shopListingQuerySchema.safeParse({ connector: 'type1' }).success).toBe(false)
   })
 })

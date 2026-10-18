@@ -11,6 +11,7 @@ const registerVitalsOnce = (register: () => void) => {
 <script setup lang="ts">
 import { onCLS, onFCP, onINP, onLCP, onTTFB, type MetricWithAttribution } from 'web-vitals/attribution'
 import type { VitalsBeacon } from '#shared/contracts/vitals'
+import { sendShopTelemetry } from '../utils/shop-telemetry-transport'
 
 const route = useRoute()
 
@@ -36,15 +37,7 @@ registerVitalsOnce(() => {
       ...(target ? { attribution: { target } } : {}),
     }
     const body = JSON.stringify(payload)
-
-    if (navigator.sendBeacon('/api/vitals', body)) return
-    void fetch('/api/vitals', {
-      method: 'POST',
-      body,
-      headers: { 'content-type': 'text/plain' },
-      keepalive: true,
-      credentials: 'omit',
-    }).catch(() => undefined)
+    sendShopTelemetry('/api/vitals', body)
   }
 
   onLCP(report)
