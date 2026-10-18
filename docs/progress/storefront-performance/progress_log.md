@@ -1,11 +1,12 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-21 Done (human-accepted); WP-23 Review; WP-22 Blocked on combined client-JS budgets and a bounded scope decision
-Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-21, WP-26
-Next step: approve a bounded WP-22 client-byte optimization scope, then rerun combined budget and full check; human review of WP-23
+Current step: WP-23 Done (human-accepted); WP-24 starting independently; WP-22 Blocked on combined client-JS budgets and a bounded scope decision
+Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-21, WP-23, WP-26
+Next step: WP-24 filter-responsiveness experiment from accepted `8c2bc38`; WP-22 source-scope approval remains pending
 
 ## Decisions
+- 2026-10-18: Human accepted WP-23 at pushed commit `8c2bc38` as a measured-and-reverted experiment, with no candidate TBT/INP gain claimed. WP-24 may start independently from that accepted cache-off baseline; the unaccepted WP-22 integration is excluded so its known JS-budget blocker does not contaminate the WP-24 experiment. This acceptance does not authorize the separately requested WP-22 source-scope expansion.
 - 2026-10-18: Human accepted WP-21 at integrated and pushed commit `48b9714`.
 - 2026-10-18: Human explicitly approved extending WP-22 to `scripts/rum-sample.mjs`: require the correct query and a successful API or Nuxt cached-payload response, with a failing-before/passing-after cache-on run. Existing telemetry-delivery verification must remain intact.
 - 2026-10-18: Human explicitly approved WP-22 extending `tests/e2e/shop-listing.spec.ts`: accept the API or query-aware Nuxt payload transport while verifying the complete sorted result. A cache-on diagnostic showed all 12 prices correctly descending; the old API-only wait was incompatible with Nuxt's cached-route payload loading.
@@ -767,7 +768,7 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
 - WP-04: `legacy-php/` remains intentionally unchanged; it is the never-executed twin called
   out by the package and does not expose the new Store API routes.
 
-## WP-23 — Lazy hydration (Review; 2026-10-18)
+## WP-23 — Lazy hydration (Done; human-accepted 2026-10-18)
 - Worktree: `codex/wp23-lazy-hydration` at `352625e`. Installed Nuxt is `4.6.1`; delayed
   hydration is supported since Nuxt `3.16` via lazy components and `hydrate-on-visible`.
 - Baseline route-budget check passed before implementation (`ROUTE_BUDGET_LEGACY_PORT=18089
@@ -801,4 +802,4 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
   or lockfiles changed; no push.
 - Integration: local source commit `fa5420d` was integrated and pushed as `8c2bc38`.
   [GitHub Actions run 39081123755](https://github.com/GerritHoskins/charge-portal/actions/runs/39081123755)
-  passed on the combined WP-21/WP-23 state. Human acceptance of WP-23 remains pending.
+  passed on the combined WP-21/WP-23 state. Human accepted WP-23 at `8c2bc38` on 2026-10-18.
