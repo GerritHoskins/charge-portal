@@ -1,11 +1,13 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-25 CI follow-up Review; ae5d7b2 accepted by human, remaining dev-only duplicate-style correction verified locally
+Current step: WP-25 diagnostic-only CI follow-up In progress; accepted 7d8374b still fails Linux development comparison
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-21, WP-22, WP-23, WP-24, WP-25a, WP-25b, WP-25c, WP-25d, WP-26
-Next step: Verify pushed Linux CI and obtain human acceptance of the small test-only follow-up before WP-27 final documentation
+Next step: Capture sanitized distinct-style evidence in one diagnostic CI run; no comparator/product fix is authorized; WP-27 remains pending
 
 ## Decisions
+- 2026-10-18: Human approved a bounded diagnostic-only follow-up after run `39143904373` failed again. Editable files are only the existing compression E2E and this log. Add sanitized details of distinct framework development stylesheet tags to the existing failure output, run local checks, commit/push and inspect one new CI run. No product/comparator acceptance/budget/threshold changes; any further fix needs a separate bounded decision. Existing correction retry limit is exhausted and is not reset by this diagnostic approval.
+- 2026-10-18: Human accepted the test-only WP-25 follow-up at pushed `7d8374b`. Local full and production checks passed as recorded below. GitHub run `39143904373` / job `117723730551` is live and still in its full-check step, not a presumed pass. The acceptance explicitly requires new CI to pass before WP-27 starts. Product/config source remains byte-identical to accepted WP-25d (`git diff --exit-code 5742ba1 HEAD -- app server shared nuxt.config.ts lighthouserc.cjs lighthouserc.shop.cjs scripts/route-budgets.json` exited 0).
 - 2026-10-18: Human accepted WP-25 at pushed `ae5d7b2`, including the bounded development-only compression-test correction. GitHub run `39143289237` then showed a remaining development-only duplicate Nuxt error-style case (330 unit and 196/197 browser tests passed; build/Lighthouse not reached). Acceptance is preserved for that reviewed checkpoint, not treated as permission to ignore CI failure. Continue only the already approved compression test/log follow-up; WP-27 remains unstarted until no new CI blocker remains.
 - 2026-10-18: Human explicitly said "2.50-2.60 is ok. mark as completed" after seeing the filtered listing above 2.50 seconds. Accept 2600 ms only for `/shop/c/wallboxes?connector=ccs`, retaining 2500 ms for listing/product/cart and all other thresholds. All twenty saved audits are reasserted without recollection or selective removal; every URL matches one matrix entry and all twenty assertions pass. Human acceptance completes WP-25d, not the still-unwired WP-25 step 5 or WP-27.
 - 2026-10-18: Human explicitly said "128.045 KB is ok. mark it completed" after the aggregate was reverted for exceeding 128 KB. Accept only the product route's 128.045 KB allowance and restore the same candidate; all other budgets and hard Lighthouse thresholds remain unchanged. This overrides the size rejection, not the requirement to run correctness/performance checks; do not claim unrun checks passed.
@@ -854,9 +856,18 @@ Next step: Verify pushed Linux CI and obtain human acceptance of the small test-
 | 2026-10-18 | 5742ba1 + CI/docs dirty | /shop/ladekabel-typ-1-10-m | same fresh twenty-audit cohort | 5, representative | 2481.306 ms | 0 | 25 ms | n/a | n/a | n/a | Perf 0.96; SI 2030.255 ms; transfer 186471 B; range 2479.716–2635.528 ms; HTML 20206/4626 B; not JS-budget product |
 | 2026-10-18 | 5742ba1 + CI/docs dirty | /shop/cart | same fresh twenty-audit cohort | 5, representative | 2405.499 ms | 0 | 8 ms | n/a | 121.549 KB | n/a | Perf 0.96; SI 2029.582 ms; transfer 134106 B; range 2103.506–2407.812 ms; HTML 6815/2680 B; all twenty a11y 1 and CLS 0; DE locale 4065/4317 B for each representative |
 
+| 2026-10-18 | 7d8374b, product source unchanged | /portal/stations | `LIGHTHOUSE_LEGACY_PORT=18090 npm run lighthouse` | 3, representative | 2259.456 ms | 0 | 28.924 ms | n/a | 117.657 KB | n/a | WP-25 CI integration verification; exit 0; perf 0.97; a11y 1; LCP range 2256.607–2306.095 ms; not a new optimization |
+| 2026-10-18 | 7d8374b, product source unchanged | /portal/sessions | same twelve-audit portal cohort | 3, representative | 2410.710 ms | 0 | 57.161 ms | n/a | 117.657 KB | n/a | Perf 0.96; a11y 1; LCP range 2256.525–2410.912 ms |
+| 2026-10-18 | 7d8374b, product source unchanged | /portal/invoices | same twelve-audit portal cohort | 3, representative | 2367.252 ms | 0 | 70.500 ms | n/a | 120.426 KB | n/a | Perf 0.96; a11y 1; LCP range 2256.101–2367.252 ms; one non-selected run CLS 0.000578400, not all twelve runs zero |
+| 2026-10-18 | 7d8374b, product source unchanged | /portal/invoices/inv-0042/dispute | same twelve-audit portal cohort | 3, representative | 2260.485 ms | 0 | 33.253 ms | n/a | 120.426 KB | n/a | Perf 0.97; a11y 1; LCP range 2259.356–2317.324 ms; 12 JSON + 12 HTML + manifest/assertion results preserved in unstaged `.lighthouseci-wp25-ci-portal-final/` |
+
 Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) reports of the 2026-10-17 runs; TTFB is the `server-response-time` audit on the local warm server (no cold/warm split yet); all numbers lab (mobile emulation, simulated throttling). Later rows explicitly marked representative use LHCI's selected median run, not independent per-metric medians.
 
 ## Open questions
+- WP-25 CI: accepted `7d8374b` still fails Linux only on distinct Nuxt development error-style
+  tags (run `39143904373`, 196/197 browser tests passed). Corrective retry limit exhausted;
+  do not broaden comparison again. Human approved diagnostic-only failure details in the
+  existing test/log, one CI run, then a separate bounded fix decision. WP-27 is unstarted.
 - WP-25a: Done; human accepted `2f0c200` as a measured-and-reverted experiment. Retained
   auth/product regressions passed the final full check and two production regressions.
   The failed candidate's compiler removal/JS reduction is not a retained benefit.
@@ -1642,3 +1653,43 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
   `ae5d7b2` on `codex/storefront-complete`. Parent diff/whitespace review passed. Commit/push
   is authorized, but remote CI and human acceptance of this new follow-up are not presumed.
   WP-27 stays unstarted until that checkpoint is clear; no broader implementation is added.
+
+## WP-25 — bounded diagnostic-only CI follow-up (In progress; 2026-10-18)
+- Human accepted `7d8374b`; GitHub run `39143904373` / job `117723730551` nevertheless
+  completed failure: 330 unit tests and 196/197 browser tests passed; the English raw-wire
+  guest/session comparison found **two distinct full Nuxt error-style tags**. The new Set
+  guard rejected them as designed. Build/budgets/Lighthouse were not reached. No raw tag
+  identities are in the existing failure output, so the precise distinction is unproven.
+- Stop the affected correction: do not broaden normalization or run another speculative
+  fix. Actual independent advice required identical full tags and absent scope markers;
+  current CI violates the identity condition. The original two correction attempts and
+  advice/results remain above; all local production checks still passed on retained source.
+- Human then approved diagnostic output only. Goal: determine whether distinct framework
+  tags differ by source alias or scope, without accepting either case. Scope: existing
+  `tests/e2e/shop-compression.spec.ts` and this log; no product/config/threshold/dependency
+  edit. Preserve exact production bytes/304 and every comparator acceptance assertion.
+- Added a diagnostic regression first: distinct source prefixes must still reject, but
+  the thrown message must show source-1/source-2 and the framework component while omitting
+  raw checkout prefixes. Wait for the owned portal Lighthouse session before running it.
+  Verification: focused fixture RED then GREEN, full local check, one pushed Linux CI run;
+  inspect the sanitized failure and hand off findings before any further implementation.
+- Diagnostic fixture RED: expected `source-1`, old failure message contained only the two-
+  tag count (exit 1). After adding only message metadata, all five focused compression tests
+  passed (exit 0). The Set size threshold, exact full-tag comparison, absent-scope guard,
+  other styles/HTML, conditional handling and production byte branch are unchanged.
+- While awaiting CI, the independent local portal integration gate
+  `LIGHTHOUSE_LEGACY_PORT=18090 npm run lighthouse` passed (exit 0): all 12 audits, all
+  four assertion groups, accessibility 1 for all runs. Selected CLS is zero on all four;
+  one non-selected invoices run has CLS 0.000578400. Representative metrics/spreads are in
+  the table above; 26 report/manifest/assertion files preserved in the unstaged portal archive.
+  This checks the workflow's unchanged portal gate, not the still-failing Linux shop test.
+- Independent GPT-6 Luna high read-only review approved the diagnostic: document labels,
+  source aliases and stable framework path/query/scope suffix expose the distinction while
+  raw checkout prefixes are omitted. Comparator acceptance/removal, production byte branch
+  and conditional-304 logic are unchanged. No further corrective approach was implemented.
+- Diagnostic-source `E2E_LEGACY_PORT=18090 ROUTE_BUDGET_LEGACY_PORT=18090 npm run check`
+  passed (exit 0): 330 unit tests, 197 browser tests, build, lint/types/tokens/inventory/
+  coverage and all seven budgets. No new performance improvement or Linux fix is claimed.
+  Final diff is only the existing compression E2E and this log, based on `7d8374b`;
+  previous archives and unrelated primary checkout edits are preserved. Parent will push
+  the authorized diagnostic checkpoint and inspect exactly one new CI run before any fix.

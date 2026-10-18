@@ -65,16 +65,26 @@ const expectSameHtml = (actual: Buffer, expected: Buffer) => {
   const globals = /<link rel="stylesheet" href="\/_nuxt\/assets\/css\/(?:tokens|base)\.css" crossorigin>/g
   const unusedErrorStyle = /<link rel="stylesheet" href="\/_nuxt\/[^"?]*\/node_modules\/nuxt\/dist\/app\/components\/error-500\.vue\?vue&type=style&index=0&scoped=([a-f0-9]{8})&lang\.css" crossorigin>/g
   const errorStyleTags = new Set<string>()
-  const texts = [actual, expected].map(body => {
+  const sourceLabels = new Map<string, string>()
+  const errorStyleDetails: { document: string, tags: string[] }[] = []
+  const texts = [actual, expected].map((body, index) => {
     const text = body.toString('utf8')
     const errorStyles = [...text.matchAll(unusedErrorStyle)]
+    errorStyleDetails.push({ document: index === 0 ? 'actual' : 'expected', tags: errorStyles.map((match) => {
+      const href = match[0].match(/href="([^"]+)"/)![1]!
+      const dependencyIndex = href.indexOf('/node_modules/')
+      const sourcePrefix = href.slice(0, dependencyIndex)
+      const label = sourceLabels.get(sourcePrefix) ?? `source-${sourceLabels.size + 1}`
+      sourceLabels.set(sourcePrefix, label)
+      return match[0].replace(href, `[${label}]${href.slice(dependencyIndex)}`)
+    }) })
     for (const match of errorStyles) {
       errorStyleTags.add(match[0])
       expect(text).not.toContain(`data-v-${match[1]}`)
     }
     return text.replace(unusedErrorStyle, '')
   })
-  expect(errorStyleTags.size).toBeLessThanOrEqual(1)
+  expect(errorStyleTags.size, `Distinct Nuxt development error styles (checkout prefixes redacted): ${JSON.stringify(errorStyleDetails)}`).toBeLessThanOrEqual(1)
   expect((texts[0]!.match(vueStyles) ?? []).sort()).toEqual((texts[1]!.match(vueStyles) ?? []).sort())
   for (const text of texts) {
     expect((text.match(globals) ?? []).sort()).toEqual([
@@ -148,7 +158,17 @@ test('HTML comparison only normalizes an unused Nuxt development error styleshee
   expectSameHtml(fixture(errorStyle.repeat(3)), fixture(errorStyle))
   expect(() => expectSameHtml(fixture(errorStyle + errorStyle.replace('347e4e05', '347e4e06')), fixture())).toThrow()
   expect(() => expectSameHtml(fixture(errorStyle), fixture(errorStyle.replace('347e4e05', '347e4e06')))).toThrow()
-  expect(() => expectSameHtml(fixture(errorStyle), fixture(errorStyle.replace('/home/runner/', '/other/runner/')))).toThrow()
+  let diagnostic = ''
+  try {
+    expectSameHtml(fixture(errorStyle), fixture(errorStyle.replace('/home/runner/', '/other/runner/')))
+  } catch (error) {
+    diagnostic = String(error)
+  }
+  expect(diagnostic).toContain('source-1')
+  expect(diagnostic).toContain('source-2')
+  expect(diagnostic).toContain('error-500.vue')
+  expect(diagnostic).not.toContain('/home/runner/')
+  expect(diagnostic).not.toContain('/other/runner/')
   const activeError = '<main data-v-347e4e05>synthetic storefront</main>'
   expect(() => expectSameHtml(fixture(errorStyle, activeError), fixture('', activeError))).toThrow()
   expect(() => expectSameHtml(
