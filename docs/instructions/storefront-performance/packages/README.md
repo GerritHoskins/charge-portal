@@ -63,6 +63,7 @@ Unmet dependencies stay pending. Load only the selected package and prerequisite
 | 24 | [Opt: filter INP](WP-24-opt-filter-inp.md) | 19, 23 | model | optimize, measure |
 | 25 | [Opt: payload + error gates + CI](WP-25-opt-payload-and-gates.md) | 20–24 | model | optimize, CI |
 | 25a | [Experiment: precompiled translations](WP-25a-opt-i18n-bundle.md) | 20–24, retained 25 checkpoint | model, human review | optimize, measure |
+| 25b | [Experiment: compact production translations](WP-25b-opt-production-i18n.md) | accepted 25a, retained 25 checkpoint | model, human review | optimize, measure |
 | 26 | [SEO basics](WP-26-seo.md) | 11 | model | code + unit + E2E |
 | 27 | [ADR 0008 and README](WP-27-docs.md) | all | model, human review | docs |
 

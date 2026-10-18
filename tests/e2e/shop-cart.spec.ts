@@ -147,6 +147,13 @@ test.describe('client-side shop cart', () => {
     await expect(page.getByRole('link', { name: /Warenkorb.*3 Artikel/ })).toBeVisible()
     await expect(page.getByText(expectedTotal, { exact: true })).toBeVisible()
 
+    await page.getByLabel('Sprache').selectOption('en')
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+    await expect(page.getByRole('link', { name: 'Cart (3 items)' })).toBeVisible()
+    await page.getByLabel('Language').selectOption('de')
+    await expect(page.locator('html')).toHaveAttribute('lang', 'de')
+    await expect(page.getByRole('link', { name: /Warenkorb.*3 Artikel/ })).toBeVisible()
+
     const results = await new AxeBuilder({ page }).withTags(WCAG).analyze()
     expect(results.violations).toEqual([])
 

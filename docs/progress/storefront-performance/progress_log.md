@@ -1,11 +1,14 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-25a Review as a measured-and-reverted experiment; WP-25 remains Blocked at its hard LCP gate
-Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-21, WP-22, WP-23, WP-24, WP-26
-Next step: Human review/acceptance of WP-25a and a new bounded optimization decision; no further attempt is authorized. WP-25 CI wiring and WP-27 remain pending
+Current step: WP-25b Review; measured-and-reverted experiment, final retained checks passed
+Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-21, WP-22, WP-23, WP-24, WP-25a, WP-26
+Next step: Human acceptance of WP-25b, then a separately bounded LCP investigation before any new optimization. WP-25 CI wiring and WP-27 remain pending the unresolved hard gate
 
 ## Decisions
+- 2026-10-18: WP-25b completed all 20 unchanged hard Lighthouse audits and exited 1 on three LCP selections (3010.556/2709.352/2781.176 ms); cart passed at 2405.685 ms. Primary independently parsed 20 JSON reports and the 41-file backup `.lighthouseci-shop-wp25b-final/`. Locale transfer grew 4317 to 9095 B and total transfer grew 812 B on every representative despite smaller JS. Per approval the failed candidate was fully reverted. Retained full check and production cart regression passed; no new optimization, threshold change or CI wiring. Await human acceptance.
+- 2026-10-18: Accepted WP-25a checkpoint `2f0c200` GitHub Actions run `39126688049` completed successfully (full check and portal Lighthouse). This does not include the still-unwired shop hard gate.
+- 2026-10-18: Human accepted WP-25a at pushed `2f0c200` as measured-and-reverted and separately approved WP-25b: installed production-mode JSON/JIT generator, compact ASTs, versioned internal message URLs to avoid old raw-response cache reuse, same config/verifier/existing auth-product-cart tests/package-index-progress scope. No dependency, contract or threshold changes; production correctness and all hard gates must be measured and failed optimization reverted. This supersedes WP-25a's pending review/new-attempt questions, not WP-25's unresolved LCP gate.
 - 2026-10-18: WP-25a final candidate passed correctness checks and reduced initial JS, but `lighthouse:shop` exited 1 after all 20 audits: all four median-run LCP selections failed (3167.556/3009.684/3082.353/2856.573 ms). Per explicit approval, configuration and experimental verifier were reverted; only valid locale E2E regressions remain. Primary review verified 20 reports/41 files in `.lighthouseci-shop-wp25a-final/`. Actual DE locale transfer grew from 4317 B to 56003 B and total route transfer grew 47662 B on every representative; smaller JS did not establish a faster page. No thresholds were relaxed and no further optimization was implemented.
 - 2026-10-18: Human explicitly approved one final WP-25a integration attempt after the two registration failures: use Nitro's supported final Rollup hook to replace only its generic JSON plugin with the already installed equivalent excluding exactly `de.json`/`en.json`. Same approved config/verifier/tests/docs; no dependency/threshold changes. Record build-plugin-name/API and transitive dependency coupling; revert if production checks or measurements fail. No further variant is authorized by this decision.
 - 2026-10-18: WP-25a registration corrections failed with actual exits 1: the exposed i18n `.rollup()` adapter rejects frameworks other than Vite/Webpack; the `.vite()` adapter precompiles JSON but Nitro's later generic JSON parser then rejects the generated `const resource...` JavaScript. Both were stopped, configuration/checker removed, and retained-source verification started before requesting the separate final-attempt decision.
@@ -826,21 +829,26 @@ Next step: Human review/acceptance of WP-25a and a new bounded optimization deci
 | 2026-10-18 | abad194 + WP-25a candidate dirty (REVERTED) | /shop/cart | `LIGHTHOUSE_LEGACY_PORT=18090 npm run lighthouse:shop` | 5, representative | 2856.573 ms | 0 | 37.905 ms | n/a | 116.432 KB | n/a | Exit 1; LCP fails; range 2705.532–2856.753 ms; perf 0.94; a11y 1.00; transfer 184772 B; candidate reverted |
 | 2026-10-18 | abad194 + WP-25a candidate dirty (REVERTED) | /shop/wallbox-home-7-4 | `npm run check` / route budget | 1 build | n/a | n/a | n/a | n/a | 122.991 KB | n/a | Candidate correctness/build/all caps passed; baseline product JS 127.640 KB; reverted after lab LCP regression, not retained gain |
 
+| 2026-10-18 | 2f0c200 + WP-25b candidate dirty (REVERTED) | /shop/c/wallboxes | `LIGHTHOUSE_LEGACY_PORT=18090 npm run lighthouse:shop` | 5, representative | 3010.556 ms | 0 | 0 ms | n/a | 120.506 KB | n/a | Exit 1; LCP fails; range 2710.199–3013.752 ms; perf 0.92; a11y 1.00; transfer 204481 B; not retained benefit |
+| 2026-10-18 | 2f0c200 + WP-25b candidate dirty (REVERTED) | /shop/c/wallboxes?connector=ccs | `LIGHTHOUSE_LEGACY_PORT=18090 npm run lighthouse:shop` | 5, representative | 2709.352 ms | 0 | 30 ms | n/a | n/a | n/a | Exit 1; LCP fails; range 2705.472–2859.476 ms; perf 0.94; a11y 1.00; transfer 163343 B |
+| 2026-10-18 | 2f0c200 + WP-25b candidate dirty (REVERTED) | /shop/ladekabel-typ-1-10-m | `LIGHTHOUSE_LEGACY_PORT=18090 npm run lighthouse:shop` | 5, representative | 2781.176 ms | 0 | 0 ms | n/a | n/a | n/a | Exit 1; LCP fails; range 2779.685–2933.548 ms; perf 0.93; a11y 1.00; transfer 201867 B; ranges overlap baseline |
+| 2026-10-18 | 2f0c200 + WP-25b candidate dirty (REVERTED) | /shop/cart | `LIGHTHOUSE_LEGACY_PORT=18090 npm run lighthouse:shop` | 5, representative | 2405.685 ms | 0 | 12.053 ms | n/a | 116.450 KB | n/a | Cart assertions pass; whole command exit 1; range 2255.301–2410.854 ms; perf 0.96; a11y 1.00; transfer 137922 B |
+| 2026-10-18 | 2f0c200 + WP-25b candidate dirty (REVERTED) | /shop/wallbox-home-7-4 | `npm run check` / route budget | 1 build | n/a | n/a | n/a | n/a | 123.010 KB | n/a | Candidate full check/build/all caps passed; baseline product JS 127.640 KB; hard LCP gate still failed |
+
 Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) reports of the 2026-10-17 runs; TTFB is the `server-response-time` audit on the local warm server (no cold/warm split yet); all numbers lab (mobile emulation, simulated throttling). Later rows explicitly marked representative use LHCI's selected median run, not independent per-metric medians.
 
 ## Open questions
-- WP-25a: candidate was measured and reverted after all four hard LCP selections failed.
-  Retained auth/product locale regressions pass the final full check (289 unit, 190 browser,
-  build and seven caps) and final reverted-production confirmation (2/2, exit 0).
-  Human review/acceptance and a separate optimization decision are pending; no new attempt
-  is authorized by the completed final-attempt approval.
-- Potential follow-up (not approved or implemented): the installed `@intlify/bundle-utils`
-  exports `generateJSON` with production JIT options, which omit development location metadata.
-  A real exact-file Rollup transform could replace the Vite-only lifecycle/adapter and its
-  type assertion. This remains version-coupled (`CodeGenOptions` is annotated internal),
-  requires compact-AST/translation/runtime/unchanged-gate proof, and is not a promised LCP fix.
-  Any raw-to-AST format change must also avoid reusing old browser-cached raw locale responses;
-  `serverRoutePrefix` is a documented i18n configuration point for versioned message URLs.
+- WP-25a: Done; human accepted `2f0c200` as a measured-and-reverted experiment. Retained
+  auth/product regressions passed the final full check and two production regressions.
+  The failed candidate's compiler removal/JS reduction is not a retained benefit.
+- WP-25b: Review, fully reverted after the measured hard LCP failure. Compact AST production
+  delivery, client compiler removal, versioned URL isolation and correctness checks passed,
+  but three route selections still exceed 2500 ms. No warm-browser cache-upgrade test was
+  performed; browser URL isolation was verified. The internal-annotated generator/plugin
+  coupling and format-versioned endpoint candidate will not be retained after failure.
+  Final retained-source verification passed; human acceptance remains required. The next
+  bounded step should investigate simulated/observed LCP differences before another code
+  experiment; no further optimization scope is approved by this handoff.
 - WP-22: Done; human accepted `60fd260` on 2026-10-18 and its GitHub Actions run passed.
 - WP-24: Done; human accepted `85f7c73` on 2026-10-18. Test-first request coalescing and router/busy
   candidates were measured then reverted because synthetic RUM did not establish a filter-INP
@@ -1032,7 +1040,9 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
   Stop per step 4: no further optimization was implemented, no thresholds were loosened,
   and `.github/workflows/ci.yml` is unchanged. WP-25 is not Review/Done; WP-27 is pending.
 
-## WP-25a — Precompiled translation experiment (Review; measured and reverted; 2026-10-18)
+## WP-25a — Precompiled translation experiment (Done; measured and reverted; 2026-10-18)
+- Human accepted the pushed `2f0c200` handoff and separately approved WP-25b. The original
+  WP-25 hard gate is not accepted as passing by this experimental acceptance.
 - Base `abad194`, branch `codex/storefront-complete`. Actual human approved the experiment
   and later one final Nitro-integration attempt; decisions above record both boundaries.
 - Tests first: a fresh baseline build exited 0; the initial artifact checker exited 1 on
@@ -1098,7 +1108,7 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
   dependencies/lockfile, hard gates, cache implementation or CI. Final production checks
   against the reverted build passed 2/2, exit 0: SSR DE/EN roundtrip and product EN→DE
   formatting/no-refetch. Both owned app/legacy processes were stopped and assigned ports
-  are clear; no WP-25 CI wiring or WP-27 work started. Human acceptance is pending.
+  are clear; no WP-25 CI wiring or WP-27 work started. Human subsequently accepted `2f0c200`.
 - Exact retained-production command: with `E2E_APP_PORT=3000`, `E2E_LEGACY_PORT=18090` and
   `NUXT_LEGACY_ORIGIN=http://localhost:18090`, run `npx playwright test
   --config=.wp25a-locale-production.config.ts tests/e2e/auth.spec.ts
@@ -1112,5 +1122,156 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
   no remote upload occurred. Primary review independently parsed all 20 backed-up reports.
 - Final diff retains only auth/product locale tests, this progress evidence and approved
   package/index documentation. Candidate JS reductions and AST compiler removal are not
-  retained benefits; the three original WP-25 LCP misses remain. Review is for the reverted
+  retained benefits; the three original WP-25 LCP misses remain. Acceptance is for the reverted
   experiment and regressions, not acceptance of a passing performance optimization.
+
+## WP-25b — Compact production locale experiment (Review; measured and reverted; 2026-10-18)
+- Actual human accepted WP-25a at pushed `2f0c200` and approved this separate bounded
+  experiment. Branch `codex/storefront-complete`, base `2f0c200`; WP-25/27 remain incomplete.
+- Implementation and independent read-only review are delegated to fresh GPT-6 Luna high
+  subagents. One implementation agent holds the exclusive runtime/build lease; primary owns
+  documentation, integration, final evidence review and any authorized commit/push.
+- Tests first: fresh baseline `npm run build` exited 0. The artifact verifier on that untouched
+  output exited 1 on raw DE/EN `common.required` messages, absent versioned Nitro message route,
+  and eight source-proven scanner properties together in client chunk `DQFPaqzK.js`.
+  Production browser regression also failed as intended: actual request
+  `/_i18n/f744aa05/en/messages.json` did not match `/_i18n/compiled-v1/<hash>/en/messages.json`.
+- First candidate build failed because the generic JSON plugin normalizes Windows IDs to
+  forward slashes but the exact-file exclusion used native backslashes. Slash-normalizing
+  those two exact resolved paths corrected it: candidate `npm run build` exited 0.
+- Candidate verifier exited 0: 120 DE and 120 EN compact AST messages preserve exact values
+  and interpolation without `loc.source`; loaders/resources are distinct, Nitro uses the
+  versioned route, and all 33 nonempty client chunks lack the complete source-derived
+  compiler scanner property set. Self-tests reject missing/duplicate loaders, raw/malformed
+  ASTs, changed interpolation, empty chunks and an empty chunk list. This proves artifact
+  shape, not production behavior or speed. Retained baseline reports remain
+  `.lighthouseci-shop-wp25-after/`.
+- Focused production checks passed 3/3 (exit 0): SSR and DE/EN roundtrip with HTTP 200 compact
+  AST endpoints, product formatting/no-refetch, and cart count through both locales.
+  Actual endpoint envelopes are locale-keyed; assertions inspect the corresponding key.
+  UTF-8 response bodies are DE 8843 B and EN 8486 B (body bytes, not transfer bytes).
+  Independent read-only source review found no remaining config/verifier/E2E blocker.
+  Full check and hard Lighthouse measurements remain outstanding; no speed gain is claimed.
+- Strict typecheck caught an unnecessary generator source-map return type mismatch; the
+  transform now returns generated code only (maps are not propagated). Typecheck exited 0.
+  A default-sandbox EPERM writing this worktree's `.nuxt/schema` was resolved by approved
+  worktree execution, not by changing types, permissions or installed dependencies.
+- First full-check attempt passed lint/types/tokens/inventory and all 289 unit tests, then
+  exposed a dev-only locale transform conflict: `de.json?import` reached jsonc-eslint-parser
+  as generated `const` JavaScript, causing missing translations and browser timeouts.
+  The known-broken browser phase was interrupted (exit 1); it is not a completed browser
+  suite or full-check pass. Performance testing is paused while independent source review
+  checks ordering and the smallest in-scope integration correction.
+- Reviewer traced the conflict to installed Nuxt i18n already registering its own Vite
+  precompiler when `optimizeMessageBundling:false`. The targeted correction removes only
+  our duplicate Vite registration; the production-mode exact-file generator remains in
+  Nitro's final Rollup hook. Client compilation stays with the installed i18n integration.
+  Focused dev, production artifacts and full checks must prove this correction before
+  performance measurement; no additional optimization, dependency or threshold change is
+  authorized by it.
+- Focused development retry no longer had the duplicate JSON parser error but failed 3/3
+  on production-only HTTP URL waits. Development uses Vite locale modules; only the new
+  transport/AST assertions will be explicitly production-gated, not SSR/UI/axe assertions.
+  Raw-key hydration warnings were also observed and are not dismissed as assertion issues.
+- Cache audit found earlier WP-25b snapshots were copies, leaving active cached HTML behind.
+  After verifying owned ports stopped and the resolved path within `.nuxt/cache`, the exact
+  active `nitro` directory (105 files) was moved to unique recoverable sibling
+  `nitro-wp25b-postfocused-active-preserved-20261018`; no files were deleted.
+- Source review found i18n gates its runtime-only alias on production but applies the
+  compiler-drop option unconditionally. The bounded correction makes compiler removal
+  production-only too; the approved compact server build transform is unchanged. Fresh
+  dev and production checks must validate this hypothesis; no pass is inferred from it.
+- Corrected fresh-cache focused dev checks passed 3/3, exit 0 (25.3 s), without the previous
+  parser/raw-key/hydration failures. `dropMessageCompiler` now checks `NODE_ENV === 'production'`;
+  only transport/AST assertions require `E2E_ASSERT_COMPILED_I18N=1`. All existing SSR/UI/axe/
+  cart/no-refetch assertions remain unconditional. A fresh full check is starting, followed
+  by refreshed production verification and the unchanged hard performance gate if correct.
+- Corrected full `E2E_LEGACY_PORT=18090 ROUTE_BUDGET_LEGACY_PORT=18090 npm run check`
+  exited 0: lint/types/tokens/inventory, 289 unit tests, 190 browser tests, production build
+  and all seven unchanged route budgets. Initial gzip JS: stations/sessions 112.996 KB
+  (cap 119.5 each), invoices/dispute 115.765 KB (122.4 each), category 120.506 KB (126),
+  budget product `/shop/wallbox-home-7-4` 123.010 KB (128), cart 116.450 KB (123).
+  Aggregate JS is informational only; the seven per-route caps are the actual hard gates.
+  Non-fatal source-map/dependency warnings remain. Refreshed production verification and
+  all 20 hard Lighthouse audits are next; smaller JS alone is not an LCP improvement.
+- Refreshed production artifact verifier exited 0 again (120 messages per locale, 33 client
+  chunks). With `E2E_ASSERT_COMPILED_I18N=1`, focused production auth/product/cart passed 3/3,
+  exit 0, including actual versioned HTTP endpoints and compact locale-keyed ASTs.
+  Production browser-language detection and unchanged cache tests are being checked too.
+  Their first ad-hoc run passed detection plus 7/8 cache cases; the session case contacted
+  default `localhost:8080` because its test helper lacked `E2E_LEGACY_PORT=18090` and failed
+  ECONNREFUSED. No 8080 process was started/changed; the harness env is being corrected.
+- Corrected production command with `E2E_LEGACY_PORT=18090` passed 9/9, exit 0: English
+  browser detection and all eight unchanged `shop-cache.spec.ts` invariants. This includes
+  production cache isolation/session behavior, not just dev coverage. All correctness
+  prerequisites now pass; the exact production commands/config and measurements will be
+  recorded at handoff. The unchanged 20-audit hard Lighthouse measurement is next.
+- `LIGHTHOUSE_LEGACY_PORT=18090 npm run lighthouse:shop` completed all 20 audits and exited 1
+  on LCP only: LHCI-selected representatives listing 3010.556 ms, filtered 2709.352 ms,
+  product 2781.176 ms; cart passed at 2405.685 ms. All 20 have accessibility 1.00 and CLS 0;
+  maximum TBT 53 ms, minimum performance 0.92. Measurements records all four five-run ranges.
+  Representative product LCP is lower than baseline, but its five-run range overlaps the
+  baseline and remains above the hard limit; no reliable target-metric improvement is claimed.
+- Primary independently parsed the preserved 41 files in `.lighthouseci-shop-wp25b-final/`
+  (20 JSON, 20 HTML, manifest). Resolve report basenames inside the backup because the copied
+  manifest retains original absolute paths. Each report fetched the versioned DE message URL
+  with HTTP 200, 8843 B resource / 9095 B transfer, versus baseline 4065/4317 B. Total-byte-weight
+  grew exactly 812 B on each representative despite smaller JS. The two listing URLs differ
+  by connector query, not by a demonstrated cold/warm cache state.
+- Actual document resource/transfer bytes in Lighthouse network records (baseline → candidate):
+  listing 23530/23891 → 23531/23892; filtered 12829/13190 → 12830/13191;
+  product 20130/20492 → 20131/20493; cart 6744/6984 → 6745/6985. All returned HTTP 200.
+  These are recorded resource/transfer bytes, not locally gzipped estimates.
+- Per approved failure rule, candidate config and verifier were removed; auth/product files
+  are byte-identical to HEAD and temporary production config is removed. Only seven new cart
+  test lines remain, requiring EN→DE count 3 before the original axe/remove/persistence steps.
+  No inert candidate-only guards, endpoint assertions, build hook or compiler flags remain.
+  Active `.nuxt/cache/nitro` was moved to recoverable sibling
+  `nitro-wp25b-retainedcheck-preserved-20261018` (89 files) with owned ports confirmed free;
+  final retained-source full check is running. No new optimization or WP-25 CI wiring started.
+- Final retained-source full `E2E_LEGACY_PORT=18090 ROUTE_BUDGET_LEGACY_PORT=18090 npm run check`
+  exited 0: 289 unit tests, 190 browser tests, production build and all seven unchanged caps.
+  Runtime JS returns to baseline: stations/sessions 117.626 KB; invoices/dispute 120.395 KB;
+  category 125.136 KB, budget product 127.640 KB and cart 121.080 KB. Candidate JS reductions
+  are not retained gains. Final production cart regression is next; retained runtime is
+  unchanged, so the already-recorded baseline Lighthouse failures are not claimed fixed.
+- Retained production cart check passed 1/1, exit 0. Exact owned legacy/app processes were
+  stopped and assigned ports 3000/3100/6006/18090 were confirmed free. Temporary production
+  config and candidate verifier are absent; primary and independent review confirm only the
+  seven-line cart regression plus approved package/index/progress docs remain. Both reviews'
+  `git diff --check` exited 0. User checkout's existing `package.json`/`.claude/` changes are
+  untouched. No candidate runtime, build dependency, lockfile, route rule, cap or CI change remains.
+- Exact focused dev command: `E2E_LEGACY_PORT=18090 NUXT_IGNORE_LOCK=1 npx playwright test
+  --project=auth --project=shop tests/e2e/auth.spec.ts tests/e2e/shop-product.spec.ts
+  tests/e2e/shop-cart.spec.ts --grep 'SSR serves both locales|related product labels and formatting follow|supports the complete cart journey'`.
+  Initial production-URL-only failure exited 1 (3 failed); corrected fresh-cache run exited 0
+  (3 passed). The known-broken earlier full browser run was interrupted, not counted as complete.
+- Temporary production config `playwright.wp25b.production.config.mts` used `testDir: tests/e2e`,
+  base URL `http://localhost:3000`, locale `de-DE`, auth/shop projects with their existing spec
+  matchers, and `webServer: []`. Hidden manually owned production server used
+  `NUXT_LEGACY_ORIGIN=http://localhost:18090`; the legacy stand-in used port 18090.
+  Exact final candidate command: `E2E_ASSERT_COMPILED_I18N=1 npx playwright test
+  --config=playwright.wp25b.production.config.mts tests/e2e/auth.spec.ts
+  tests/e2e/shop-product.spec.ts tests/e2e/shop-cart.spec.ts
+  --grep 'SSR serves both locales|related product labels and formatting follow|supports the complete cart journey'`
+  (3 passed, exit 0). No session-reset helper in these three tests uses the legacy test port.
+- Exact corrected additional production command: `E2E_LEGACY_PORT=18090 npx playwright test
+  --config=playwright.wp25b.production.config.mts tests/e2e/auth.spec.ts
+  tests/e2e/shop-cache.spec.ts --grep 'an English browser gets English without touching the switcher|public shop response caching safety'`
+  (9 passed, exit 0). Without the port override the first attempt had 8 passed/1 harness failure.
+  Exact reverted-build command: `E2E_LEGACY_PORT=18090 npx playwright test
+  --config=playwright.wp25b.production.config.mts tests/e2e/shop-cart.spec.ts
+  --grep 'supports the complete cart journey'` (1 passed, exit 0). Temporary config was removed.
+- Lighthouse produced the manifest directly; no recovery upload or remote upload was needed.
+  The exact 41-file output directory was moved to `.lighthouseci-shop-wp25b-final/`, preserving
+  all earlier backups. Baseline/candidate use Lighthouse 12.6.1, HeadlessChrome 156 and the same
+  mobile/simulated throttling settings. No retained-source Lighthouse rerun was performed:
+  runtime is byte-identical to baseline, whose hard gate already fails, and final retained
+  correctness/build checks were rerun. This is not a claim that all work packages are complete.
+- Failure interpretation: the same eager/high-priority/parser-discoverable listing image has
+  unchanged bytes and similar observed request timing, while its simulated load phase differs
+  materially. Observed trace-derived insight timing and the hard simulated LCP even move in
+  opposite directions for some routes. No cause, statistical gain or CSS/image fix is inferred.
+  A next bounded investigation should examine report inputs and capture paired trace/network
+  artifacts if required (the 41-file backups are reports, not a claim of preserved raw traces),
+  before selecting another optimization. No such next package has started.
