@@ -1,11 +1,12 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-22 Review (combined checks complete; human acceptance pending); WP-23 Done; WP-24 Blocked on its older base's product JS cap
-Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-21, WP-23, WP-26
-Next step: human acceptance of WP-22; resume WP-24 from that accepted base with a fresh before measurement; WP-25/WP-27 remain pending
+Current step: WP-24 Review on the WP-22 human-accepted cache-enabled base (`60fd260`)
+Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-21, WP-22, WP-23, WP-26
+Next step: human review and acceptance of WP-24; WP-25/WP-27 remain pending
 
 ## Decisions
+- 2026-10-18: Human accepted WP-22 at pushed commit `60fd260`. GitHub Actions run `39114992632` subsequently completed successfully. Resume WP-24 from this accepted cache-enabled, smaller-bundle base; preserve the earlier isolated draft and take fresh before measurements.
 - 2026-10-18: Human approved extending WP-22 to `tests/e2e/auth.spec.ts` for portable browser-login URL canonicalization. Preserve exact origin/path/query value and reject extra parameters/hash; the strict server 302 and encoded Location-header assertion remains unchanged. Production and pre-cache controls both normalize browser query slashes and successfully return to the requested page after login.
 - 2026-10-18: Human approved extending WP-22 to the two shop pages, `ShopProductCard.vue`, and their regression tests for a measured bundle-size fix. Preserve image behavior, caching, hydration, accessibility, and unchanged JS caps. WP-24 remains independent in its own worktree; overlapping edits are integrated by the primary agent and all runtime/build/measurement gates remain serialized.
 - 2026-10-18: Human accepted WP-23 at pushed commit `8c2bc38` as a measured-and-reverted experiment, with no candidate TBT/INP gain claimed. WP-24 may start independently from that accepted cache-off baseline; the unaccepted WP-22 integration is excluded so its known JS-budget blocker does not contaminate the WP-24 experiment. This acceptance does not authorize the separately requested WP-22 source-scope expansion.
@@ -784,6 +785,9 @@ Next step: human acceptance of WP-22; resume WP-24 from that accepted base with 
 | 2026-10-18 | 8c2bc38 + WP-24 candidate | /shop/c/wallboxes | `ROUTE_BUDGET_LEGACY_PORT=18091 npm run budget` | 1 | n/a | n/a | n/a | n/a | 125.712 KB (budget 126 KB) | n/a | Simplified draft; exit 1 on product cap; no candidate RUM |
 | 2026-10-18 | 8c2bc38 + WP-24 candidate | /shop/wallbox-home-7-4 | `ROUTE_BUDGET_LEGACY_PORT=18091 npm run budget` | 1 | n/a | n/a | n/a | n/a | 128.078 KB (budget 128 KB) | n/a | Simplified draft; unchanged product cap failed; no candidate RUM |
 | 2026-10-18 | 8c2bc38 + WP-24 candidate | /shop/cart | `ROUTE_BUDGET_LEGACY_PORT=18091 npm run budget` | 1 | n/a | n/a | n/a | n/a | 121.599 KB (budget 123 KB) | n/a | Simplified draft; exit 1 on product cap; no candidate RUM |
+| 2026-10-18 | 60fd260 (accepted WP-22) | /shop/c/:category | `RUM_LEGACY_PORT=18090 node scripts/rum-sample.mjs --runs 30 --json .lighthouseci-shop/rum-wp24-before-accepted22.json` | 30 | 204 ms p75 (n=30) | 0 (n=30) | n/a | 8 ms p75 (n=1) | 125.070 KB | n/a | Synthetic RUM before; category INP sparse and not filter-attributed; 30/30/30 funnel; exit 0 |
+| 2026-10-18 | 60fd260 + WP-24-a dirty candidate | /shop/c/:category | `RUM_LEGACY_PORT=18090 node scripts/rum-sample.mjs --runs 30 --json .lighthouseci-shop/rum-wp24-after-a.json` | 30 | 212 ms p75 (n=30) | 0 (n=30) | n/a | 16 ms p75 (n=1) | 125.202 KB | n/a | Synthetic RUM; sparse/unattributed; no INP gain established; candidate reverted; process exit not captured |
+| 2026-10-18 | 60fd260 + WP-24-b dirty candidate | /shop/c/:category | `RUM_LEGACY_PORT=18090 node scripts/rum-sample.mjs --runs 30 --json .lighthouseci-shop/rum-wp24-after-b.json` | 30 | 220 ms p75 (n=30) | 0 (n=30) | n/a | 16 ms p75 (n=1) | 125.139 KB | n/a | Synthetic RUM; sparse/unattributed; no INP gain established; candidate reverted; exit 0 |
 
 | 2026-10-18 | 93aff8d + WP-22 final runtime | /shop/c/wallboxes | `LIGHTHOUSE_LEGACY_PORT=18090 npm run lighthouse:shop` | 5, representative | 2784.056 ms | 0 | 20 ms | n/a | n/a | n/a | a11y 1.00 all five; perf 0.93; LCP range 2783.016–2788.216 ms; Speed Index 2180.660 ms; transfer 204491 B; LCP warning |
 | 2026-10-18 | 93aff8d + WP-22 final runtime | /shop/c/wallboxes?connector=ccs | `LIGHTHOUSE_LEGACY_PORT=18090 npm run lighthouse:shop` | 5, representative | 2560.492 ms | 0 | 25 ms | n/a | n/a | n/a | a11y 1.00 all five; perf 0.95; LCP range 2555.180–2560.492 ms; Speed Index 2031.558 ms; transfer 162665 B; LCP warning |
@@ -793,10 +797,14 @@ Next step: human acceptance of WP-22; resume WP-24 from that accepted base with 
 Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) reports of the 2026-10-17 runs; TTFB is the `server-response-time` audit on the local warm server (no cold/warm split yet); all numbers lab (mobile emulation, simulated throttling).
 
 ## Open questions
-- WP-22: implementation and required checks are complete; human acceptance is pending.
-- WP-24: the isolated debounce draft exceeds its older base's product JS cap. Accept WP-22
-  before rebasing it and taking a new before sample; no after-RUM gain or completed WP-24
-  is claimed. WP-25 and WP-27 remain pending their prerequisites.
+- WP-22: Done; human accepted `60fd260` on 2026-10-18 and its GitHub Actions run passed.
+- WP-24: Review on accepted WP-22 at `60fd260`. Test-first request coalescing and router/busy
+  candidates were measured then reverted because synthetic RUM did not establish a filter-INP
+  improvement (category INP n=1 in each 30-run sample; no trusted filter-target attribution).
+  The sampler's `performance.getEntriesByType('event')` diagnostic is invalid absence evidence
+  and is outside this package's source scope; the actual-observer scratch probe is narrowly
+  described in the handoff below. Human review/acceptance remains pending.
+  WP-25 and WP-27 remain pending their prerequisites.
 - WP-25 constraint: the latest combined lab run still has three LCP values above 2500 ms.
   Current warn-only assertions were not loosened or promoted during WP-22.
 - WP-04: `legacy-php/` remains intentionally unchanged; it is the never-executed twin called
@@ -865,3 +873,46 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
   this draft. No candidate after-RUM or full check ran; no INP improvement is claimed.
   Processes were stopped and ports verified free. Resume only after WP-22 acceptance,
   retaining the draft and taking a fresh before sample on the new base before further work.
+
+## WP-24 resumption on accepted WP-22 (Review; 2026-10-18)
+- Resumed in `codex/storefront-complete` at accepted base `60fd260`. Existing WP-22 acceptance
+  status/evidence above was preserved. Implementation experiments touched only the category
+  listing page and `tests/e2e/shop-listing.spec.ts`; all runtime and test edits were reverted.
+- Fresh accepted-base build succeeded before measurement. Synthetic 30-run category RUM
+  completed exit 0: LCP 204 ms p75 (n=30), CLS 0 (n=30), INP 8 ms (n=1). The route-level
+  INP sample is sparse and does not identify the filter interaction.
+- Step (a), request coalescing: tests first showed two payload requests for rapid `2` then `22`
+  typing on base; a local-input trailing 250 ms debounce candidate passed the fast-typing and
+  range-plus-connector overlap regressions with one query-aware successful transport and
+  matching final state. Candidate route budgets displayed PASS (listing/product/cart
+  125.202/127.575/121.075 KB); that run's process exit was not retained. Candidate synthetic
+  RUM completed 30 runs (LCP 212 ms p75, INP 16 ms n=1, CLS 0); it provides no attributable
+  filter-INP gain. Reverted under the measurement rule; no request-coalescing-only runtime
+  change is retained as WP-24 optimization.
+- Step (b), route replacement and pending state: a delayed API/payload E2E was RED on base
+  because the old grid had no `aria-busy`; candidate using `router.replace` and pending state
+  passed the regression, preserving old cards while loading and clearing busy after the final
+  successful response without adding history. Candidate budget exited 0 (listing/product/cart
+  125.139/127.512/121.077 KB). Candidate synthetic RUM exited 0 (LCP 220 ms p75, INP 16 ms
+  n=1, CLS 0); no filter-attributed improvement was established, so this runtime candidate
+  was also reverted. Existing computed `useFetch` query behavior was left unchanged; no
+  redundant watcher was added.
+- Step (c): existing listing cards already use stable product IDs as keys. A scratch trusted
+  keyboard probe installed actual `PerformanceObserver` observers for Event Timing and
+  `longtask` before typing, then waited and navigated to flush vitals. That narrow probe
+  captured no Event Timing entries, long tasks, or listing INP beacon; it does not establish
+  broad absence of long tasks or zero filter INP. There is no measured basis for `v-memo`, so
+  no memoization was added. Separately, the sampler's `performance.getEntriesByType('event')`
+  counter is not valid Event Timing absence evidence (and is collected on product after
+  add-to-cart, not on listing); it was not edited because that tooling file is out of scope.
+- Final retained source gates: `E2E_LEGACY_PORT=18090 npx playwright test --project=shop`
+  exited 0 (72/72). Full `E2E_LEGACY_PORT=18090 ROUTE_BUDGET_LEGACY_PORT=18090 npm run check`
+  exited 0: lint, typecheck, token and migration checks, 289/289 unit tests,
+  186/186 E2E tests, production build, and all route budgets passed. Final route JS values:
+  stations/sessions 117.621/117.621 KB, invoices/dispute 120.390/120.390 KB, listing
+  125.070 KB, product 127.443 KB, cart 121.075 KB. `git diff --check` passed before this
+  handoff edit. No dependency, cap, or retained product-source changes; no commit or push.
+- Synthetic RUM artifacts are local under `.lighthouseci-shop/` as
+  `rum-wp24-before-accepted22.json`, `rum-wp24-after-a.json`, and `rum-wp24-after-b.json`.
+  Human review/acceptance is pending; the optional sampler diagnostic correction is an
+  out-of-scope tooling question and is not a blocker for this package handoff.
