@@ -1,4 +1,5 @@
 const LEGACY_ORIGIN = process.env.LEGACY_ORIGIN ?? 'http://localhost:8080'
+const shopCacheVaries = ['cookie', 'accept-language', 'host', 'x-forwarded-proto']
 
 // https://nuxt.com/docs/api/nuxt-config
 export default defineNuxtConfig({
@@ -46,7 +47,16 @@ export default defineNuxtConfig({
   // legacy server-rendered monolith with a `routeRules` entry. Nothing is left: login and
   // logout moved to Nuxt (app/pages/login.vue, server/routes/login.post.ts, ADR 0004);
   // legacy still owns the session behind them.
-  routeRules: {},
+  // Public catalogue HTML is safe to share only across identical locale and origin inputs.
+  // Listings use a 60 s TTL; product pages use 300 s. Price, stock, or content updates in a
+  // real shop must purge these entries (or wait for the TTL). Varying on the full Cookie
+  // header also partitions cache entries by session cookie; this is safe but may fragment reuse.
+  routeRules: {
+    '/shop': { cache: { swr: true, maxAge: 60, varies: shopCacheVaries } },
+    '/shop/c/**': { cache: { swr: true, maxAge: 60, varies: shopCacheVaries } },
+    '/shop/**': { cache: { swr: true, maxAge: 300, varies: shopCacheVaries } },
+    '/shop/cart': { cache: false },
+  },
 
   // Precompress JS/CSS (gzip + brotli) at build time. Lighthouse flagged ~600 ms of
   // "uses-text-compression" on throttled mobile before this; behind a real CDN/proxy

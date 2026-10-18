@@ -4,6 +4,7 @@ export default defineEventHandler((event) => {
   if (event.method !== 'GET') return
   const { pathname } = getRequestURL(event)
   if (pathname.startsWith('/api/') || pathname.startsWith('/_nuxt/') || pathname.startsWith('/__')) return
+  if (pathname === '/shop' || pathname.startsWith('/shop/')) return
   if (!getRequestHeader(event, 'accept')?.includes('text/html')) return
   ensureCsrfToken(event)
 })

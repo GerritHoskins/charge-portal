@@ -67,9 +67,20 @@ const waitForShopEvent = (page, type) => page.waitForResponse((response) => {
   }
 })
 
-const waitForListingRequest = (page) => page.waitForResponse((response) => (
-  response.url().includes('/api/shop/listing/wallboxes') && response.request().method() === 'GET'
-))
+const waitForListingResponse = (page, origin, expectedQuery) => page.waitForResponse((response) => {
+  const url = new URL(response.url())
+  const isListingPath = url.pathname === '/api/shop/listing/wallboxes'
+    || url.pathname === '/shop/c/wallboxes/_payload.json'
+  return url.origin === origin
+    && isListingPath
+    && response.request().method() === 'GET'
+    && Object.entries(expectedQuery).every(([key, value]) => url.searchParams.get(key) === value)
+}).then((response) => {
+  if (response.status() !== 200) {
+    throw new Error(`Shop listing transport returned HTTP ${response.status()} for ${response.url()}`)
+  }
+  return response
+})
 
 const percent = (value) => value === null || value === undefined ? '—' : `${(value * 100).toFixed(1)}%`
 const metricCell = (metric, name) => {
@@ -192,16 +203,16 @@ try {
         await page.locator('ul.product-grid > li').nth(2).waitFor({ state: 'visible' })
         await listingEvent
 
-        let listingRequest = waitForListingRequest(page)
+        let listingResponse = waitForListingResponse(page, origin, { connector: 'type2' })
         await page.locator('#connector').selectOption('type2')
         await page.waitForURL(/connector=type2/)
-        await listingRequest
+        await listingResponse
         await page.locator('ul.product-grid > li').nth(2).waitFor({ state: 'visible' })
 
-        listingRequest = waitForListingRequest(page)
+        listingResponse = waitForListingResponse(page, origin, { connector: 'type2', order: 'price-desc' })
         await page.locator('#order').selectOption('price-desc')
         await page.waitForURL(/order=price-desc/)
-        await listingRequest
+        await listingResponse
         const thirdProduct = page.locator('ul.product-grid > li').nth(2)
         await thirdProduct.waitFor({ state: 'visible' })
         const productEvent = waitForShopEvent(page, 'product_view')

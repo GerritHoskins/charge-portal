@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
+import { shopListingSchema } from '../../shared/contracts/catalog'
 
 const WCAG = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 
@@ -114,16 +115,38 @@ test.describe('public shop listing', () => {
   test('sorts prices descending', async ({ page }) => {
     await page.goto('/shop/c/wallboxes')
     await expect(page.locator('html')).toHaveAttribute('data-hydrated', '')
-    const listingResponse = page.waitForResponse((response) => response.url().includes('/api/shop/listing/wallboxes') && response.url().includes('order=price-desc'))
+
+    const expectedResponse = await page.request.get('/api/shop/listing/wallboxes?limit=12&order=price-desc')
+    expect(expectedResponse.status()).toBe(200)
+    const expected = shopListingSchema.parse(await expectedResponse.json())
+    expect(expected.items).toHaveLength(12)
+    const expectedProducts = expected.items.map(({ slug, priceCents }) => ({ slug, priceCents }))
+    expect(expectedProducts).toEqual([...expectedProducts].sort((left, right) => right.priceCents - left.priceCents))
+
+    const sortedTransport = page.waitForResponse((response) => {
+      const url = new URL(response.url())
+      const isListingApi = url.pathname === '/api/shop/listing/wallboxes'
+      const isCategoryPayload = url.pathname === '/shop/c/wallboxes/_payload.json'
+      return (isListingApi || isCategoryPayload) && url.searchParams.get('order') === 'price-desc'
+    })
 
     await page.getByLabel('Sortierung').selectOption('price-desc')
 
     await expect(page).toHaveURL(/\/shop\/c\/wallboxes\?order=price-desc$/)
-    await listingResponse
-    const prices = page.getByRole('list', { name: 'Produkte' }).locator('.product-card__price')
-    const first = Number((await prices.nth(0).textContent())?.replace(/\D/g, ''))
-    const second = Number((await prices.nth(1).textContent())?.replace(/\D/g, ''))
-    expect(first).toBeGreaterThanOrEqual(second)
+    const transportResponse = await sortedTransport
+    expect(transportResponse.status()).toBe(200)
+
+    const cards = page.getByRole('list', { name: 'Produkte' }).getByRole('listitem')
+    const readRenderedProducts = () => cards.evaluateAll((elements) => elements.map((element) => {
+      const link = element.querySelector('a')
+      const price = element.querySelector('.product-card__price')?.textContent ?? ''
+      if (!link) throw new Error('Sorted product card has no product link')
+      return {
+        slug: new URL(link.href).pathname.split('/').at(-1),
+        priceCents: Number(price.replace(/\D/g, '')),
+      }
+    }))
+    await expect.poll(readRenderedProducts).toEqual(expectedProducts)
   })
 
   test('server-renders a direct filtered and sorted URL without JavaScript', async ({ browser }, testInfo) => {
