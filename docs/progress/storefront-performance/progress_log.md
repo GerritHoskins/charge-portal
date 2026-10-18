@@ -1,11 +1,12 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-24 Review on the WP-22 human-accepted cache-enabled base (`60fd260`)
-Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-21, WP-22, WP-23, WP-26
-Next step: human review and acceptance of WP-24; WP-25/WP-27 remain pending
+Current step: WP-25 Blocked pending human-approved file-scope extension on human-accepted WP-24 (`85f7c73`)
+Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-21, WP-22, WP-23, WP-24, WP-26
+Next step: Resume WP-25 after approval for type-safe product projection changes and regression coverage; WP-27 remains pending
 
 ## Decisions
+- 2026-10-18: Human accepted WP-24 at pushed commit `85f7c73` as a measured-and-reverted experiment. CI run `39117912233` passed, including the full check and portal Lighthouse. WP-25 may start. The optional out-of-scope sampler-counter correction was not approved by this acceptance and remains unchanged.
 - 2026-10-18: Human accepted WP-22 at pushed commit `60fd260`. GitHub Actions run `39114992632` subsequently completed successfully. Resume WP-24 from this accepted cache-enabled, smaller-bundle base; preserve the earlier isolated draft and take fresh before measurements.
 - 2026-10-18: Human approved extending WP-22 to `tests/e2e/auth.spec.ts` for portable browser-login URL canonicalization. Preserve exact origin/path/query value and reject extra parameters/hash; the strict server 302 and encoded Location-header assertion remains unchanged. Production and pre-cache controls both normalize browser query slashes and successfully return to the requested page after login.
 - 2026-10-18: Human approved extending WP-22 to the two shop pages, `ShopProductCard.vue`, and their regression tests for a measured bundle-size fix. Preserve image behavior, caching, hydration, accessibility, and unchanged JS caps. WP-24 remains independent in its own worktree; overlapping edits are integrated by the primary agent and all runtime/build/measurement gates remain serialized.
@@ -794,19 +795,46 @@ Next step: human review and acceptance of WP-24; WP-25/WP-27 remain pending
 | 2026-10-18 | 93aff8d + WP-22 final runtime | /shop/ladekabel-typ-1-10-m | `LIGHTHOUSE_LEGACY_PORT=18090 npm run lighthouse:shop` | 5, representative | 2784.742 ms | 0 | 0 ms | n/a | n/a | n/a | a11y 1.00 all five; perf 0.93; LCP range 2782.274–2935.542 ms; Speed Index 2181.089 ms; transfer 206929 B; LCP warning |
 | 2026-10-18 | 93aff8d + WP-22 final runtime | /shop/cart | `LIGHTHOUSE_LEGACY_PORT=18090 npm run lighthouse:shop` | 5, representative | 2284.214 ms | 0 | 8.183 ms | n/a | n/a | n/a | a11y 1.00 all five; perf 0.96; LCP range 2253.450–2286.739 ms; Speed Index 2029.087 ms; transfer 137173 B |
 
+| 2026-10-18 | 85f7c73 (WP-25 before, unchanged runtime) | /shop/c/wallboxes | `LIGHTHOUSE_LEGACY_PORT=18090 npm run lighthouse:shop` | 5, representative | 2785.472 ms | 0 | 17 ms | n/a | n/a | n/a | Warn-level baseline only; perf 0.93; a11y 1.00; transfer 204491 B; process exit not captured |
+| 2026-10-18 | 85f7c73 (WP-25 before, unchanged runtime) | /shop/c/wallboxes?connector=ccs | `LIGHTHOUSE_LEGACY_PORT=18090 npm run lighthouse:shop` | 5, representative | 2558.704 ms | 0 | 0 ms | n/a | n/a | n/a | Warn-level baseline only; perf 0.95; a11y 1.00; transfer 162665 B; process exit not captured |
+| 2026-10-18 | 85f7c73 (WP-25 before, unchanged runtime) | /shop/ladekabel-typ-1-10-m | `LIGHTHOUSE_LEGACY_PORT=18090 npm run lighthouse:shop` | 5, representative | 2786.302 ms | 0 | 0 ms | n/a | n/a | n/a | Warn-level baseline only; perf 0.93; a11y 1.00; transfer 206929 B; process exit not captured |
+| 2026-10-18 | 85f7c73 (WP-25 before, unchanged runtime) | /shop/cart | `LIGHTHOUSE_LEGACY_PORT=18090 npm run lighthouse:shop` | 5, representative | 2285.354 ms | 0 | 17.993 ms | n/a | n/a | n/a | Warn-level baseline only; perf 0.96; a11y 1.00; transfer 137173 B; process exit not captured |
+| 2026-10-18 | 85f7c73 (WP-25 payload before) | /shop/c/wallboxes | Owned production Node fetch/body-byte/gzip capture | 1 | n/a | n/a | n/a | n/a | n/a | n/a | Capture exit 0; HTML 23530 B, inline bootstrap 405 B, external payload 3568 B; local gzip HTML/payload 4469/1152 B; identity HTTP responses |
+| 2026-10-18 | 85f7c73 (WP-25 payload before) | /shop/ladekabel-typ-1-10-m | Owned production Node fetch/body-byte/gzip capture | 1 | n/a | n/a | n/a | n/a | n/a | n/a | Capture exit 0; HTML 20100 B, inline bootstrap 431 B, external payload 7322 B; local gzip HTML/payload 4223/2301 B; identity HTTP responses |
+
 Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) reports of the 2026-10-17 runs; TTFB is the `server-response-time` audit on the local warm server (no cold/warm split yet); all numbers lab (mobile emulation, simulated throttling).
 
 ## Open questions
 - WP-22: Done; human accepted `60fd260` on 2026-10-18 and its GitHub Actions run passed.
-- WP-24: Review on accepted WP-22 at `60fd260`. Test-first request coalescing and router/busy
+- WP-24: Done; human accepted `85f7c73` on 2026-10-18. Test-first request coalescing and router/busy
   candidates were measured then reverted because synthetic RUM did not establish a filter-INP
   improvement (category INP n=1 in each 30-run sample; no trusted filter-target attribution).
   The sampler's `performance.getEntriesByType('event')` diagnostic is invalid absence evidence
   and is outside this package's source scope; the actual-observer scratch probe is narrowly
-  described in the handoff below. Human review/acceptance remains pending.
-  WP-25 and WP-27 remain pending their prerequisites.
+  described in the handoff below. The optional tooling correction remains unapproved.
+  WP-25 is Blocked on the file-scope decision below; WP-27 remains pending its prerequisites.
 - WP-25 constraint: the latest combined lab run still has three LCP values above 2500 ms.
   Current warn-only assertions were not loosened or promoted during WP-22.
+- WP-25 is Blocked pending explicit scope approval for `app/components/shop/ShopProductCard.vue`,
+  `shared/seo.ts`, `tests/unit/seo.test.ts`, `tests/e2e/shop-listing.spec.ts`, and
+  `tests/e2e/shop-product.spec.ts`. Listing cards consume full `ShopProduct` contract objects
+  although they render only a subset, and product SEO also accepts a full product type while
+  consuming fewer fields. A safe projection needs narrowed consumer types and regression tests;
+  do not fabricate discarded fields or assert the projected value as a full product.
+  On 2026-10-18, fresh `npm run lighthouse:shop` built successfully and completed 20 reports,
+  but its process exit code was not captured; the observations are baseline only, not a passing
+  command or the post-projection error-level gate. Warn-level LCP medians: wallboxes
+  2785.472 ms, wallboxes `?connector=ccs` 2558.704 ms, product
+  `/shop/ladekabel-typ-1-10-m` 2786.302 ms; cart had no LCP warning. Reports are preserved in
+  `.lighthouseci-shop/`.
+  Fresh production HTML and external payload captures (manual exact owned server PIDs, capture
+  command exit 0; server PIDs stopped and ports verified free): listing `/shop/c/wallboxes`
+  HTML 23530 B raw / 4469 B locally gzip-compressed; inline `__NUXT_DATA__` bootstrap 405 B;
+  external `_payload.json` 3568 B raw / 1152 B locally gzip-compressed. Product
+  `/shop/ladekabel-typ-1-10-m` HTML 20100 B / 4223 B; inline bootstrap 431 B; external payload
+  7322 B / 2301 B. Both HTML and external JSON returned 200 without `Content-Encoding`; gzip
+  sizes above are computed locally and are not wire-transfer measurements. No source files
+  were changed; the new 20-report baseline is retained alongside prior evidence.
 - WP-04: `legacy-php/` remains intentionally unchanged; it is the never-executed twin called
   out by the package and does not expose the new Store API routes.
 
@@ -916,3 +944,23 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
   `rum-wp24-before-accepted22.json`, `rum-wp24-after-a.json`, and `rum-wp24-after-b.json`.
   Human review/acceptance is pending; the optional sampler diagnostic correction is an
   out-of-scope tooling question and is not a blocker for this package handoff.
+
+## WP-25 — Payload and hard gates (Blocked; 2026-10-18)
+- Accepted prerequisite: WP-24 at `85f7c73`; its CI run `39117912233` passed. Baseline
+  measurements and the exact five-file scope request are recorded above. No payload
+  transform, consumer-type change, hard-gate promotion, or CI-wiring change was made.
+- The package's sample field names differ from the actual narrow contract: product specs
+  use `customFields.powerKw` and `customFields.connectorType`; listing/related cards also
+  need stable `id` keys. Projection must follow actual rendered fields, not introduce aliases
+  or weaken the full BFF contract. The card and JSON-LD input types currently prevent a
+  sound page-only projection, as confirmed by the read-only Luna review.
+- Fresh production build completed; HTML/payload capture exited 0. The 20 warn-level lab
+  reports are observations only because the runner exit was not retained. The primary agent
+  verified their manifest-selected representative values and copied all 20 JSON/HTML reports
+  and the manifest to `.lighthouseci-shop-wp25-before/` (41 files). The copied manifest retains
+  original absolute paths; resolve report basenames in that backup if default output changes.
+- Source/config/tests remain byte-identical to `85f7c73`; only this progress log changed.
+  Assigned ports 3000/18090 are free. Resume after actual human approval of the named files,
+  with failing payload regressions before projection, then all unchanged error-level gates.
+  A failing post-projection Lighthouse gate requires stopping for a further optimization WP,
+  not relaxing the thresholds. WP-27 remains pending.
