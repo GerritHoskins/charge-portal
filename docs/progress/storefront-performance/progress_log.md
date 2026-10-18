@@ -743,3 +743,6 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
   including final listing **125.583/126 KB**, product **127.947/128 KB**, cart **121.579/123 KB**.
   Budgets remain provisional because no performance optimization was retained. No dependencies
   or lockfiles changed; no push.
+- Integration: local source commit `fa5420d` was integrated and pushed as `8c2bc38`.
+  [GitHub Actions run 39081123755](https://github.com/GerritHoskins/charge-portal/actions/runs/39081123755)
+  passed on the combined WP-21/WP-23 state. Human acceptance of WP-23 remains pending.
