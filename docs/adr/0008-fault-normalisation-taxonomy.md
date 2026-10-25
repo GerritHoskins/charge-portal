@@ -26,7 +26,8 @@ The vendors in this repository are fictional and their code tables are synthetic
 1. **A canonical taxonomy, deliberately small.** Every fault normalises to
    `{ taxonomyCode, component, severity, requiresSiteVisit }`:
    - `component`: `connector`, `power-electronics`, `metering`, `communication`, `rfid-reader`,
-     `firmware`, `thermal`, `grid-supply`.
+     `firmware`, `thermal`, `grid-supply`, plus `unknown`, used only by `UNCLASSIFIED` so that an
+     unclassified fault is never attributed to a component it may not belong to.
    - `severity`: `info`, `minor`, `major`, `critical`.
    - `requiresSiteVisit`: whether a technician must go on site. This is the field that turns a fault
      into a cost, so it is explicit rather than derived from severity.
