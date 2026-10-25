@@ -6,7 +6,7 @@ import pluginVue from 'eslint-plugin-vue'
 // Nuxt/Nitro auto-imports are declared as globals instead of pulling in a generated config:
 // the list is short and an unknown identifier still fails (no-undef equivalent via TypeScript).
 export default tseslint.config(
-  { ignores: ['.nuxt/**', '.output/**', 'node_modules/**', 'storybook-static/**', 'test-results/**', '.lighthouseci/**', 'coverage/**', 'tests/.auth/**'] },
+  { ignores: ['.nuxt/**', '.output/**', 'node_modules/**', 'storybook-static/**', 'test-results/**', '.lighthouseci/**', 'coverage/**', 'tests/.auth/**', 'packages/**', 'services/**'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   ...pluginVue.configs['flat/recommended'],
