@@ -15,6 +15,7 @@ import { Express5ApolloDriver } from './graphql/express5-apollo.driver'
 import { HealthModule } from './health/health.module'
 import { InternalAuthGuard, type TriageContext } from './internal-auth.guard'
 import { TicketsModule } from './tickets/tickets.module'
+import { TelemetryModule } from './telemetry/telemetry.module'
 
 /** services/triage/schema.gql, found from this file whether it runs from src/ or from the bundled dist/. */
 function schemaFile(): string {
@@ -54,6 +55,7 @@ function schemaFile(): string {
     DraftingModule,
     TicketsModule,
     FaultsModule,
+    TelemetryModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: InternalAuthGuard }],
 })

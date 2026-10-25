@@ -79,17 +79,79 @@ type Mutation {
   Ingest one raw OCPP 1.6 StatusNotification: normalise it, store the fault and draft a ticket. Invalid notifications fail with BAD_USER_INPUT and the validation issues.
   """
   ingestFault(notification: JSON!): IngestResult!
+
+  """
+  Rolls one station telemetry sample ({ stationId, at, status, temperatureC, powerKw, faultClass? }) into its state. Invalid samples are rejected with a message that names the invalid fields.
+  """
+  ingestTelemetry(sample: JSON!): StationState!
 }
 
 type Query {
   """Liveness plus database connectivity."""
   health: Health!
 
+  """Null when the station never reported."""
+  stationState(stationId: ID!): StationState
+
+  """Every station that reported, with its active alerts."""
+  stationStates: [StationState!]!
+
   """One ticket, or null when the id is unknown."""
   ticket(id: ID!): Ticket
 
   """Tickets, newest first; all states unless `state` is given."""
   tickets(state: TicketState): [Ticket!]!
+}
+
+type StationAlert {
+  clearedAt: DateTime
+  id: ID!
+  kind: StationAlertKind!
+  message: String!
+  raisedAt: DateTime!
+  stationId: ID!
+}
+
+"""
+Why an alert was raised. The UI translates by kind; `message` is a short English fallback.
+"""
+enum StationAlertKind {
+  degraded_fault
+  high_temperature
+  offline
+  recurring_fault
+  site_visit_fault
+  sustained_overheating
+}
+
+"""A canonical fault class (ADR 0008) a station currently reports."""
+type StationFault {
+  component: String!
+  requiresSiteVisit: Boolean!
+  severity: String!
+  taxonomyCode: String!
+}
+
+"""
+Rolled-up station level. `offline` is computed at read time (no sample for 3 x the interval).
+"""
+enum StationHealth {
+  degraded
+  needs_visit
+  offline
+  ok
+}
+
+type StationState {
+  activeFault: StationFault
+  alerts: [StationAlert!]!
+  lastReceivedAt: DateTime!
+  lastSampleAt: DateTime!
+  lastStatus: String!
+  powerKw: Float!
+  state: StationHealth!
+  stationId: ID!
+  temperatureC: Float!
 }
 
 type Ticket {

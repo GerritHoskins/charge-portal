@@ -29,7 +29,8 @@
     "budget": "npm run build && node scripts/check-bundle-size.mjs && node scripts/check-route-budget.mjs",
     "lighthouse": "npm run build && node scripts/lighthouse.mjs",
     "lighthouse:shop": "npm run build && node scripts/lighthouse.mjs --config lighthouserc.shop.cjs --public",
-    "rum:sample": "node scripts/rum-sample.mjs"
+    "rum:sample": "node scripts/rum-sample.mjs",
+    "simulate:telemetry": "node scripts/telemetry-simulator.mjs"
   },
   "simple-git-hooks": {
     "pre-commit": "npm run lint && npm run typecheck"

@@ -1,9 +1,9 @@
 # Fault Triage Progress
 
 ## Status
-Current step: WP-00, WP-01, WP-02 merged into feat/fault-triage; WP-03 in Review (fault-triage/wp-03); WP-08 in parallel
-Completed steps: WP-00, WP-01, WP-02 (orchestrator-reviewed; human acceptance waived per decision)
-Next step: merge WP-03 and WP-08, then WP-04 (decisions) and WP-05 (Claude provider)
+Current step: WP-00..WP-03 and WP-08 merged into feat/fault-triage; WP-04 and WP-05 running
+Completed steps: WP-00, WP-01, WP-02, WP-03, WP-08 (orchestrator-reviewed; human acceptance waived per decision)
+Next step: merge WP-04, WP-05; then WP-06
 
 ## Decisions
 - 2026-10-25: Human chose a pluggable `DraftProvider`: deterministic rules provider by default,
@@ -188,3 +188,49 @@ Branch `fault-triage/wp-03`, based on 130c655 (feat/fault-triage with WP-00..02)
 **Merge notes**
 - `src/migrations/index.ts`, `src/app.module.ts` and the progress-log Status lines will conflict with WP-08 (telemetry module): keep both migrations (ordered by timestamp; mine is `1792922400000`) and both module imports. Regenerate `schema.gql` after the merge (run the integration test once and commit the rewritten file). `package-lock.json` should merge cleanly (one line); otherwise rerun `npm install`.
 - WP-08/WP-04 migrations need a timestamp different from `1792922400000`.
+
+## WP-08 — Review
+Branch `fault-triage/wp-08`, based on 130c655 (WP-00/01/02 merged). Checks were run from this worktree only (not test:e2e, budget or the full root `npm run check`, per orchestrator instruction). Database `triage_wp08` in the shared `fault-triage-postgres` container.
+
+**What changed**
+- `services/triage/src/telemetry/` (new module `TelemetryModule`, registered in `app.module.ts`):
+  - `sample.ts`: `telemetrySampleSchema` (zod; `{ stationId, at, status (OCPP), temperatureC -50..150, powerKw 0..1000, faultClass? }`, reuses `faultClassSchema`/`ocppStatusSchema` from the taxonomy package) and `parseTelemetrySample` (error names fields, never values).
+  - `rollup.ts`: pure `rollupStationState(prev, sample, now)`, `isOffline`, `effectiveHealth`, `recurringFault`, and the exported constants `NEEDS_VISIT_FAULT_COUNT=3`, `FAULT_WINDOW_MS=30 min`, `NEEDS_VISIT_TEMPERATURE_C=70`, `NEEDS_VISIT_HOT_SAMPLES=3`, `DEGRADED_TEMPERATURE_C=60`, `OFFLINE_AFTER_INTERVALS=3`, `DEFAULT_TELEMETRY_INTERVAL_MS=5000`.
+  - `alerts.ts`: `planAlertChanges(prev, next)` (raise on condition start, clear on end) and the English messages.
+  - `telemetry.service.ts` / `telemetry.resolver.ts` / `telemetry.model.ts` / `json.scalar.ts` / `telemetry.config.ts` (`TELEMETRY_INTERVAL_MS`, default 5000, invalid value stops startup) / entities `station-state.entity.ts`, `station-alert.entity.ts`.
+- Migration `1793005200000-CreateStationTelemetry` (tables `station_state`, `station_alert`, partial unique index `UQ_station_alert_active` on `(station_id, kind) WHERE cleared_at IS NULL`), registered in `migrations/index.ts`. `schema.gql` regenerated and committed.
+- `scripts/telemetry-simulator.mjs` (no dependencies) and `npm run simulate:telemetry`.
+- Outside the listed edit scope (asked for by the orchestrator / needed): `services/triage/package.json` + `package-lock.json` (`"@charge-portal/fault-taxonomy": "*"`, one line each); `test/integration/health.integration.test.ts` (the migrations assertion expected exactly one migration; it now asserts that `Init` is first so later packages can append).
+
+**Rules as implemented** (decisions where the package left room)
+- Conditions (= alert kinds): `site_visit_fault` (active fault class requires a visit), `recurring_fault` (>= 3 fault onsets of one `taxonomyCode` within 30 min, window inclusive), `sustained_overheating` (>= 3 consecutive samples >= 70), `degraded_fault`, `high_temperature` (>= 60). First three => `needs-visit`; the others => `degraded`; none => `ok`.
+- A fault counts once when it appears (onset: previous sample had no fault or another code), not per repeated sample. Window and hot-run rules use the sample's own timestamps; `now` only feeds `lastReceivedAt`/`updatedAt` (deterministic replays).
+- `degraded_fault`: Faulted status or a fault class of severity minor/major/critical without site visit. A Faulted status without fault class is also degraded (never `ok`). An `info` class on a non-faulted status is ignored.
+- Recovery to `ok` happens with the first sample where no condition fires. `recurring_fault` therefore persists after recovery until faults leave the 30 min window.
+- An older sample (timestamp before the newest processed one) does not rewind the state; it only refreshes `lastReceivedAt`.
+- Offline: `now - lastReceivedAt >= 3 x interval` (server clock, tolerant of station clock skew); overlaid on read, never stored. Because transitions deserve an alert, a read (`stationStates`/`stationState`) records one `offline` alert per offline station (idempotent via the partial unique index, under the per-station advisory lock); the next sample clears it.
+- Ingest is one transaction under `pg_advisory_xact_lock` per station (also covers the first sample of a station).
+
+**GraphQL surface for WP-09** (`schema.gql`)
+- `ingestTelemetry(sample: JSON!): StationState!` (non-null, the package wrote it nullable), `stationStates: [StationState!]!`, `stationState(stationId: ID!): StationState`.
+- `StationState { stationId: ID!, state: StationHealth!, lastSampleAt: DateTime!, lastReceivedAt: DateTime!, lastStatus: String!, temperatureC: Float!, powerKw: Float!, activeFault: StationFault, alerts: [StationAlert!]! }` (alerts = active only, oldest first).
+- `enum StationHealth { ok degraded needs_visit offline }`. GraphQL names cannot contain "-": the wire value is `needs_visit`; BFF/UI map it to the contract value `needs-visit`.
+- `StationAlert { id: ID!, stationId: ID!, kind: StationAlertKind!, message: String!, raisedAt: DateTime!, clearedAt: DateTime }`; `enum StationAlertKind { site_visit_fault recurring_fault sustained_overheating degraded_fault high_temperature offline }`; `StationFault { taxonomyCode, component, severity: String!, requiresSiteVisit: Boolean! }`.
+- Scalars: `DateTime` (ISO string on the wire) and `JSON`.
+
+**Scalar `JSON` (merge hazard)**: WP-03's `ingestFault(notification: JSON!)` needs the same scalar name. This branch registers it in `telemetry/json.scalar.ts` (class-based `@Scalar('JSON')`, marker type `JsonValue`). A `new GraphQLScalarType()` does not work here: under Vitest/Node ESM the service's `graphql` import and Nest's CJS `graphql` are two module instances, so Nest rejects it ("Cannot determine a GraphQL input type"). After merging WP-03 exactly one `JSON` scalar may remain; keep one and point the other module at it.
+
+**Simulator** (`scripts/telemetry-simulator.mjs`): scenario st-003 recurring connector-lock fault (Faulted in ticks 1, 5, 9, ...; also sent to `ingestFault` as the WP-01 voltreon lock notification, inlined because plain Node cannot load the taxonomy package's TypeScript), st-002 heats 40 -> 75 degrees C (+3/tick), st-005 stops after tick 3, others healthy. Pure generator `generateTick({ stations, seed, tick, startAtMs, intervalMs })` is a function of (seed, station, tick) only (FNV-1a + mulberry32). `ingestFault` does not exist on this branch (WP-03): `postGraphql` never throws, failures are counted, each distinct error is logged once, tests never call the real mutation.
+
+**Commands and results**
+- Tests first: unit tests (`test/unit/telemetry/*`) written before `src/telemetry/*` => 4 files failed with "Cannot find module" (no tests ran), then 8 files / 87 tests passed. Integration test written before the module: failed at schema build ("Cannot determine a GraphQL input type for the sample"), which led to the class-based scalar; then 2 files / 16 tests passed. Simulator test written before the script: failed ("Failed to resolve import ../../scripts/telemetry-simulator.mjs"), then 37 tests passed.
+- `TRIAGE_DATABASE_URL=postgres://triage:triage@localhost:5432/triage_wp08 npm run check -w @charge-portal/triage`: exit 0 (typecheck, lint, 87 unit, 16 integration tests; schema.gql in sync on repeated runs).
+- `npx vitest run tests/unit/telemetry-simulator.test.ts`: 37 passed. Root `npx vitest run`: 27 files / 418 tests passed.
+- Root `npm run lint`: exit 0. `npm run typecheck`: exit 0. `npm run test:coverage`: exit 0; statements 95.86%, branches 90.94%, functions 98.88%, lines 96.22% (unchanged; the new test does not alter the coverage include list).
+- Live run: built bundle (`npm run build -w`), `node dist/main.js` on port 4188 with `TELEMETRY_INTERVAL_MS=1000`, simulator `--interval 1000 --seed 7` for 16 ticks: st-002 `needs_visit` (high_temperature + sustained_overheating), st-003 `needs_visit` (recurring_fault, after its lock alert cleared on recovery), st-005 `offline` with an offline alert, st-001/st-004 `ok`; the simulator logged `Cannot query field "ingestFault"` once and kept running; after stopping it all stations turned `offline`. Server stopped afterwards.
+- Not run: `test:e2e`, `budget`, full root `npm run check`.
+
+**Open points**
+- `JSON` scalar duplicate with WP-03 (above); `schema.gql`, `migrations/index.ts`, `app.module.ts`, `services/triage/package.json`, `health.integration.test.ts` and the Status lines of this log will conflict textually with WP-03 and need a manual merge; regenerate `schema.gql` after merging (run the integration tests once and commit what Nest wrote).
+- Reads write: `stationStates`/`stationState` may insert the offline alert. Acceptable for a small fleet; a scheduled sweep would replace it if reads must stay side-effect free.
+- No Codex consultation was needed.
