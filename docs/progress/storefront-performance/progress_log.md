@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-02 reopened; Blocked on verification (implementation complete; default full check and shop LCP gates do not pass)
+Current step: WP-02 reopened; Review (required gates pass in main CI run 39153035298 on `f0de55a`; awaiting human acceptance)
 Completed steps: WP-00, WP-01, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-21, WP-22, WP-23, WP-24, WP-25, WP-25a, WP-25b, WP-25c, WP-25d, WP-26
-Next step: Hand off the committed/pushed bounded repair with explicit verification limitations. Do not mark WP-02 Review/Done or change tests/config/thresholds to clear the failures; further scope needs a human decision. WP-25 stays Done; WP-27 remains optional/deferred, not implemented or marked Done.
+Next step: Human review/acceptance of WP-02 against its package Done-when and approved reopened extension; only that acceptance moves it to Done. Passing CI and the merge are not acceptance. WP-25 stays Done; WP-27 remains optional/deferred, not implemented or marked Done.
 
 ## Decisions
 - 2026-10-18: Human declined the proposed `playwright.config.ts` worker override and explicitly
@@ -1906,3 +1906,28 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
   waiver. WP-02 is Blocked on verification, not Review/Done. Commit/push only the sixteen
   approved changed source/test/documentation files as an explicit draft checkpoint; local
   preserved caches/audit archives are not product source and must not be staged.
+
+## WP-02 — CI reconciliation (Review; 2026-10-25)
+- Status reconciliation only; no source, test, config, dependency, lockfile, budget or
+  threshold change. Earlier Blocked-on-verification evidence above is preserved unchanged.
+- Verified checkout: repo root `charge-portal-nuxt`, branch `main`, HEAD and `origin/main`
+  (fetched and `ls-remote`) both `f0de55a9ba9b4dfca9cbcf9e2569cea193618fdc`, the PR #5 merge
+  with parents `7c8a507` and repair tip `4d1fdda`. `git diff 4d1fdda f0de55a` is empty, so the
+  assessed tree is exactly the repair. Only `.claude/` is untracked (user files, untouched).
+- `b48bd32..HEAD` changes exactly the sixteen approved WP-02 files; no diff in
+  `playwright.config.ts`, `lighthouserc*.cjs`, `scripts/`, `nuxt.config.ts`, `.github/`,
+  `package.json` or `package-lock.json`.
+- CI evidence (read via the public GitHub REST API; `gh` absent, GitHub connector unavailable):
+  https://github.com/GerritHoskins/charge-portal/actions/runs/39153035298 — workflow `ci`
+  (`.github/workflows/ci.yml`), push to `main`, head_sha `f0de55a9…`, attempt 1,
+  2026-10-18T18:11–18:20Z, conclusion success. It is the only run for this SHA. Job `check`
+  (ubuntu-latest, Node 24) succeeded at every step: `npm ci`, Playwright Chromium install,
+  `npm run check` (lint, typecheck, tokens, migration status, test:coverage, default-worker
+  `playwright test`, budget), portal `node scripts/lighthouse.mjs`, and `npm run lighthouse:shop`
+  (rebuild + twenty `--public` shop audits with unchanged LCP gates).
+- Interpretation: the required gates that failed locally on Windows (unedited telemetry
+  pagehide timing under eight workers; three shop LCP assertions) pass on the same source
+  in CI. The local failures stay recorded as observed environment-dependent results, not
+  erased or waived; no causal claim is made. The run's artifact listing returned none
+  unauthenticated, so per-audit CI LCP values were not inspected here.
+- WP-02 moves to Review (implementation and required checks complete), not Done.
