@@ -1,9 +1,9 @@
 # Fault Triage Progress
 
 ## Status
-Current step: WP-00, WP-01, WP-02 merged into feat/fault-triage; wave 3 (WP-03, WP-08) next
+Current step: WP-00, WP-01, WP-02 merged into feat/fault-triage; WP-03 in Review (fault-triage/wp-03); WP-08 in parallel
 Completed steps: WP-00, WP-01, WP-02 (orchestrator-reviewed; human acceptance waived per decision)
-Next step: WP-03 and WP-08 in parallel
+Next step: merge WP-03 and WP-08, then WP-04 (decisions) and WP-05 (Claude provider)
 
 ## Decisions
 - 2026-10-25: Human chose a pluggable `DraftProvider`: deterministic rules provider by default,
@@ -140,3 +140,51 @@ Branch `fault-triage/wp-02`, based on bb0a535 (WP-00). Checks were run from this
 - The progress log Status lines edited here will conflict with other packages' edits to the same lines; resolve at merge.
 - `npm install` warns that `@apollo/server-plugin-landing-page-graphql-playground` is deprecated; it is a hard dependency of `@nestjs/apollo` and is unused by us.
 - The integration test refuses to wipe a database named exactly `triage` unless `CI=true` or `TRIAGE_ALLOW_DB_RESET=1`; CI sets `CI=true` automatically.
+
+## WP-03 — Review
+Branch `fault-triage/wp-03`, based on 130c655 (feat/fault-triage with WP-00..02). Checks were run from this worktree only (not test:e2e, budget or the full root `npm run check`, per orchestrator instruction). Database `triage_wp03` in the shared `fault-triage-postgres` container.
+
+**What changed** (all under `services/triage/` unless noted)
+- `package.json`: `"@charge-portal/fault-taxonomy": "*"` (+ `package-lock.json`: that one line in the workspace entry). No other dependency was added.
+- Migration `src/migrations/1792922400000-CreateFaultTriageTables.ts` (registered in `src/migrations/index.ts`): tables `faults`, `tickets`, `audit_entries`, foreign keys `tickets.fault_id -> faults.id` and `audit_entries.ticket_id -> tickets.id`, CHECK constraints (fault source, ticket state, confidence 0..1, reject reason required when `rejected`, audit action, non-blank actor), indexes `(station_id, occurred_at)`, `(state, created_at DESC)`, `(ticket_id, at)`. `down` drops the three tables (revert + rerun verified).
+- `src/faults/`: `Fault` entity/GraphQL type, `FaultsService.ingest`, `FaultsResolver` (`ingestFault`), `IngestResult`, `json.scalar.ts` (`JSON` scalar), `FaultsModule`.
+- `src/tickets/`: `Ticket` entity/GraphQL type + `TicketState` enum, `TicketsService` (`list`, `get`, `faultOf`, `createDraft(manager, fault, draft)`), `TicketsResolver` (`tickets`, `ticket`, field resolvers `fault` and `audit`), `ticketSnapshot()`, `TicketsModule`.
+- `src/audit/`: `AuditEntry` entity/GraphQL type, `AuditService` (`record(manager, ...)` insert only, `forTicket(id)` oldest first), `AuditModule`.
+- `src/drafting/`: `DRAFT_PROVIDER` token, `DraftProvider` interface, `ticketDraftInputSchema`, `RulesDraftProvider`, `DraftingService` (runs the provider and validates its output; throws `InvalidDraftError`), `DraftingModule` (binds `DRAFT_PROVIDER` to `RulesDraftProvider` with `useExisting`).
+- `src/app.module.ts`: imports the four modules. `schema.gql` regenerated and committed.
+- Tests: unit `rules-draft-provider`, `ticket-draft-schema`, `drafting.service`, `faults.service`, `ticket-snapshot`, `json-scalar` (+ helper `test/helpers/fault-factory.ts`); integration `faults.integration.test.ts` (26 tests). The WP-02 test `health.integration.test.ts` now expects both migrations.
+
+**Behaviour**
+- `ingestFault(notification: JSON!)`: the notification is parsed with `ocppStatusNotificationSchema` (invalid => `GraphQLError` code `BAD_USER_INPUT`, `extensions.issues = [{ path, message, code }]`, submitted values are not echoed), then `normalise()`. `NoError` => `{ ticket: null, ignored: true }`, nothing stored. Otherwise: recent faults of the station are read, the provider drafts (validated by `DraftingService`), then ONE transaction inserts fault, ticket (`draft`) and the `draft-created` audit entry (`actor = agent:<provider>`, `before = null`, `after = ticketSnapshot(ticket)`). The provider runs before the transaction opens, so a slow (model) provider never holds a DB transaction; the fault id is generated in the service for that reason.
+- `RulesDraftProvider` (provider name `rules`): cause/action template per component (9, including `unknown`); confidence 0.9 `vendor-table`, 0.6 `ocpp-default`, 0.3 `unclassified`; recurrence: occurrences of the same `taxonomyCode` on the same station in the 24 h up to and including the fault, the NEW FAULT COUNTED, `>= 3` => `requiresSiteVisit = true`, cause gets "Recurring: ... N times ...", action is prefixed "Escalated ... schedule a site visit". The window is relative to the fault's own `occurredAt` (not the clock), so it is deterministic; later faults are ignored.
+- `ticketDraftInputSchema`: `{ taxonomyCode (enum of the TAXONOMY keys), probableCause 1..2000, suggestedAction 1..2000, requiresSiteVisit, confidence 0..1, provider 1..100 }`.
+
+**GraphQL surface (see `schema.gql`)**
+- `Mutation.ingestFault(notification: JSON!): IngestResult!`; `IngestResult { ticket: Ticket, ignored: Boolean! }`.
+- `Query.tickets(state: TicketState): [Ticket!]!` (newest first), `Query.ticket(id: ID!): Ticket` (null for unknown or non-UUID id).
+- `Ticket { id, faultId, stationId, state, taxonomyCode, probableCause, suggestedAction, requiresSiteVisit, confidence: Float, provider, rejectReason, createdAt, decidedAt, decidedBy, fault: Fault!, audit: [AuditEntry!]! }`; `enum TicketState { draft approved edited rejected }` (lower-case wire values, like `HealthStatus`).
+- `Fault { id, stationId, connectorId, ocppErrorCode, vendorId, vendorErrorCode, taxonomyCode, component, severity, requiresSiteVisit, source, raw: JSON!, occurredAt, receivedAt }`; `AuditEntry { id, ticketId, action, actor, before: JSON, after: JSON!, at }`. `component`, `severity`, `source` and `action` are plain `String!` on the wire (values contain hyphens; `draft-created` is not a legal enum name).
+- `fault` and `audit` are field resolvers: one query each per ticket (N+1 on `tickets`; fine for a queue, use a DataLoader if lists grow).
+
+**For later packages**
+- WP-04 (decisions): add approve/edit/reject to `TicketsService` and a resolver inside `src/tickets/`; reuse `AuditService.record(manager, ...)` in the same transaction and `ticketSnapshot()` for `before`/`after`; actor strings are operator ids from `@Actor()` (reject `null`). The DB already enforces the state values and "rejected needs a reason"; terminal-state immutability is NOT enforced in the DB, so do it in the service (e.g. `UPDATE ... WHERE id = $1 AND state = 'draft'` and check the row count).
+- WP-05 (Claude provider): implement `DraftProvider`, rebind `DRAFT_PROVIDER` in `DraftingModule` with a factory (`ANTHROPIC_API_KEY` set => Claude with `RulesDraftProvider` as fallback, else rules). Output is already validated by `DraftingService`; on fallback set `provider` to whatever ADR 0010 should record (any 1..100 char string; the audit actor becomes `agent:<provider>`). `RulesDraftProvider` is injectable for the fallback.
+- WP-06 (BFF): the wire contracts above; `ingestFault` needs only the internal token (no `@Actor`, stations are not operators).
+
+**Commands and results** (`TRIAGE_DATABASE_URL=postgres://triage:triage@localhost:5432/triage_wp03`)
+- Tests first: before any `src/` code, `npm run test -w @charge-portal/triage`: 6 files failed ("Cannot find module ../../src/..."), the 19 tests of the old files passed; the new integration suite failed to load.
+- After implementation: `npm run check -w @charge-portal/triage` exit 0 (typecheck, lint, unit 10 files / 60 tests, integration 2 files / 31 tests). The first integration run after adding the types failed the `schema.gql` drift test, as designed (Nest rewrote the file); the file is committed and the next run passed.
+- Root `npm run lint` exit 0; root `npm run typecheck` exit 0.
+- `npm run build -w @charge-portal/triage` ok; `NODE_ENV=production node dist/main.js` (port 4113, smoke only, stopped afterwards) answered `ingestFault` for a voltreon fixture with a `draft` ticket and an `agent:rules` audit entry, and returned `BAD_USER_INPUT` with issues for an invalid inline literal. `typeorm migration:revert` and `migration:run` of the new migration ok.
+- Not run: `test:e2e`, `budget`, full root `npm run check`, root `test:coverage` (no root source files touched).
+
+**Decisions / deviations (for the reviewer)**
+- The `JSON` scalar is a Nest `@Scalar` class (`Json` marker + `JsonScalar`) instead of a `GraphQLScalarType` or `graphql-type-json`: a `GraphQLScalarType` built in our ESM code is a different class than the CommonJS `graphql` Nest uses (failed with "Cannot determine a GraphQL input type"). No new dependency.
+- Recurrence counts the new fault (the 3rd occurrence escalates); "occurred >= 3 times" is ambiguous in the package text. Change `occurrences()` in `rules-draft-provider.ts` if 3 earlier ones were meant.
+- Nest logs every thrown `BAD_USER_INPUT` as an `[ExceptionsHandler]` error line with a stack. Harmless, but noisy for bad station input; left as is.
+- Inserts use `manager.insert(Entity, entity as QueryDeepPartialEntity<Entity>)` because TypeORM's insert type rejects jsonb `Record<string, unknown>` columns.
+- Audit entries are append-only by construction (no update/delete code); no database trigger was added (not in the package text).
+
+**Merge notes**
+- `src/migrations/index.ts`, `src/app.module.ts` and the progress-log Status lines will conflict with WP-08 (telemetry module): keep both migrations (ordered by timestamp; mine is `1792922400000`) and both module imports. Regenerate `schema.gql` after the merge (run the integration test once and commit the rewritten file). `package-lock.json` should merge cleanly (one line); otherwise rerun `npm install`.
+- WP-08/WP-04 migrations need a timestamp different from `1792922400000`.

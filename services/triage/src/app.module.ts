@@ -7,10 +7,14 @@ import { APP_GUARD } from '@nestjs/core'
 import { GraphQLModule } from '@nestjs/graphql'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { APP_CONFIG, type AppConfig, ConfigModule } from './config'
+import { AuditModule } from './audit/audit.module'
 import { typeOrmOptions } from './database/typeorm.options'
+import { DraftingModule } from './drafting/drafting.module'
+import { FaultsModule } from './faults/faults.module'
 import { Express5ApolloDriver } from './graphql/express5-apollo.driver'
 import { HealthModule } from './health/health.module'
 import { InternalAuthGuard, type TriageContext } from './internal-auth.guard'
+import { TicketsModule } from './tickets/tickets.module'
 
 /** services/triage/schema.gql, found from this file whether it runs from src/ or from the bundled dist/. */
 function schemaFile(): string {
@@ -46,6 +50,10 @@ function schemaFile(): string {
       }),
     }),
     HealthModule,
+    AuditModule,
+    DraftingModule,
+    TicketsModule,
+    FaultsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: InternalAuthGuard }],
 })

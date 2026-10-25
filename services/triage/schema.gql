@@ -2,6 +2,53 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+type AuditEntry {
+  """draft-created, approved, edited or rejected."""
+  action: String!
+
+  """The operator from the session, or agent:<provider> for drafts."""
+  actor: String!
+
+  """Ticket snapshot after the change."""
+  after: JSON!
+  at: DateTime!
+
+  """Ticket snapshot before the change; null for draft-created."""
+  before: JSON
+  id: ID!
+  ticketId: ID!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type Fault {
+  component: String!
+  connectorId: Int!
+  id: ID!
+
+  """The timestamp the station reported."""
+  occurredAt: DateTime!
+  ocppErrorCode: String!
+
+  """The validated OCPP StatusNotification as received."""
+  raw: JSON!
+  receivedAt: DateTime!
+  requiresSiteVisit: Boolean!
+  severity: String!
+
+  """vendor-table, ocpp-default or unclassified."""
+  source: String!
+  stationId: String!
+
+  """Canonical class, AREA.NAME or UNCLASSIFIED (ADR 0008)."""
+  taxonomyCode: String!
+  vendorErrorCode: String
+  vendorId: String
+}
+
 type Health {
   database: Boolean!
   status: HealthStatus!
@@ -12,7 +59,68 @@ enum HealthStatus {
   ok
 }
 
+type IngestResult {
+  """
+  True for a notification that reports no fault (NoError): acknowledged, not stored.
+  """
+  ignored: Boolean!
+
+  """The draft ticket; null when the notification was ignored."""
+  ticket: Ticket
+}
+
+"""
+Arbitrary JSON value. Inputs are validated by the resolver that receives them.
+"""
+scalar JSON
+
+type Mutation {
+  """
+  Ingest one raw OCPP 1.6 StatusNotification: normalise it, store the fault and draft a ticket. Invalid notifications fail with BAD_USER_INPUT and the validation issues.
+  """
+  ingestFault(notification: JSON!): IngestResult!
+}
+
 type Query {
   """Liveness plus database connectivity."""
   health: Health!
+
+  """One ticket, or null when the id is unknown."""
+  ticket(id: ID!): Ticket
+
+  """Tickets, newest first; all states unless `state` is given."""
+  tickets(state: TicketState): [Ticket!]!
+}
+
+type Ticket {
+  """The decision history, oldest first."""
+  audit: [AuditEntry!]!
+
+  """Between 0 and 1."""
+  confidence: Float!
+  createdAt: DateTime!
+  decidedAt: DateTime
+  decidedBy: String
+
+  """The fault the ticket was drafted for, with its raw codes."""
+  fault: Fault!
+  faultId: ID!
+  id: ID!
+  probableCause: String!
+
+  """Who produced the draft, for example rules."""
+  provider: String!
+  rejectReason: String
+  requiresSiteVisit: Boolean!
+  state: TicketState!
+  stationId: String!
+  suggestedAction: String!
+  taxonomyCode: String!
+}
+
+enum TicketState {
+  approved
+  draft
+  edited
+  rejected
 }
