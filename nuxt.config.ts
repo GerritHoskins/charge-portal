@@ -41,6 +41,11 @@ export default defineNuxtConfig({
     legacyOrigin: LEGACY_ORIGIN,
     // Server-only Store API credential. Override with NUXT_STORE_API_ACCESS_KEY.
     storeApiAccessKey: 'demo-access-key',
+    // Fault triage service (ADR 0009), server only: the browser never talks to it. Override with
+    // NUXT_TRIAGE_ORIGIN / NUXT_TRIAGE_INTERNAL_TOKEN. The default token is the synthetic one from
+    // docker-compose.yml; the service must not be reachable from outside the network.
+    triageOrigin: 'http://127.0.0.1:4100',
+    triageInternalToken: 'synthetic-dev-internal-token',
     // Private (server only). Override with NUXT_CSRF_SECRET / NUXT_TRUST_PROXY.
     csrfSecret: '',
     // Rate limiting keys on the client ip; behind a reverse proxy set NUXT_TRUST_PROXY=true

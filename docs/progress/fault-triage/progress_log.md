@@ -1,7 +1,7 @@
 # Fault Triage Progress
 
 ## Status
-Current step: WP-00..WP-04 and WP-08 merged into feat/fault-triage; WP-05 and WP-06 running
+Current step: WP-00..WP-04 and WP-08 merged into feat/fault-triage; WP-05 running; WP-06 in Review (branch fault-triage/wp-06)
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-08 (orchestrator-reviewed; human acceptance waived per decision)
 Next step: merge WP-05 and WP-06; then WP-07
 
@@ -270,3 +270,34 @@ Branch `fault-triage/wp-04`, based on 80a241d (WP-03 on top of feat/fault-triage
 **Merge notes**
 - Touches only `services/triage/src/tickets/**`, `test/**`, `schema.gql` and one Status line of this log. `schema.gql` will conflict with WP-08 (telemetry types) and WP-05 if they change it: regenerate after merging (run the integration suite once; Nest rewrites it) and commit. No migration, so `src/migrations/index.ts` is untouched.
 - `TicketsService` gained constructor dependencies; anything constructing it by hand (none known besides tests) must pass `DataSource` and `AuditService`.
+
+## WP-06 — Review
+Branch `fault-triage/wp-06`, based on 1304543 (WP-00..04 and WP-08 merged). Checks were run from this worktree only (not test:e2e, budget or the full root `npm run check`, per orchestrator instruction). The triage service was not needed for the tests (`$fetch` is stubbed).
+
+**What changed**
+- `shared/contracts/triage.ts` (new): `ticketStateSchema`, `faultClassSummarySchema`, `faultDetailSchema` (raw codes + normalised class, no `raw` payload), `auditEntrySchema` (`before` nullable, `after` loose with optional `changedFields`), `ticketSummarySchema`, `ticketDetailSchema`, envelopes `ticketListResponseSchema` / `ticketDetailResponseSchema` (`{ data }`), GraphQL result shapes (`ticketsQueryDataSchema`, `ticketQueryDataSchema`, `mutationTicketDataSchema(name)`), `ticketDecisionInputSchema` (strict discriminated union on `action`), `triageValidationErrorSchema`, `toValidationError(zodError)`. Component, severity, OCPP error code and taxonomy code come from `@charge-portal/fault-taxonomy`; `source`, `action`, `changedFields` are enums defined here.
+- `server/utils/triage.ts` (new): `fetchTriage(event, query, variables, schema)`, the three operations `listTickets`, `getTicket`, `decideTicket` (routes are one-liners over them) and `readJsonBody`.
+- `server/api/triage/tickets.get.ts`, `server/api/triage/tickets/[id].get.ts`, `server/api/triage/tickets/[id]/decision.post.ts` (new).
+- `nuxt.config.ts`: `runtimeConfig.triageOrigin` (`http://127.0.0.1:4100`) and `runtimeConfig.triageInternalToken` (`synthetic-dev-internal-token`, the value from `docker-compose.yml`); env overrides `NUXT_TRIAGE_ORIGIN`, `NUXT_TRIAGE_INTERNAL_TOKEN`. No `.env.example` exists, so none was changed.
+- `tests/unit/triage-contract.test.ts`, `tests/unit/triage-bff.test.ts` (new).
+
+**Behaviour**
+- Actor: resolved once per request from the legacy session (`fetchLegacy('/api/v1/me')`, cached in `event.context.triageActor`) and sent as `x-actor` = the user's `name`; the shared token as `x-internal-token`. No session: 401 before the service is called. The decision body is `strictObject`, so an `actor` key is a 422; nothing from the body reaches a header.
+- Error mapping (GraphQL `errors[0].extensions.code`, read from 200 and from non-2xx bodies): FORBIDDEN 403; TICKET_NOT_FOUND 404 (also `ticket: null`, and a non-UUID id before any call); TICKET_ALREADY_DECIDED 409; BAD_USER_INPUT with valid `issues` 422 (paths: leading `input` dropped, arrays dotted); BAD_USER_INPUT without issues, UNAUTHENTICATED, Apollo validation codes, unknown codes, network/HTML/timeout 502 ("Triage service unreachable"); data not matching the schema 502 "Triage response violates contract". Service messages are never passed on.
+- `$fetch` uses `retry: 0` and a 10 s timeout.
+- Decision route only reads `application/json` bodies (415 otherwise), a cheap addition to the session cookie's SameSite=Lax.
+
+**Commands and results**
+- Tests first: `npx vitest run tests/unit/triage-contract.test.ts tests/unit/triage-bff.test.ts` before any implementation: 2 files failed to load (`#shared/contracts/triage`, `server/utils/triage` missing).
+- After implementation: same command: 2 files, 101 tests passed.
+- `npm run lint` exit 0. `npm run typecheck` exit 0. `npm run test:coverage` exit 0 (statements 96.65%, branches 90.94%, functions 98.95%, lines 97.1%; floor 90%/80%).
+- Extra checks (not committed): `npx nuxt build` exit 0 (the workspace TS import resolves and is inlined in the Nitro bundle). Smoke run of the built server against the legacy stand-in and a fake GraphQL server on spare ports (all stopped afterwards): no session 401, list 200, bad `state` 422, detail 200, non-UUID id 404, upstream TICKET_ALREADY_DECIDED 409, text/plain decision 415, `actor` in body 422; the fake service saw `x-actor: Demo Operator` and the internal token; `NUXT_TRIAGE_ORIGIN` override worked. The five GraphQL documents validate against `services/triage/schema.gql` (graphql-js `validate`).
+- Not run: `test:e2e`, `budget`, full root `npm run check`.
+
+**Decisions / notes for the reviewer**
+- The operator id is the legacy session's `name` (legacy has no separate id; the demo user is `Demo Operator`). The `x-actor` header must be ASCII/Latin-1; a name outside it would fail the call as 502.
+- The existing `csrf.ts` middleware only issues tokens for HTML pages; the repo's JSON `POST` routes (disputes) do not verify one, and the new decision route follows that. Protection is SameSite=Lax plus the JSON-only content type. WP-07 needs no CSRF token; a `$fetch` with an object body sends `application/json`.
+- All routes return `{ data }` (list: `TicketSummary[]`, detail and decision: `TicketDetail`), unlike `stations.get.ts`, which unwraps. This keeps the contract schemas and the wire identical.
+- `server/utils/triage.ts` is not in the vitest coverage `include` (edit scope excluded `vitest.config.ts`); `shared/contracts/triage.ts` is covered by the `shared/**` glob.
+- Bundle size hazard for WP-07: `shared/contracts/triage.ts` imports `@charge-portal/fault-taxonomy` (package index; vendor tables validate at load and the package declares no `sideEffects: false`). A page that imports the contracts could pull the whole taxonomy package into its client chunk. The server bundle is unaffected. Check with `npm run budget`; if needed add `"sideEffects": false` or a subpath export to the package.
+
