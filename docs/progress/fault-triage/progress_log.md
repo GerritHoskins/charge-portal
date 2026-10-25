@@ -1,9 +1,9 @@
 # Fault Triage Progress
 
 ## Status
-Current step: WP-00..WP-03 and WP-08 merged into feat/fault-triage; WP-04 and WP-05 running
-Completed steps: WP-00, WP-01, WP-02, WP-03, WP-08 (orchestrator-reviewed; human acceptance waived per decision)
-Next step: merge WP-04, WP-05; then WP-06
+Current step: WP-00..WP-04 and WP-08 merged into feat/fault-triage; WP-05 and WP-06 running
+Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-08 (orchestrator-reviewed; human acceptance waived per decision)
+Next step: merge WP-05 and WP-06; then WP-07
 
 ## Decisions
 - 2026-10-25: Human chose a pluggable `DraftProvider`: deterministic rules provider by default,
@@ -234,3 +234,39 @@ Branch `fault-triage/wp-08`, based on 130c655 (WP-00/01/02 merged). Checks were 
 - `JSON` scalar duplicate with WP-03 (above); `schema.gql`, `migrations/index.ts`, `app.module.ts`, `services/triage/package.json`, `health.integration.test.ts` and the Status lines of this log will conflict textually with WP-03 and need a manual merge; regenerate `schema.gql` after merging (run the integration tests once and commit what Nest wrote).
 - Reads write: `stationStates`/`stationState` may insert the offline alert. Acceptable for a small fleet; a scheduled sweep would replace it if reads must stay side-effect free.
 - No Codex consultation was needed.
+## WP-04 — Review
+Branch `fault-triage/wp-04`, based on 80a241d (WP-03 on top of feat/fault-triage). Checks were run from this worktree only (not test:e2e, budget or the full root `npm run check`, per orchestrator instruction). Database `triage_wp04` in the shared `fault-triage-postgres` container. No migration was needed (see decisions).
+
+**What changed** (all under `services/triage/`)
+- `src/tickets/tickets.service.ts`: `approve(id, actor)`, `edit(id, input, actor)`, `reject(id, reason, actor)` over one private `decide()`: one `DataSource.transaction`, `findOne` with `pessimistic_write` (row lock), state must be `draft` (else `TICKET_ALREADY_DECIDED`), `UPDATE ... WHERE id AND state='draft'` with an affected-rows check as a second guard, then `AuditService.record(manager, ...)` in the same transaction. The service now also injects `DataSource` and `AuditService` (constructor changed; `TicketsModule` already imported `AuditModule`).
+- `src/tickets/tickets.resolver.ts`: mutations `approveTicket(id)`, `editTicket(id, input: TicketEditInput!)`, `rejectTicket(id, reason)`, all returning `Ticket!`. The actor comes only from `@Actor()`; there is no actor argument (a test asserts a client-supplied `actor` argument is a schema error).
+- New: `ticket-decision.schema.ts` (zod `ticketEditSchema` strict, at least one of probableCause/suggestedAction/taxonomyCode/requiresSiteVisit, null = not provided, text trimmed 1..2000, taxonomyCode must be a `TAXONOMY` key; `rejectReasonSchema` trimmed 3..500; `EDITABLE_FIELDS`), `ticket-edit.input.ts` (GraphQL `TicketEditInput`), `decision-errors.ts` (the error factories).
+- `schema.gql` regenerated and committed (3 mutations, 1 input type).
+- Tests: unit `ticket-decision-schema`, `ticket-decisions.service` (no actor / invalid input / bad id never open a transaction; lost-race guard), `audit.service` (surface: exactly `record` and `forTicket`, no update/delete/save/...); integration `decisions.integration.test.ts` (37 tests): approve/edit/reject with before/after and changedFields, missing and blank actor, internal token still required, validation cases without state change, all 9 first-decision x second-decision pairs, unknown/malformed id, 8 rounds of concurrent approve+reject plus 6 concurrent approvals (exactly one wins), rollback when the audit write fails (approve, edit, reject), API exposes no audit mutation.
+
+**Error contract** (GraphQL `errors[0].extensions.code`)
+- `FORBIDDEN`: no or blank `x-actor`. Checked first, before input validation and before any DB access. A missing/wrong `x-internal-token` is still `UNAUTHENTICATED` (guard).
+- `BAD_USER_INPUT` with `extensions.issues = [{ path, message, code }]` (paths start with `input` or `reason`; submitted values are not echoed): empty edit, blank/over-long text, taxonomyCode outside the taxonomy, reason shorter than 3 or longer than 500 after trimming, and an edit where no submitted field differs from the draft (issue code `no_change`).
+- `TICKET_NOT_FOUND`: unknown id and a malformed (non-UUID) id.
+- `TICKET_ALREADY_DECIDED` with `extensions.state` (the winning terminal state): the ticket is not a draft any more.
+- GraphQL validation errors (missing `reason`, unknown input field, unknown argument) come from Apollo with its own codes, not ours.
+
+**Decisions / deviations (for the reviewer)**
+- `changedFields` is stored inside the audit entry's `after` JSON (key `changedFields`, array in EDITABLE_FIELDS order: probableCause, suggestedAction, taxonomyCode, requiresSiteVisit), not in a new column: no migration, and `before`/`after` stay diffable snapshots. Only fields whose submitted value differs from the draft are listed. `before` never carries it. Consumers comparing `after` with a ticket snapshot must ignore this key.
+- An `editTicket` that changes nothing is refused with `BAD_USER_INPUT` (`no_change`; the message tells the operator to approve): an `edited` state with an empty diff would be misleading provenance. The package text did not say; easy to relax in `TicketsService.edit`.
+- `AuditService` keeps the WP-03 names `record(manager, ...)` and `forTicket(id)` instead of the `append`/`listForTicket` named in the package text: `faults.service.ts` (outside this package's edit scope) and WP-03 tests use them. The surface test pins exactly these two methods.
+- Edits keep `confidence` and `provider` (still the agent's draft); `decidedBy`/`decidedAt` are set for all three decisions. Editing `taxonomyCode` does not recompute `requiresSiteVisit`; the operator sets it explicitly.
+- No database trigger against audit UPDATE/DELETE was added (not in the package text); immutability is by construction in code. A trigger would be a small follow-up migration (timestamp 1792926000000 was reserved for this package and is unused).
+- Nest logs every thrown GraphQLError as an `[ExceptionsHandler]` error line (same noise as WP-03 for `BAD_USER_INPUT`).
+
+**Commands and results** (`TRIAGE_DATABASE_URL=postgres://triage:triage@localhost:5432/triage_wp04`)
+- Tests first: with only the tests written, `npm run test -w @charge-portal/triage` => 2 files failed / 6 tests failed (`service.approve is not a function`, missing `ticket-decision.schema`); `npm run test:integration` => 34 failed / 34 passed (every decision test failed, the WP-02/03 tests passed).
+- After implementation: `npm run check -w @charge-portal/triage` exit 0 (typecheck, lint, unit 13 files / 96 tests, integration 3 files / 68 tests); the integration suite was run 3 more times without a failure (the concurrency tests are stable). The schema drift test passes against the committed `schema.gql`.
+- Root `npm run lint` exit 0. Root `npm run typecheck` exit 0.
+- Not run: `test:e2e`, `budget`, full root `npm run check`, root `test:coverage` (no root files touched).
+
+**For WP-06 (BFF)**: map `FORBIDDEN` -> 403, `TICKET_NOT_FOUND` -> 404, `TICKET_ALREADY_DECIDED` -> 409, `BAD_USER_INPUT` -> 422 (with `issues`), `UNAUTHENTICATED` -> 502 (misconfigured internal token). Always send `x-actor` from the session user; the service rejects decisions without it. The mutations return the full `Ticket` including `audit`.
+
+**Merge notes**
+- Touches only `services/triage/src/tickets/**`, `test/**`, `schema.gql` and one Status line of this log. `schema.gql` will conflict with WP-08 (telemetry types) and WP-05 if they change it: regenerate after merging (run the integration suite once; Nest rewrites it) and commit. No migration, so `src/migrations/index.ts` is untouched.
+- `TicketsService` gained constructor dependencies; anything constructing it by hand (none known besides tests) must pass `DataSource` and `AuditService`.
