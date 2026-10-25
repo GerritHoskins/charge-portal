@@ -18,7 +18,9 @@ for (const tenant of ['default', 'stadtwerke-demo', 'fleet-demo']) {
   for (const [prefix, stories, selector] of components) {
     for (const story of stories) {
       test(`${prefix}/${story} passes axe (${tenant})`, async ({ page }) => {
-        await page.goto(`${STORYBOOK}/iframe.html?id=${prefix}--${story}&viewMode=story&globals=tenant:${tenant}`)
+        // a11y.manual stops addon-a11y's automatic post-render axe run, which otherwise races
+        // this test's own run ("Axe is already running"). The Storybook UI panel is unaffected.
+        await page.goto(`${STORYBOOK}/iframe.html?id=${prefix}--${story}&viewMode=story&globals=tenant:${tenant};a11y.manual:!true`)
         await expect(page.locator(selector)).toBeVisible()
         await expect(page.locator('html')).toHaveAttribute('data-tenant', tenant)
         const results = await new AxeBuilder({ page }).include('#storybook-root').withTags(['wcag2aa']).analyze()
