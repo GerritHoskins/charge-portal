@@ -76,9 +76,24 @@ scalar JSON
 
 type Mutation {
   """
+  Accept a draft ticket as drafted (state approved). The operator is taken from x-actor. Errors (extensions.code): FORBIDDEN, TICKET_NOT_FOUND, TICKET_ALREADY_DECIDED.
+  """
+  approveTicket(id: ID!): Ticket!
+
+  """
+  Change some fields of a draft ticket and approve it (state edited); the audit entry lists changedFields. Errors: FORBIDDEN, BAD_USER_INPUT (no field, invalid field, nothing differs), TICKET_NOT_FOUND, TICKET_ALREADY_DECIDED.
+  """
+  editTicket(id: ID!, input: TicketEditInput!): Ticket!
+
+  """
   Ingest one raw OCPP 1.6 StatusNotification: normalise it, store the fault and draft a ticket. Invalid notifications fail with BAD_USER_INPUT and the validation issues.
   """
   ingestFault(notification: JSON!): IngestResult!
+
+  """
+  Reject a draft ticket with a reason of 3 to 500 characters after trimming (state rejected). Errors: FORBIDDEN, BAD_USER_INPUT, TICKET_NOT_FOUND, TICKET_ALREADY_DECIDED.
+  """
+  rejectTicket(id: ID!, reason: String!): Ticket!
 }
 
 type Query {
@@ -116,6 +131,18 @@ type Ticket {
   stationId: String!
   suggestedAction: String!
   taxonomyCode: String!
+}
+
+input TicketEditInput {
+  """1 to 2000 characters after trimming."""
+  probableCause: String
+  requiresSiteVisit: Boolean
+
+  """1 to 2000 characters after trimming."""
+  suggestedAction: String
+
+  """A taxonomy class such as PWR.OVERCURRENT, or UNCLASSIFIED."""
+  taxonomyCode: String
 }
 
 enum TicketState {
