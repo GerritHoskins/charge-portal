@@ -31,3 +31,18 @@ export interface DraftContext {
 export interface DraftProvider {
   draft(fault: Fault, context: DraftContext): Promise<TicketDraftInput>
 }
+
+/**
+ * A provider could not produce a draft and the caller should use the next provider. `reason` is a short
+ * slug that ends up in the draft's `provider` field and in a log line, `detail` (field names, never
+ * values) only in the log: neither may carry model output, prompt text or secrets.
+ */
+export class DraftProviderError extends Error {
+  constructor(
+    readonly reason: string,
+    readonly detail?: string,
+  ) {
+    super(`Draft provider failed: ${reason}`)
+    this.name = 'DraftProviderError'
+  }
+}
