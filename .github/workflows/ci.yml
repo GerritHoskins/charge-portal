@@ -4,6 +4,24 @@ on: [push, pull_request]
 jobs:
   check:
     runs-on: ubuntu-latest
+    # PostgreSQL for the triage service integration tests (`npm run check` -> check:workspaces, ADR 0009).
+    # Credentials and the token are synthetic.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: triage
+          POSTGRES_PASSWORD: triage
+          POSTGRES_DB: triage
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U triage -d triage"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      TRIAGE_DATABASE_URL: postgres://triage:triage@localhost:5432/triage
+      TRIAGE_INTERNAL_TOKEN: synthetic-ci-internal-token
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

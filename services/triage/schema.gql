@@ -1,0 +1,18 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type Health {
+  database: Boolean!
+  status: HealthStatus!
+}
+
+enum HealthStatus {
+  degraded
+  ok
+}
+
+type Query {
+  """Liveness plus database connectivity."""
+  health: Health!
+}
