@@ -1,9 +1,9 @@
 # Fault Triage Progress
 
 ## Status
-Current step: WP-00..WP-06 and WP-08 merged into feat/fault-triage; WP-07 in Review (branch fault-triage/wp-07); WP-09 in Review (branch fault-triage/wp-09, based on the WP-07 commit)
+Current step: WP-00..WP-06 and WP-08 merged into feat/fault-triage; WP-07 in Review (branch fault-triage/wp-07); WP-09 in Review (branch fault-triage/wp-09, based on the WP-07 commit); WP-10 in Review (branch fault-triage/wp-10, based on 4c284f8 = WP-07 + WP-09)
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-08 (orchestrator-reviewed; human acceptance waived per decision)
-Next step: merge WP-07 and WP-09, then WP-10
+Next step: merge WP-07, WP-09 and WP-10; run the full `npm run check`; human review of the integrated result
 
 ## Decisions
 - 2026-10-25: Human chose a pluggable `DraftProvider`: deterministic rules provider by default,
@@ -413,3 +413,23 @@ Branch `fault-triage/wp-09`, based on ebcc30f (WP-00..08 incl. WP-07). This pack
 - Reading `stationStates` may write an `offline` alert in the service (WP-08); accepted.
 
 **Merge notes**: textual conflicts are possible in `playwright.config.ts` and `services/triage/src/seed/seed.ts` (WP-07 touched both; this branch only adds), `i18n/locales/*.json` (WP-10 may add keys near `stations`/`triage`), and the Status lines of this log.
+
+## WP-10 — Review
+Branch `fault-triage/wp-10`, based on 4c284f8 (WP-00..09 integrated). Documentation only: `README.md`, ADRs 0008 to 0010 (status still `proposed`) and this log. No code, locale file, threshold or test was touched. Every claim below was checked against the code on this branch, not only against the log.
+
+**What changed**
+- `README.md`: new section "Fault triage" (workspace layout, routes, how to start Postgres / service / seed / simulator / Nuxt, test databases, one environment table); routes table rows for `/portal/triage`, `/portal/triage/:id` and the live state on `/portal/stations`; ADRs 0008 to 0010 in the decision-records list; `npm run check` comment and a note that `npm run dev` does not start the service; honest limits for the triage slice; a row in "What this demonstrates"; a roadmap item.
+- `README.md` budget bullet rewritten: the old text said `npm run budget` fails above a 120 KB aggregate, but `scripts/check-bundle-size.mjs` is informational and the hard gate is the per-route table in `scripts/route-budgets.json` (ADR 0007). It now says so and records the pre-existing `/shop/wallbox-home-7-4` failure: about 128.05 KB gz on main, 128.242 KB with this work, threshold 128.045 KB in `scripts/route-budgets.json` (ADR 0007 prints it as 128.0). No threshold changed.
+- ADR 0008: the `unknown` component was already documented (commit 533c818). Added: 17 classes incl. `UNCLASSIFIED`; vendor id matching; a matching vendor code beats `NoError`; `NoError` otherwise = no fault, nothing stored; `OCPP_DEFAULTS` and which codes have no default; "downgrade" reworded to reclassify / clear the site-visit flag (a ticket has no severity field); the "frequency of unclassified per vendor" claim reworded (queryable, no report); per-vendor canonical forms (the old text said all vendors trim and case-fold; `voltreon` only trims and `orbis-power` upper-cases hex); `sideEffects: false` and the `./taxonomy` / `./ocpp` subpath exports.
+- ADR 0009: Apollo Server 5 / `graphql` 16 / NestJS 11.2 / Nest GraphQL 13; Vite SSR build with SWC (why, and that `tsc`/`nest build` is unsupported); the root `overrides` entry and `Express5ApolloDriver` workaround; `schema.gql` committed with a drift test; explicit migration list and `migrationsRun`; CHECK constraints and that terminal states are enforced in service code (row lock); BFF details (10 s timeout, no retry, error mapping); the old "auth, CSRF and rollout rules apply unchanged" corrected (auth applies, no CSRF token check on the decision route, no rollout switch); internal token (constant-time, deny by default) and `x-actor` = session user `name`; `TRIAGE_HOST` default `127.0.0.1`, compose publishes on loopback; the old "unit tests use in-memory repositories" corrected (stubs; integration tests boot the whole app on real Postgres); the old "needs Docker running" corrected (needs reachable Postgres); N+1 note.
+- ADR 0010: provider set and `TicketDraftInput` fields; edit fields and the no-op edit refusal; terminal states and error codes; audit actions, actor formats, `changedFields` inside `after`, snapshot fields; no DB trigger; rules provider confidence and recurrence rule; Claude provider (tool `submit_ticket_draft`, `tool_choice: auto` + instruction + `effort: medium` for Sonnet 5.5 / Opus 5.5 / Fable 5.1 / Mythos 5.1, forced elsewhere, **unverified against the live API**), fallback reasons and the `rules (fallback: <reason>)` provider string, env vars, prompt content sent to the API; draft text is English regardless of UI locale; compose does not forward the Claude variables; "measuring accepted drafts" and "mocked client" reworded to what exists.
+
+**Commands and results**
+- `npm ci`: ok. `npm run lint`: exit 0 (see below). Link check: every relative link in `README.md` and ADRs 0008 to 0010 resolves (small node script, not committed).
+- Not run: typecheck, tests, `test:e2e`, `budget`, full `npm run check` (no code or test changed). The budget numbers above are copied from the WP-07 and WP-09 entries, not re-measured here.
+
+**Things found while reading, not fixed (outside WP-10's edit scope)**
+- `services/triage/package.json` lists `"@charge-portal/fault-taxonomy": "*"` twice in `dependencies` (merge artifact of WP-03 and WP-08). Valid JSON for npm (last wins) but should be deduplicated.
+- `scripts/route-budgets.json` has `/shop/wallbox-home-7-4` at 128.045 KB while the WP-07/09 entries and ADR 0007 say 128.0; the figure on main was recorded as 128.049 in WP-07 and as 128.047 in the WP-10 brief.
+- `services/triage/README.md` does not mention `TELEMETRY_INTERVAL_MS` (documented in the root README table instead).
+- `ADR 0007` is not edited; the shop budget remains a separate matter.
