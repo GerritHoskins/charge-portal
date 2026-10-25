@@ -3,9 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "sideEffects": false,
   "description": "OCPP 1.6 StatusNotification schemas, synthetic vendor code tables and the canonical fault taxonomy (ADR 0008).",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./taxonomy": "./src/taxonomy.ts",
+    "./ocpp": "./src/ocpp.ts"
   },
   "scripts": {
     "test": "vitest run",

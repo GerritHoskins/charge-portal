@@ -25,3 +25,15 @@ Internal fault-triage service (NestJS + GraphQL + PostgreSQL). Only the Nuxt BFF
 - The key and the prompt are never logged or stored. Tests use a fake client and never need the key or the network.
 - Models that reject a forced `tool_choice` (Sonnet 5.5, Opus 5.5, Fable 5.1, Mythos 5.1) get `tool_choice: auto`
   plus an explicit instruction to call the tool; all other models get the tool forced.
+
+## Seed data and end-to-end runs
+
+`src/seed` ingests the synthetic WP-01 fixtures (12 faults, one draft ticket each) through the GraphQL API, so the tickets
+are drafted by the real service. It is built as `dist/seed.js`:
+
+- `npm run seed -w @charge-portal/triage`: seed a running service (`TRIAGE_INTERNAL_TOKEN`, `TRIAGE_PORT`).
+- `npm run seed:reset -w @charge-portal/triage`: empty the tables first (`TRIAGE_DATABASE_URL`).
+- `npm run e2e:serve -w @charge-portal/triage`: build, drop and recreate the database, then start the service. The Playwright
+  `webServer` runs this against `triage_e2e`; the E2E spec calls `resetTriageData` and `seedFaults` before every test.
+
+The destructive helpers (`recreateDatabase`, `resetTriageData`) refuse every database whose name does not end in `_e2e`.

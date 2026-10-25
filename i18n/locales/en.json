@@ -9,6 +9,7 @@
     "stations": "Stations",
     "sessions": "Charging sessions",
     "invoices": "Invoices",
+    "triage": "Fault triage",
     "signedInAs": "Signed in as {name}",
     "logout": "Sign out",
     "language": "Language"
@@ -76,6 +77,181 @@
     "submit": "Send dispute",
     "submitting": "Sending …",
     "cancel": "Cancel"
+  },
+  "triage": {
+    "title": "Fault triage",
+    "intro": "The agent drafts a ticket for every fault. You decide: approve, edit or reject.",
+    "caption": "Fault tickets with station, fault class, severity, site visit, source and time",
+    "filter": "State",
+    "all": "All",
+    "shown": "{n} tickets shown",
+    "empty": "No tickets in this state.",
+    "loadError": "The tickets could not be loaded.",
+    "col": {
+      "station": "Station",
+      "fault": "Fault",
+      "severity": "Severity",
+      "siteVisit": "Site visit",
+      "provider": "Source",
+      "created": "Created",
+      "action": "Action"
+    },
+    "yes": "Yes",
+    "no": "No",
+    "none": "not given",
+    "open": "Review",
+    "openFor": " ticket for station {station}, {fault}",
+    "state": {
+      "draft": "Draft",
+      "approved": "Approved",
+      "edited": "Edited",
+      "rejected": "Rejected"
+    },
+    "severity": {
+      "info": "Information",
+      "minor": "Minor",
+      "major": "Major",
+      "critical": "Critical"
+    },
+    "component": {
+      "connector": "Connector",
+      "power-electronics": "Power electronics",
+      "metering": "Metering",
+      "communication": "Communication",
+      "rfid-reader": "RFID reader",
+      "firmware": "Firmware",
+      "thermal": "Thermal",
+      "grid-supply": "Grid supply",
+      "unknown": "Unknown"
+    },
+    "source": {
+      "vendor-table": "Vendor table",
+      "ocpp-default": "OCPP default",
+      "unclassified": "Unclassified"
+    },
+    "taxonomy": {
+      "CON": {
+        "LOCK_FAILURE": "Connector lock stuck",
+        "CABLE_DAMAGE": "Charging cable damaged"
+      },
+      "PWR": {
+        "OVERCURRENT": "Overcurrent",
+        "MODULE_FAILURE": "Power module failed",
+        "OVERVOLTAGE": "Overvoltage",
+        "UNDERVOLTAGE": "Undervoltage"
+      },
+      "GRD": {
+        "GROUND_FAULT": "Ground fault"
+      },
+      "MTR": {
+        "METER_FAILURE": "Meter failed"
+      },
+      "COM": {
+        "EV_HANDSHAKE": "Vehicle communication error",
+        "BACKEND_LINK": "Backend link lost",
+        "WEAK_SIGNAL": "Weak mobile signal"
+      },
+      "RFD": {
+        "READER_FAILURE": "RFID reader failed"
+      },
+      "FWR": {
+        "RESET_FAILURE": "Reset failed",
+        "CRASH": "Firmware crash"
+      },
+      "THM": {
+        "OVER_TEMPERATURE": "Over-temperature",
+        "FAN_FAILURE": "Fan failed"
+      },
+      "UNCLASSIFIED": "Unclassified"
+    },
+    "field": {
+      "probableCause": "Probable cause",
+      "suggestedAction": "Suggested action",
+      "taxonomyCode": "Fault class",
+      "requiresSiteVisit": "Site visit required"
+    },
+    "error": {
+      "required": "Please fill in the field \"{field}\".",
+      "tooShort": "The field \"{field}\" is too short (at least {min} characters).",
+      "tooLong": "The field \"{field}\" is too long (at most {max} characters).",
+      "noChange": "Please change at least one field.",
+      "unknownClass": "Please choose a fault class from the list.",
+      "invalid": "The field \"{field}\" is invalid."
+    },
+    "detail": {
+      "pageTitle": "Review ticket",
+      "heading": "Ticket for station {station}",
+      "back": "Back to the queue",
+      "loadError": "The ticket could not be loaded.",
+      "notFound": "Ticket not found"
+    },
+    "fault": {
+      "heading": "Reported fault",
+      "station": "Station",
+      "connector": "Connector",
+      "wholeStation": "Whole station",
+      "ocppCode": "OCPP error code",
+      "vendor": "Vendor",
+      "vendorCode": "Vendor error code",
+      "class": "Normalised class",
+      "component": "Component",
+      "severity": "Severity",
+      "siteVisit": "Site visit by class",
+      "source": "Classified by",
+      "occurred": "Occurred",
+      "received": "Received"
+    },
+    "draft": {
+      "heading": "Draft by the agent",
+      "confidence": "Confidence",
+      "confidenceValue": "{percent}%",
+      "provider": "Drafted by"
+    },
+    "decision": {
+      "heading": "Decision",
+      "state": "State",
+      "intro": "Review the fault and the draft. Without your decision the ticket stays a draft.",
+      "approve": "Approve",
+      "edit": "Edit",
+      "reject": "Reject",
+      "cancel": "Cancel",
+      "submitting": "Saving …",
+      "decidedBy": "Decided by",
+      "decidedAt": "Decided on",
+      "reason": "Reason",
+      "done": {
+        "approved": "Ticket approved.",
+        "edited": "Ticket approved with changes.",
+        "rejected": "Ticket rejected."
+      },
+      "alreadyDecided": "This ticket has already been decided. The page shows the current state.",
+      "failed": "The decision could not be saved. Please try again.",
+      "fixOne": "Please correct one field",
+      "fixMany": "Please correct {n} fields"
+    },
+    "editForm": {
+      "heading": "Edit ticket",
+      "hint": "Change what is wrong. The ticket is then approved with your changes.",
+      "textHint": "At most {max} characters.",
+      "submit": "Approve with changes"
+    },
+    "rejectForm": {
+      "heading": "Reject ticket",
+      "reason": "Reason for rejecting",
+      "hint": "At least {min}, at most {max} characters. The reason is kept in the history.",
+      "submit": "Confirm rejection"
+    },
+    "audit": {
+      "heading": "History",
+      "empty": "No entries yet.",
+      "changed": "Changed: {fields}",
+      "action": {
+        "draft-created": "Draft created",
+        "approved": "Approved",
+        "edited": "Edited",
+        "rejected": "Rejected"
+      }
+    }
   },
   "shop": {
     "title": "Shop",

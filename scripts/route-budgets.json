@@ -3,6 +3,8 @@
   "/portal/sessions": { "budgetKb": 119.5, "provisional": false },
   "/portal/invoices": { "budgetKb": 122.4, "provisional": false },
   "/portal/invoices/inv-0042/dispute": { "budgetKb": 122.4, "provisional": false },
+  "/portal/triage": { "budgetKb": 130.9, "provisional": false },
+  "/portal/triage/3f0c2a8e-6a55-4a5e-9a3c-0d1f6f1d2b10": { "budgetKb": 130.9, "provisional": false },
   "/shop/c/wallboxes": { "budgetKb": 126, "provisional": true },
   "/shop/wallbox-home-7-4": { "budgetKb": 128.045, "provisional": true },
   "/shop/cart": { "budgetKb": 123, "provisional": true }

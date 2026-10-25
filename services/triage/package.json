@@ -15,6 +15,9 @@
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run --config vitest.config.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
+    "seed": "vite build && node dist/seed.js seed",
+    "seed:reset": "vite build && node dist/seed.js reset",
+    "e2e:serve": "vite build && node dist/seed.js prepare && node dist/main.js",
     "migration:run": "vite build && typeorm migration:run -d dist/data-source.js",
     "check": "npm run typecheck && npm run lint && npm run test && npm run test:integration"
   },

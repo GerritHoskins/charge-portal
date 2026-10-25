@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import { componentSchema, ocppErrorCodeSchema, severitySchema, TAXONOMY, taxonomyCodeSchema } from '@charge-portal/fault-taxonomy'
+import { ocppErrorCodeSchema } from '@charge-portal/fault-taxonomy/ocpp'
+import { componentSchema, severitySchema, TAXONOMY, taxonomyCodeSchema } from '@charge-portal/fault-taxonomy/taxonomy'
 
 // The contract between the Vue frontend and the triage service (ADR 0009). The BFF parses every
 // GraphQL `data` object with these schemas, so drift fails loudly at the boundary (502) instead of
