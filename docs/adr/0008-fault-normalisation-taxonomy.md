@@ -32,25 +32,36 @@ The vendors in this repository are fictional and their code tables are synthetic
    - `requiresSiteVisit`: whether a technician must go on site. This is the field that turns a fault
      into a cost, so it is explicit rather than derived from severity.
    - `taxonomyCode`: stable `AREA.NAME` identifier (e.g. `CON.LOCK_FAILURE`, `PWR.OVERCURRENT`)
-     used for reporting and as the key the drafting step reasons about.
+     used for reporting and as the key the drafting step reasons about. The frozen `TAXONOMY` map in
+     `packages/fault-taxonomy/src/taxonomy.ts` has 17 classes, `UNCLASSIFIED` included.
 2. **Two-layer schemas, as in the catalogue contract.** Raw layer: `ocppStatusNotificationSchema`
    (OCPP 1.6 field names, `errorCode` as the closed OCPP enum, `vendorErrorCode` ≤ 50 chars). Canonical
    layer: `faultClassSchema`. A pure `normalise(raw)` maps one to the other and returns the class plus
    the `source` of the decision (`vendor-table`, `ocpp-default`, `unclassified`).
-3. **Precedence: vendor table, then OCPP default, then `UNCLASSIFIED`.** A known `vendorId` with a
-   matching code wins because it is the most specific evidence. Otherwise the OCPP `errorCode` maps
-   to a default class. If neither yields a class (unknown vendor code with `OtherError`/
+3. **Precedence: vendor table, then OCPP default, then `UNCLASSIFIED`.** A known `vendorId` (matched
+   trimmed and case-insensitively) with a matching code wins because it is the most specific evidence;
+   it wins even when the standard `errorCode` is `NoError`. Otherwise `NoError` means no fault
+   (`normalise()` returns `fault: null`, source `ocpp-default`; the service acknowledges the message and
+   stores nothing). Any other `errorCode` except `OtherError` and `InternalError` maps to a default class
+   (`OCPP_DEFAULTS` in `normalise.ts`; `LocalListConflict` is treated as a backend synchronisation
+   problem, `COM.BACKEND_LINK`). If neither yields a class (unknown vendor code with `OtherError`/
    `InternalError`), the result is `UNCLASSIFIED`.
 4. **Unknown is safe, not silent.** `UNCLASSIFIED` uses `severity: major` and
    `requiresSiteVisit: true`, and the raw codes are always kept next to the class. Under-reacting to
    an unknown fault in the field is worse than an unnecessary review; the triage step (ADR 0010)
-   gives an operator the chance to downgrade it, and the frequency of `unclassified` per vendor shows
-   which tables need extending.
+   lets an operator reclassify the ticket or clear its site-visit flag. The `faults` table keeps the
+   decision `source`, `vendor_id` and the raw codes, so the share of `unclassified` per vendor can be
+   queried to see which tables need extending; no report for that exists yet.
 5. **Vendor code tables are data, validated by zod.** Each fictional vendor has a table keyed by its
-   own code format, parsed with a schema at module load and covered by an exhaustive test that every
-   entry maps to a valid class. Adding a vendor means adding a table and its fixture, not code paths.
+   own code format and its own `canonicalise` function, parsed with a schema at module load (keys must
+   already be in canonical form, at most 50 characters, and map to a class other than `UNCLASSIFIED`)
+   and covered by a test that every entry maps to a valid class. Adding a vendor means adding a table
+   and its fixture, not code paths. Four fictional vendors exist: `voltreon`, `kestrel-ev`, `lumenwatt`,
+   `orbis-power`.
 6. **The taxonomy lives in its own workspace package** (`packages/fault-taxonomy`) so the NestJS
-   service and the Nuxt BFF share one definition (ADR 0009).
+   service and the Nuxt BFF share one definition (ADR 0009). It exports TypeScript source and is marked
+   `sideEffects: false`; the BFF contract imports its `./taxonomy` and `./ocpp` subpaths so the vendor
+   tables stay out of any client chunk.
 
 ## Consequences
 
@@ -59,9 +70,10 @@ The vendors in this repository are fictional and their code tables are synthetic
   and a table, with tests; renaming one is a migration and is avoided.
 - `UNCLASSIFIED` faults cause more site-visit drafts until tables catch up. That is the intended
   bias and is visible in the data.
-- Free-text vendor codes are matched exactly after trimming and case-folding; there is no fuzzy
-  matching in the normaliser. Interpreting free text is left to the drafting step, where a human
-  approves the result.
+- Vendor codes are matched exactly after a per-vendor canonical form (`voltreon`: trim; `kestrel-ev`:
+  trim and upper-case; `lumenwatt`: trim and lower-case; `orbis-power`: trim and upper-case hex after
+  `0x`); there is no fuzzy matching in the normaliser. Interpreting free text is left to the drafting
+  step, where a human approves the result.
 
 ## User and business value
 
