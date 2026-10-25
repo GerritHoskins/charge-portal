@@ -2,6 +2,12 @@ import { describe, expect, it } from 'vitest'
 import {
   auditEntrySchema,
   mutationTicketDataSchema,
+  stationAlertKindSchema,
+  stationAlertSchema,
+  stationHealthSchema,
+  stationStateListResponseSchema,
+  stationStateSchema,
+  stationStatesQueryDataSchema,
   ticketDecisionInputSchema,
   ticketDetailResponseSchema,
   ticketDetailSchema,
@@ -275,5 +281,107 @@ describe('triage contract: validation error body', () => {
 
   it('rejects a body without issues', () => {
     expect(triageValidationErrorSchema.safeParse({ error: 'validation' }).success).toBe(false)
+  })
+})
+
+const alert = { id: '0d4e9a3c-2b1f-4a6e-8c7d-9e0f1a2b3c4d', stationId: 'st-003', kind: 'site_visit_fault', raisedAt: '2026-10-25T10:00:00.000Z' }
+const stationState = { stationId: 'st-003', state: 'needs-visit', updatedAt: '2026-10-25T10:00:00.000Z', alerts: [alert] }
+
+// What the service sends (GraphQL names cannot contain a hyphen, so needs_visit) and extra fields we do not use.
+const wireState = {
+  stationId: 'st-003',
+  state: 'needs_visit',
+  lastSampleAt: '2026-10-25T10:00:00.000Z',
+  lastReceivedAt: '2026-10-25T10:00:01.000Z',
+  lastStatus: 'Faulted',
+  temperatureC: 41.5,
+  powerKw: 0,
+  activeFault: { taxonomyCode: 'CON.LOCK_FAILURE', component: 'connector', severity: 'major', requiresSiteVisit: true },
+  alerts: [{ ...alert, message: 'Station needs a site visit', clearedAt: null }],
+}
+
+describe('triage contract: station health and alert kinds', () => {
+  it.each(['ok', 'degraded', 'needs-visit', 'offline'])('accepts the state %s', (state) => {
+    expect(stationHealthSchema.safeParse(state).success).toBe(true)
+  })
+
+  it('rejects the wire spelling and unknown states', () => {
+    expect(stationHealthSchema.safeParse('needs_visit').success).toBe(false)
+    expect(stationHealthSchema.safeParse('on-fire').success).toBe(false)
+  })
+
+  it('knows the six alert kinds of the service and nothing else', () => {
+    expect(stationAlertKindSchema.options).toEqual([
+      'site_visit_fault',
+      'recurring_fault',
+      'sustained_overheating',
+      'degraded_fault',
+      'high_temperature',
+      'offline',
+    ])
+  })
+})
+
+describe('triage contract: station state', () => {
+  it('accepts a well-formed state, with and without alerts, and the list envelope', () => {
+    expect(stationStateSchema.safeParse(stationState).success).toBe(true)
+    expect(stationStateSchema.safeParse({ ...stationState, state: 'ok', alerts: [] }).success).toBe(true)
+    expect(stationAlertSchema.safeParse(alert).success).toBe(true)
+    expect(stationStateListResponseSchema.safeParse({ data: [stationState] }).success).toBe(true)
+  })
+
+  it('rejects an unknown state (service drift)', () => {
+    expect(stationStateSchema.safeParse({ ...stationState, state: 'on-fire' }).success).toBe(false)
+  })
+
+  it('rejects an unknown alert kind', () => {
+    expect(stationStateSchema.safeParse({ ...stationState, alerts: [{ ...alert, kind: 'meteor_strike' }] }).success).toBe(false)
+  })
+
+  it('rejects a missing station id and an empty one', () => {
+    const { stationId: _stationId, ...withoutId } = stationState
+    expect(stationStateSchema.safeParse(withoutId).success).toBe(false)
+    expect(stationStateSchema.safeParse({ ...stationState, stationId: '' }).success).toBe(false)
+  })
+
+  it('rejects a timestamp that is not ISO 8601, in the state and in an alert', () => {
+    expect(stationStateSchema.safeParse({ ...stationState, updatedAt: 'just now' }).success).toBe(false)
+    expect(stationStateSchema.safeParse({ ...stationState, alerts: [{ ...alert, raisedAt: 'earlier' }] }).success).toBe(false)
+  })
+
+  it('rejects alerts that are not a list', () => {
+    expect(stationStateSchema.safeParse({ ...stationState, alerts: undefined }).success).toBe(false)
+    expect(stationStateSchema.safeParse({ ...stationState, alerts: alert }).success).toBe(false)
+  })
+
+  it('rejects a list without the data envelope', () => {
+    expect(stationStateListResponseSchema.safeParse([stationState]).success).toBe(false)
+  })
+})
+
+describe('triage contract: station states from the service', () => {
+  it('maps the wire state needs_visit to needs-visit and lastSampleAt to updatedAt, and drops what the UI does not use', () => {
+    const parsed = stationStatesQueryDataSchema.parse({ stationStates: [wireState] })
+    expect(parsed.stationStates).toEqual([stationState])
+    expect(stationStateListResponseSchema.safeParse({ data: parsed.stationStates }).success).toBe(true)
+  })
+
+  it.each(['ok', 'degraded', 'offline'])('keeps the wire state %s', (state) => {
+    expect(stationStatesQueryDataSchema.parse({ stationStates: [{ ...wireState, state }] }).stationStates[0]?.state).toBe(state)
+  })
+
+  it('rejects the contract spelling on the wire and unknown states', () => {
+    expect(stationStatesQueryDataSchema.safeParse({ stationStates: [{ ...wireState, state: 'needs-visit' }] }).success).toBe(false)
+    expect(stationStatesQueryDataSchema.safeParse({ stationStates: [{ ...wireState, state: 'on-fire' }] }).success).toBe(false)
+  })
+
+  it('rejects an alert of an unknown kind and a missing timestamp', () => {
+    expect(stationStatesQueryDataSchema.safeParse({ stationStates: [{ ...wireState, alerts: [{ ...alert, kind: 'x' }] }] }).success).toBe(false)
+    const { lastSampleAt: _lastSampleAt, ...withoutTimestamp } = wireState
+    expect(stationStatesQueryDataSchema.safeParse({ stationStates: [withoutTimestamp] }).success).toBe(false)
+  })
+
+  it('rejects an answer without stationStates', () => {
+    expect(stationStatesQueryDataSchema.safeParse({}).success).toBe(false)
   })
 })

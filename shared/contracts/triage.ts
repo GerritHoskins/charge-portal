@@ -110,6 +110,59 @@ export const ticketDecisionInputSchema = z.discriminatedUnion('action', [
 
 export const ticketsQuerySchema = z.object({ state: ticketStateSchema.optional() })
 
+// Station state (WP-08/09): the live health of a station and its active alerts. The wire spelling of
+// the state is `needs_visit` (a GraphQL enum value cannot contain a hyphen); the contract, the BFF
+// response and the UI use `needs-visit`, like the rest of the taxonomy.
+export const stationHealthSchema = z.enum(['ok', 'degraded', 'needs-visit', 'offline'])
+// Why an alert is raised. The UI translates by kind: the service's English message is never requested.
+export const stationAlertKindSchema = z.enum([
+  'site_visit_fault',
+  'recurring_fault',
+  'sustained_overheating',
+  'degraded_fault',
+  'high_temperature',
+  'offline',
+])
+
+export const stationAlertSchema = z.object({
+  id: idSchema,
+  stationId: z.string().min(1),
+  kind: stationAlertKindSchema,
+  raisedAt: timestampSchema,
+})
+
+export const stationStateSchema = z.object({
+  stationId: z.string().min(1),
+  state: stationHealthSchema,
+  /** When the station took its last reading (its own clock). */
+  updatedAt: timestampSchema,
+  /** Active alerts only. */
+  alerts: z.array(stationAlertSchema),
+})
+
+export const stationStateListResponseSchema = z.object({ data: z.array(stationStateSchema) })
+
+const wireHealthSchema = z.enum(['ok', 'degraded', 'needs_visit', 'offline'])
+
+// What the service answers (GraphQL `data`): parsed and mapped to the contract in one step, so the
+// wire spelling cannot leak past the BFF. Fields the UI does not use are dropped here.
+export const stationStatesQueryDataSchema = z.object({
+  stationStates: z.array(
+    z
+      .object({
+        stationId: z.string().min(1),
+        state: wireHealthSchema,
+        lastSampleAt: timestampSchema,
+        alerts: z.array(stationAlertSchema),
+      })
+      .transform(({ lastSampleAt, state, ...rest }) => ({
+        ...rest,
+        state: state === 'needs_visit' ? ('needs-visit' as const) : state,
+        updatedAt: lastSampleAt,
+      })),
+  ),
+})
+
 export type TicketState = z.infer<typeof ticketStateSchema>
 export type FaultClassSummary = z.infer<typeof faultClassSummarySchema>
 export type FaultDetail = z.infer<typeof faultDetailSchema>
@@ -117,6 +170,10 @@ export type AuditEntry = z.infer<typeof auditEntrySchema>
 export type TicketSummary = z.infer<typeof ticketSummarySchema>
 export type TicketDetail = z.infer<typeof ticketDetailSchema>
 export type TicketDecisionInput = z.infer<typeof ticketDecisionInputSchema>
+export type StationHealth = z.infer<typeof stationHealthSchema>
+export type StationAlertKind = z.infer<typeof stationAlertKindSchema>
+export type StationAlert = z.infer<typeof stationAlertSchema>
+export type StationState = z.infer<typeof stationStateSchema>
 
 // Body of a 422 from the BFF: the same shape whether the BFF or the service found the problem.
 // `path` is dotted (`reason`, `probableCause`); empty when the issue concerns the whole input.

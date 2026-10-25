@@ -2,8 +2,9 @@ import { createServer } from 'node:http'
 
 // A minimal stand-in for the triage service (GraphQL) for scripts that need the triage pages to render
 // without Postgres and without the real service, e.g. the route budget measurement. It answers the two
-// read queries of the BFF (server/utils/triage.ts) with one synthetic draft ticket; a unit test checks
-// that its answers parse with the BFF contracts. It is not used by the E2E suite, which runs the real service.
+// read queries of the BFF (server/utils/triage.ts) with one synthetic draft ticket and a synthetic live
+// state for the five demo stations (WP-09: the stations page is measured with its alert region on screen);
+// a unit test checks that its answers parse with the BFF contracts. It is not used by the E2E suite, which runs the real service.
 
 export const STUB_TICKET_ID = '3f0c2a8e-6a55-4a5e-9a3c-0d1f6f1d2b10'
 
@@ -53,6 +54,32 @@ const detail = {
   ],
 }
 
+// Wire dialect of the real service: the state is `needs_visit`, timestamps are ISO strings.
+const sampledAt = '2026-10-25T06:12:03.000Z'
+const stationAlert = (id, stationId, kind) => ({ id, stationId, kind, raisedAt: sampledAt })
+const stationStates = [
+  { stationId: 'st-001', state: 'ok', lastSampleAt: sampledAt, alerts: [] },
+  {
+    stationId: 'st-002',
+    state: 'degraded',
+    lastSampleAt: sampledAt,
+    alerts: [stationAlert('a1b2c3d4-0001-4a5b-8c6d-7e8f9a0b1c2d', 'st-002', 'high_temperature')],
+  },
+  {
+    stationId: 'st-003',
+    state: 'needs_visit',
+    lastSampleAt: sampledAt,
+    alerts: [stationAlert('a1b2c3d4-0002-4a5b-8c6d-7e8f9a0b1c2d', 'st-003', 'site_visit_fault')],
+  },
+  { stationId: 'st-004', state: 'ok', lastSampleAt: sampledAt, alerts: [] },
+  {
+    stationId: 'st-005',
+    state: 'offline',
+    lastSampleAt: sampledAt,
+    alerts: [stationAlert('a1b2c3d4-0003-4a5b-8c6d-7e8f9a0b1c2d', 'st-005', 'offline')],
+  },
+]
+
 const readJson = (request) =>
   new Promise((resolve) => {
     let text = ''
@@ -73,6 +100,7 @@ const respond = (response, status, body) => {
 
 const answer = ({ query, variables }) => {
   if (typeof query !== 'string') return { errors: [{ message: 'Bad request' }] }
+  if (/\bstationStates\b/.test(query)) return { data: { stationStates } }
   if (/\btickets\s*\(/.test(query)) {
     const state = variables?.state
     return { data: { tickets: !state || state === 'draft' ? [{ ...summary, fault: faultClass }] : [] } }

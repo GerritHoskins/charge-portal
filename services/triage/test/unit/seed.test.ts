@@ -1,11 +1,23 @@
 import { ALL_FIXTURES } from '@charge-portal/fault-taxonomy'
 import { describe, expect, it, vi } from 'vitest'
-import { assertE2eDatabase, recreateDatabase, resetTriageData, seedFaults } from '../../src/seed/seed'
+import { rollupStationState } from '../../src/telemetry/rollup'
+import { telemetrySampleSchema } from '../../src/telemetry/sample'
+import {
+  assertE2eDatabase,
+  recreateDatabase,
+  resetTelemetryData,
+  resetTriageData,
+  seedFaults,
+  seedTelemetry,
+  silenceStation,
+  SILENT_STATION_ID,
+  telemetryScenario,
+} from '../../src/seed/seed'
 
 interface Call {
   url: string
   headers: Record<string, string>
-  body: { query: string; variables: { n: unknown } }
+  body: { query: string; variables: { n?: unknown; s?: unknown } }
 }
 
 function fakeFetch(respond: (call: Call, index: number) => unknown, status = 200) {
@@ -42,6 +54,8 @@ describe('assertE2eDatabase', () => {
     const url = 'postgres://triage:triage@localhost:1/triage'
     await expect(recreateDatabase(url)).rejects.toThrow(/_e2e/)
     await expect(resetTriageData(url)).rejects.toThrow(/_e2e/)
+    await expect(resetTelemetryData(url)).rejects.toThrow(/_e2e/)
+    await expect(silenceStation(url, 'st-005', 60_000)).rejects.toThrow(/_e2e/)
   })
 })
 
@@ -98,5 +112,64 @@ describe('seedFaults', () => {
   it('stops on an unexpected response shape', async () => {
     const { impl } = fakeFetch(() => ({ data: { somethingElse: true } }))
     await expect(seedFaults({ ...options, fetch: impl })).rejects.toThrow(/unexpected response/i)
+  })
+})
+
+describe('telemetryScenario', () => {
+  const now = new Date('2026-10-25T10:00:00.000Z')
+  const scenario = telemetryScenario(now)
+  const health = Object.fromEntries(
+    scenario.map((sample) => [sample.stationId, rollupStationState(null, telemetrySampleSchema.parse(sample), now).state]),
+  )
+
+  it('reports every synthetic legacy station once, with valid samples taken at the given time', () => {
+    expect(scenario.map((s) => s.stationId)).toEqual(['st-001', 'st-002', 'st-003', 'st-004', 'st-005'])
+    for (const sample of scenario) {
+      expect(telemetrySampleSchema.safeParse(sample).success).toBe(true)
+      expect(sample.at).toBe(now.toISOString())
+    }
+  })
+
+  it('makes st-003 need a visit (an active connector lock fault) and st-002 degraded (too warm)', () => {
+    expect(health['st-003']).toBe('needs-visit')
+    expect(scenario.find((s) => s.stationId === 'st-003')?.faultClass?.taxonomyCode).toBe('CON.LOCK_FAILURE')
+    expect(health['st-002']).toBe('degraded')
+  })
+
+  it('keeps the other stations ok, and st-005 is the one that goes silent', () => {
+    expect(health['st-001']).toBe('ok')
+    expect(health['st-004']).toBe('ok')
+    expect(health['st-005']).toBe('ok') // it reported once; being silent is a matter of the receive time
+    expect(SILENT_STATION_ID).toBe('st-005')
+  })
+})
+
+describe('seedTelemetry', () => {
+  const options = { graphqlUrl: 'http://127.0.0.1:4100/graphql', internalToken: 'synthetic-token', now: new Date('2026-10-25T10:00:00.000Z') }
+  const ingested = () => ({ data: { ingestTelemetry: { stationId: 'x', state: 'ok' } } })
+
+  it('sends every scenario sample through ingestTelemetry with the internal token, one after the other', async () => {
+    const { calls, impl } = fakeFetch(ingested)
+    const result = await seedTelemetry({ ...options, fetch: impl })
+
+    expect(result).toEqual({ ingested: 5 })
+    expect(calls.map((c) => (c.body.variables.s as { stationId: string }).stationId)).toEqual(['st-001', 'st-002', 'st-003', 'st-004', 'st-005'])
+    for (const call of calls) {
+      expect(call.url).toBe(options.graphqlUrl)
+      expect(call.headers['x-internal-token']).toBe('synthetic-token')
+      expect(call.body.query).toContain('ingestTelemetry')
+    }
+  })
+
+  it('stops with a readable error on GraphQL errors, without leaking the token', async () => {
+    const { impl } = fakeFetch(() => ({ errors: [{ message: 'Invalid telemetry sample: status: nope' }] }))
+    const failure = seedTelemetry({ ...options, fetch: impl })
+    await expect(failure).rejects.toThrow(/Invalid telemetry sample/)
+    await expect(failure).rejects.not.toThrow(/synthetic-token/)
+  })
+
+  it('stops on a non-2xx answer and on an unexpected response shape', async () => {
+    await expect(seedTelemetry({ ...options, fetch: fakeFetch(() => ({}), 502).impl })).rejects.toThrow(/HTTP 502/)
+    await expect(seedTelemetry({ ...options, fetch: fakeFetch(() => ({ data: { nothing: 1 } })).impl })).rejects.toThrow(/unexpected response/i)
   })
 })

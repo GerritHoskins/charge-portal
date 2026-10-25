@@ -33,8 +33,18 @@
     "loadError": "The stations could not be loaded.",
     "shown": "{n} stations shown",
     "empty": "No stations for this filter.",
-    "col": { "name": "Name", "city": "City", "status": "Status", "connectors": "Connectors", "power": "Max. power" },
-    "status": { "available": "Available", "charging": "Charging", "faulted": "Fault", "offline": "Offline" }
+    "col": { "name": "Name", "city": "City", "status": "Status", "connectors": "Connectors", "power": "Max. power", "live": "Live state" },
+    "status": { "available": "Available", "charging": "Charging", "faulted": "Fault", "offline": "Offline" },
+    "live": {
+      "attention": "Needs attention",
+      "state": { "ok": "OK", "degraded": "Degraded", "needs-visit": "Needs a site visit", "offline": "No connection" },
+      "alert": { "site_visit_fault": "Active fault requires a site visit", "recurring_fault": "Fault keeps recurring", "sustained_overheating": "Sustained overheating", "degraded_fault": "Fault with limited operation", "high_temperature": "Elevated temperature", "offline": "Station has stopped reporting" },
+      "tickets": "Tickets for {station}",
+      "loading": "Loading …",
+      "unknown": "Not reported",
+      "unavailableCell": "Not available",
+      "unavailable": "The live state is currently unavailable. The station data is not affected."
+    }
   },
   "sessions": {
     "title": "Charging sessions",
@@ -86,6 +96,9 @@
     "all": "All",
     "shown": "{n} tickets shown",
     "empty": "No tickets in this state.",
+    "emptyStation": "No tickets for this station in this state.",
+    "stationFilter": "Filtered by station {station}",
+    "stationFilterClear": "Remove filter",
     "loadError": "The tickets could not be loaded.",
     "col": {
       "station": "Station",

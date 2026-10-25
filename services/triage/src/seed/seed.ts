@@ -1,4 +1,4 @@
-import { ALL_FIXTURES } from '@charge-portal/fault-taxonomy'
+import { ALL_FIXTURES, TAXONOMY } from '@charge-portal/fault-taxonomy'
 import { Client } from 'pg'
 import { z } from 'zod'
 
@@ -54,6 +54,28 @@ export async function resetTriageData(databaseUrl: string): Promise<void> {
   })
 }
 
+/** Empties the station telemetry tables (states and alerts). Separate from the fault data: specs seed the two independently. */
+export async function resetTelemetryData(databaseUrl: string): Promise<void> {
+  assertE2eDatabase(databaseUrl)
+  await withClient(databaseUrl, async (client) => {
+    await client.query('TRUNCATE station_alert, station_state')
+  })
+}
+
+/**
+ * Makes a station look silent: moves the time the service last heard from it into the past. "Offline" is judged on the
+ * service's receive time (3 x TELEMETRY_INTERVAL_MS), which a sample cannot fake, so E2E sets it in the database.
+ */
+export async function silenceStation(databaseUrl: string, stationId: string, silentForMs: number): Promise<void> {
+  assertE2eDatabase(databaseUrl)
+  await withClient(databaseUrl, async (client) => {
+    await client.query("UPDATE station_state SET last_received_at = now() - ($2::double precision * interval '1 millisecond') WHERE station_id = $1", [
+      stationId,
+      silentForMs,
+    ])
+  })
+}
+
 const ingestResponseSchema = z.object({
   data: z.object({ ingestFault: z.object({ ignored: z.boolean(), ticket: z.object({ id: z.string() }).nullable() }) }).nullish(),
   errors: z.array(z.object({ message: z.string() })).optional(),
@@ -95,4 +117,68 @@ export async function seedFaults({ graphqlUrl, internalToken, fetch: fetchImpl =
     else result.created++
   }
   return result
+}
+
+/** The station E2E makes silent (see `silenceStation`) so that every health state is on screen. */
+export const SILENT_STATION_ID = 'st-005'
+
+export interface ScenarioSample {
+  stationId: string
+  at: string
+  status: string
+  temperatureC: number
+  powerKw: number
+  faultClass?: (typeof TAXONOMY)[keyof typeof TAXONOMY]
+}
+
+/**
+ * One reading for each synthetic legacy station (legacy/data.mjs), taken at `now`:
+ * st-003 reports an active connector lock fault (needs a visit), st-002 runs warm (degraded),
+ * st-001 and st-004 are fine, st-005 is fine too but is meant to be silenced afterwards (offline).
+ */
+export function telemetryScenario(now: Date): ScenarioSample[] {
+  const at = now.toISOString()
+  return [
+    { stationId: 'st-001', at, status: 'Available', temperatureC: 28, powerKw: 0 },
+    { stationId: 'st-002', at, status: 'Charging', temperatureC: 66, powerKw: 21.5 },
+    { stationId: 'st-003', at, status: 'Faulted', temperatureC: 38, powerKw: 0, faultClass: TAXONOMY['CON.LOCK_FAILURE'] },
+    { stationId: 'st-004', at, status: 'Charging', temperatureC: 35, powerKw: 118.2 },
+    { stationId: SILENT_STATION_ID, at, status: 'Available', temperatureC: 30, powerKw: 0 },
+  ]
+}
+
+const telemetryResponseSchema = z.object({
+  data: z.object({ ingestTelemetry: z.object({ stationId: z.string() }) }).nullish(),
+  errors: z.array(z.object({ message: z.string() })).optional(),
+})
+
+const INGEST_TELEMETRY = 'mutation IngestTelemetry($s: JSON!) { ingestTelemetry(sample: $s) { stationId state } }'
+
+export interface SeedTelemetryOptions extends SeedOptions {
+  /** The time of the readings; defaults to the current time. */
+  now?: Date
+}
+
+/** Ingests the scenario through the real GraphQL API (so the service rolls the states up itself), one sample after the other. */
+export async function seedTelemetry({ graphqlUrl, internalToken, now = new Date(), fetch: fetchImpl = fetch }: SeedTelemetryOptions): Promise<{ ingested: number }> {
+  let ingested = 0
+  for (const sample of telemetryScenario(now)) {
+    const label = `telemetry for ${sample.stationId}`
+    const response = await fetchImpl(graphqlUrl, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-internal-token': internalToken },
+      body: JSON.stringify({ query: INGEST_TELEMETRY, variables: { s: sample } }),
+    })
+    if (!response.ok) throw new Error(`Seeding ${label} failed: HTTP ${response.status}`)
+
+    const parsed = telemetryResponseSchema.safeParse(await response.json())
+    if (!parsed.success || (!parsed.data.errors && !parsed.data.data)) {
+      throw new Error(`Seeding ${label} failed: unexpected response from the triage service`)
+    }
+    if (parsed.data.errors?.length) {
+      throw new Error(`Seeding ${label} failed: ${parsed.data.errors.map((error) => error.message).join('; ')}`)
+    }
+    ingested++
+  }
+  return { ingested }
 }

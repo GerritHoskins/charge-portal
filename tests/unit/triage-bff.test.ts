@@ -285,6 +285,89 @@ describe('listTickets', () => {
   })
 })
 
+describe('listStationStates', () => {
+  const wire = (stationId: string, state: string, alerts: unknown[] = []) => ({
+    stationId,
+    state,
+    lastSampleAt: '2026-10-25T10:00:00.000Z',
+    alerts,
+  })
+  const wireAlert = (stationId: string, kind: string) => ({
+    id: '0d4e9a3c-2b1f-4a6e-8c7d-9e0f1a2b3c4d',
+    stationId,
+    kind,
+    raisedAt: '2026-10-25T10:00:00.000Z',
+  })
+
+  it('asks for the states and active alerts only, never for the English alert message', async () => {
+    fetchSpy.mockResolvedValue({ data: { stationStates: [] } })
+    const { listStationStates } = await load()
+    await listStationStates(event)
+    const { query } = fetchSpy.mock.calls[0][1].body as { query: string }
+    expect(query).toContain('stationStates')
+    expect(query).toContain('alerts')
+    expect(query).not.toContain('message')
+  })
+
+  it('maps needs_visit to needs-visit and returns the list envelope', async () => {
+    fetchSpy.mockResolvedValue({ data: { stationStates: [wire('st-003', 'needs_visit', [wireAlert('st-003', 'site_visit_fault')])] } })
+    const { listStationStates } = await load()
+    const result = await listStationStates(event)
+    expect(result).toEqual({
+      data: [
+        {
+          stationId: 'st-003',
+          state: 'needs-visit',
+          updatedAt: '2026-10-25T10:00:00.000Z',
+          alerts: [wireAlert('st-003', 'site_visit_fault')],
+        },
+      ],
+    })
+  })
+
+  it('lists the stations that need attention first: needs-visit, offline, degraded, ok, then by station id', async () => {
+    fetchSpy.mockResolvedValue({
+      data: {
+        stationStates: [
+          wire('st-001', 'ok'),
+          wire('st-002', 'degraded'),
+          wire('st-006', 'offline'),
+          wire('st-005', 'offline'),
+          wire('st-004', 'needs_visit'),
+          wire('st-003', 'needs_visit'),
+        ],
+      },
+    })
+    const { listStationStates } = await load()
+    const { data } = await listStationStates(event)
+    expect(data.map((s) => `${s.stationId}:${s.state}`)).toEqual([
+      'st-003:needs-visit',
+      'st-004:needs-visit',
+      'st-005:offline',
+      'st-006:offline',
+      'st-002:degraded',
+      'st-001:ok',
+    ])
+  })
+
+  it('answers 502 when the service sends a state that breaks the contract', async () => {
+    fetchSpy.mockResolvedValue({ data: { stationStates: [wire('st-003', 'on_fire')] } })
+    const { listStationStates } = await load()
+    const error = await rejection(listStationStates(event))
+    expect(error.statusCode).toBe(502)
+    expect(error.statusMessage).toBe('Triage response violates contract')
+  })
+
+  it('answers 502 when the service is unreachable and 401 without a session', async () => {
+    fetchSpy.mockRejectedValue(new Error('connect ECONNREFUSED'))
+    const { listStationStates } = await load()
+    expect((await rejection(listStationStates(event))).statusCode).toBe(502)
+
+    noSession()
+    expect((await rejection(listStationStates({ context: {} } as H3Event))).statusCode).toBe(401)
+  })
+})
+
 describe('getTicket', () => {
   it('returns the detail envelope', async () => {
     fetchSpy.mockResolvedValue({ data: { ticket: detail } })

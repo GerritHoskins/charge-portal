@@ -32,6 +32,8 @@ export default defineConfig({
     },
     // Back-office triage screens; the spec resets and seeds the triage database before every test.
     { name: 'triage', testMatch: /triage\.spec\.ts/, dependencies: ['setup'], use: { storageState: AUTH_STATE } },
+    // Live station state on /portal/stations; the spec resets and seeds the telemetry before every test.
+    { name: 'stations-state', testMatch: /stations-state\.spec\.ts/, dependencies: ['setup'], use: { storageState: AUTH_STATE } },
     // Auth behaviour itself is tested from a logged-out browser.
     { name: 'auth', testMatch: /auth\.spec\.ts/ },
     // Public shop routes and APIs are tested without a saved login state.
@@ -70,6 +72,9 @@ export default defineConfig({
         TRIAGE_PORT: String(TRIAGE_PORT),
         TRIAGE_HOST: '127.0.0.1',
         ANTHROPIC_API_KEY: '', // blank = rules provider; E2E never calls a model
+        // A station counts as offline after 3 x this interval without a sample. 60 s keeps freshly seeded
+        // stations online for the whole test; stations-state.spec.ts silences one station in the database.
+        TELEMETRY_INTERVAL_MS: '60000',
       },
     },
     // Same app with /portal/invoices rolled back to legacy (NUXT_ROLLOUT).
@@ -78,7 +83,14 @@ export default defineConfig({
       url: `http://localhost:${ROLLBACK_PORT}/login`,
       reuseExistingServer: true,
       timeout: 120_000,
-      env: { LEGACY_ORIGIN: `http://localhost:${LEGACY_PORT}`, NUXT_ROLLOUT: '/portal/invoices=0', NUXT_IGNORE_LOCK: '1' },
+      env: {
+        LEGACY_ORIGIN: `http://localhost:${LEGACY_PORT}`,
+        NUXT_ROLLOUT: '/portal/invoices=0',
+        NUXT_IGNORE_LOCK: '1',
+        // This app has no triage service behind it (port 1 refuses connections): stations-state.spec.ts uses it
+        // to see the stations page with a really unreachable service.
+        NUXT_TRIAGE_ORIGIN: 'http://127.0.0.1:1',
+      },
     },
     // Static Storybook build, served for the design-system a11y tests.
     { command: 'npm run build-storybook && npx vite preview --outDir storybook-static --port 6006 --strictPort', url: 'http://localhost:6006/iframe.html', reuseExistingServer: true, timeout: 180_000, env: { STORYBOOK_DISABLE_TELEMETRY: '1' } },

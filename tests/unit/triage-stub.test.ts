@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { ticketQueryDataSchema, ticketsQueryDataSchema } from '#shared/contracts/triage'
+import { stationStatesQueryDataSchema, ticketQueryDataSchema, ticketsQueryDataSchema } from '#shared/contracts/triage'
 
 // @ts-expect-error The route-budget helpers are intentionally plain Node.js modules.
 import { STUB_TICKET_ID, startTriageStub } from '../../scripts/lib/triage-stub.mjs'
@@ -44,6 +44,25 @@ describe('triage stub for the route budget', () => {
   it('knows no other ticket', async () => {
     const { body } = await ask('query Ticket($id: ID!) { ticket(id: $id) { id } }', { id: '00000000-0000-4000-8000-000000000000' })
     expect(ticketQueryDataSchema.parse(body.data).ticket).toBeNull()
+  })
+
+  it('answers the station-state query with states the BFF contract accepts, including a station that needs a visit', async () => {
+    const { status, body } = await ask('query StationStates { stationStates { stationId state } }')
+    expect(status).toBe(200)
+    const { stationStates } = stationStatesQueryDataSchema.parse(body.data)
+    expect(stationStates.length).toBeGreaterThan(1)
+    const needsVisit = stationStates.find((s) => s.stationId === 'st-003')
+    expect(needsVisit?.state).toBe('needs-visit')
+    expect(needsVisit?.alerts.map((a) => a.kind)).toContain('site_visit_fault')
+    // The stations page is measured with alerts on screen: more than one state is in play.
+    expect(new Set(stationStates.map((s) => s.state)).size).toBeGreaterThan(2)
+  })
+
+  it('speaks the wire dialect for the state (needs_visit), as the real service does', async () => {
+    const { body } = await ask('query StationStates { stationStates { stationId state } }')
+    const wire = (body.data as { stationStates: { state: string }[] }).stationStates.map((s) => s.state)
+    expect(wire).toContain('needs_visit')
+    expect(wire).not.toContain('needs-visit')
   })
 
   it('refuses anything else as a GraphQL error', async () => {

@@ -3,6 +3,8 @@ import { z } from 'zod'
 import { meResponseSchema } from '#shared/contracts/me'
 import {
   mutationTicketDataSchema,
+  stationStatesQueryDataSchema,
+  type StationHealth,
   ticketDecisionInputSchema,
   ticketQueryDataSchema,
   ticketsQuerySchema,
@@ -116,6 +118,24 @@ const TICKET_QUERY = `query Ticket($id: ID!) { ticket(id: $id) { ${DETAIL_FIELDS
 const APPROVE_MUTATION = `mutation ApproveTicket($id: ID!) { approveTicket(id: $id) { ${DETAIL_FIELDS} } }`
 const EDIT_MUTATION = `mutation EditTicket($id: ID!, $input: TicketEditInput!) { editTicket(id: $id, input: $input) { ${DETAIL_FIELDS} } }`
 const REJECT_MUTATION = `mutation RejectTicket($id: ID!, $reason: String!) { rejectTicket(id: $id, reason: $reason) { ${DETAIL_FIELDS} } }`
+
+const STATION_STATES_QUERY =
+  'query StationStates { stationStates { stationId state lastSampleAt alerts { id stationId kind raisedAt } } }'
+
+// Stations that need an operator first. Ties by station id keep the order stable between reloads.
+const ATTENTION_ORDER: Record<StationHealth, number> = { 'needs-visit': 0, offline: 1, degraded: 2, ok: 3 }
+
+/**
+ * GET /api/triage/stations/state: the live health and active alerts of every station that reported,
+ * most urgent first. Reading may record an idempotent `offline` alert in the service (WP-08).
+ */
+export const listStationStates = async (event: H3Event) => {
+  const data = await fetchTriage(event, STATION_STATES_QUERY, {}, stationStatesQueryDataSchema)
+  const sorted = [...data.stationStates].sort(
+    (a, b) => ATTENTION_ORDER[a.state] - ATTENTION_ORDER[b.state] || a.stationId.localeCompare(b.stationId),
+  )
+  return { data: sorted }
+}
 
 const requireTicketId = (id: string): string => {
   if (!TICKET_ID.test(id)) throw createError({ statusCode: 404, statusMessage: 'Not found' })

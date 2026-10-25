@@ -2,7 +2,14 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { componentSchema, severitySchema, TAXONOMY } from '@charge-portal/fault-taxonomy'
 import { FIELD_ERRORS } from '#shared/contracts/triage-rules'
-import { auditActionSchema, editableFieldSchema, faultSourceSchema, ticketStateSchema } from '#shared/contracts/triage'
+import {
+  auditActionSchema,
+  editableFieldSchema,
+  faultSourceSchema,
+  stationAlertKindSchema,
+  stationHealthSchema,
+  ticketStateSchema,
+} from '#shared/contracts/triage'
 
 type Tree = { [key: string]: string | Tree }
 const load = (locale: string): Tree => JSON.parse(readFileSync(`i18n/locales/${locale}.json`, 'utf8'))
@@ -20,6 +27,9 @@ const wanted: Record<string, readonly string[]> = {
   'triage.audit.action': auditActionSchema.options,
   'triage.field': editableFieldSchema.options,
   'triage.error': FIELD_ERRORS,
+  // The stations page (WP-09) translates the live state and the alerts by kind, never the service's English message.
+  'stations.live.state': stationHealthSchema.options,
+  'stations.live.alert': stationAlertKindSchema.options,
 }
 
 describe.each(['de', 'en'])('triage catalogue (%s)', (locale) => {

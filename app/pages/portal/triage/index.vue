@@ -17,7 +17,14 @@ const { data, error } = await useFetch<{ data: TicketSummary[] }>('/api/triage/t
   query: computed(() => (stateFilter.value === 'all' ? {} : { state: stateFilter.value })),
   default: () => ({ data: [] }),
 })
-const tickets = computed(() => data.value?.data ?? [])
+// ?station=<id> (a link from the stations page) narrows the queue to one station. The tickets are already
+// in the browser, so it filters here; the state filter keeps working on top.
+const route = useRoute()
+const stationFilter = computed(() => (typeof route.query.station === 'string' ? route.query.station : ''))
+const tickets = computed(() => {
+  const all = data.value?.data ?? []
+  return stationFilter.value ? all.filter((ticket) => ticket.stationId === stationFilter.value) : all
+})
 
 const faultLabel = (code: string) => t(`triage.taxonomy.${code}`)
 </script>
@@ -33,6 +40,11 @@ const faultLabel = (code: string) => t(`triage.taxonomy.${code}`)
         <option v-for="o in options" :key="o.value" :value="o.value">{{ o.label }}</option>
       </select>
     </div>
+
+    <p v-if="stationFilter" class="station-filter">
+      {{ t('triage.stationFilter', { station: stationFilter }) }}
+      <NuxtLink to="/portal/triage" :prefetch="false">{{ t('triage.stationFilterClear') }}</NuxtLink>
+    </p>
 
     <DsAlert v-if="error"><p>{{ t('triage.loadError') }}</p></DsAlert>
 
@@ -68,7 +80,7 @@ const faultLabel = (code: string) => t(`triage.taxonomy.${code}`)
         </td>
       </tr>
     </DsDataTable>
-    <p v-else-if="!error">{{ t('triage.empty') }}</p>
+    <p v-else-if="!error">{{ t(stationFilter ? 'triage.emptyStation' : 'triage.empty') }}</p>
   </section>
 </template>
 

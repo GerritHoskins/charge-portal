@@ -1,9 +1,9 @@
 # Fault Triage Progress
 
 ## Status
-Current step: WP-00..WP-06 and WP-08 merged into feat/fault-triage; WP-07 in Review (branch fault-triage/wp-07)
+Current step: WP-00..WP-06 and WP-08 merged into feat/fault-triage; WP-07 in Review (branch fault-triage/wp-07); WP-09 in Review (branch fault-triage/wp-09, based on the WP-07 commit)
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-08 (orchestrator-reviewed; human acceptance waived per decision)
-Next step: WP-07, then WP-09, then WP-10
+Next step: merge WP-07 and WP-09, then WP-10
 
 ## Decisions
 - 2026-10-25: Human chose a pluggable `DraftProvider`: deterministic rules provider by default,
@@ -379,3 +379,37 @@ Branch `fault-triage/wp-07`, based on 921ac74 (WP-00..06 and WP-08 merged). This
 **For WP-09**
 - Reuse `TriageFacts`, `TriageAuditTrail`, `TriageSeverityBadge`, the `triage.*` i18n keys (`triage.severity.*`, `triage.component.*`, `triage.taxonomy.*`, `triage.state.*`, `triage.yes/no`), the seed module (`seedFaults`, `resetTriageData`) and the `triage` Playwright project / `TRIAGE_*` exports. A spec that needs the service and a fresh seed copies the `beforeEach` of `tests/e2e/triage.spec.ts`; a new spec file must match the project's `testMatch` or get its own project.
 - Any new portal page needs entries in `docs/migration-routes.json`; a new budgeted route needs `REQUIRED_ROUTES` + `route-budgets.json` (+ stub answers if it needs the service).
+
+## WP-09 — Review
+Branch `fault-triage/wp-09`, based on ebcc30f (WP-00..08 incl. WP-07). This package ran alone, so E2E and `npm run budget` were run (not the full `npm run check`). Triage database `triage_e2e` (E2E) and `triage_wp09` (workspace integration tests) in the shared `fault-triage-postgres` container.
+
+**What changed**
+- Contract (`shared/contracts/triage.ts`): `stationHealthSchema` (`ok | degraded | needs-visit | offline`), `stationAlertKindSchema` (the six kinds), `stationAlertSchema` (`id, stationId, kind, raisedAt`), `stationStateSchema` (`stationId, state, updatedAt, alerts`), `stationStateListResponseSchema` (`{ data }`), and `stationStatesQueryDataSchema`, which parses the wire answer and maps it in one step (`needs_visit` -> `needs-visit`, `lastSampleAt` -> `updatedAt`, unused fields dropped). Taxonomy still comes only from the subpath exports.
+- BFF: `listStationStates(event)` in `server/utils/triage.ts` (query without `message`, sorted needs-visit, offline, degraded, ok, then by station id) and `server/api/triage/stations/state.get.ts`. Error mapping is `fetchTriage`'s: outage / contract violation 502, no session 401.
+- Page `app/pages/portal/stations/index.vue`: "Live-Zustand" column (new `TriageStateBadge`: text + one icon shape per state + border style; `app/components/triage/TriageStateBadge.vue` + stories, reuses the status tokens), region "Handlungsbedarf" above the table (every station that is not `ok`, most urgent first, alerts translated by kind from `stations.live.alert.*`, link "Tickets zu <Name>" to `/portal/triage?station=<id>`, `:prefetch="false"`), time of the last reading per row. Stations that never reported: "Nicht gemeldet"; while loading: "Wird geladen ..."; after an outage: "-" (sr-only "Nicht verfügbar") plus a non-blocking `DsAlert` ("Der Live-Zustand ist derzeit nicht verfügbar. ...").
+- The live state is fetched in the browser only (`useFetch(..., { server: false })`): a slow or absent triage service (10 s BFF timeout) never delays the legacy table, and the alert needs no SSR/hydration care. Consequence: the live column is empty in the server-rendered HTML and fills after hydration.
+- Queue filter (`app/pages/portal/triage/index.vue`): `?station=<id>` filters the already loaded tickets in the browser, shows "Gefiltert nach Station <id>" with a "Filter entfernen" link, and its own empty text. The state filter keeps working on top.
+- i18n: `stations.col.live`, `stations.live.*` (attention, state, alert, tickets, loading, unknown, unavailableCell, unavailable), `triage.stationFilter`, `triage.stationFilterClear`, `triage.emptyStation` in de and en. `tests/unit/triage-i18n.test.ts` now also checks that every health state and alert kind has text in both locales.
+- Seeding: `services/triage/src/seed/seed.ts` gained `telemetryScenario(now)` (st-001 ok, st-002 66 degrees C = degraded, st-003 Faulted + `CON.LOCK_FAILURE` = needs-visit, st-004 ok, st-005 ok), `seedTelemetry` (through the real `ingestTelemetry`, sequential), `resetTelemetryData` (TRUNCATE the two telemetry tables) and `silenceStation` (moves `last_received_at` into the past); both destructive helpers keep the `_e2e` database guard. I wrote an own five-sample scenario instead of importing the WP-08 simulator (plain `.mjs` outside the service's build); the unit test rolls it up with the real `rollupStationState`.
+- Route budget stub (`scripts/lib/triage-stub.mjs`): answers `stationStates` in the wire dialect for the five demo stations (ok, degraded, needs_visit, ok, offline, with alerts), so `/portal/stations` is measured with the alert region on screen; `tests/unit/triage-stub.test.ts` checks the answers against the BFF contract.
+- `playwright.config.ts`: new project `stations-state` (`/stations-state\.spec\.ts/`, depends on `setup`, stored login); `TELEMETRY_INTERVAL_MS=60000` on the triage service; `NUXT_TRIAGE_ORIGIN=http://127.0.0.1:1` on the second Nuxt app (rollout), so a test sees the page with a really unreachable service.
+
+**Offline in E2E (decision)**: the service judges offline on its own receive time (3 x `TELEMETRY_INTERVAL_MS`), which a sample cannot fake. With the default 5 s every seeded station would be offline after 15 s, so the e2e service runs with `TELEMETRY_INTERVAL_MS=60000` (3 min) and `silenceStation('st-005', 1 h)` makes exactly one station offline, deterministically. The offline alert is then recorded by the first read (WP-08 behaviour), which the spec asserts.
+
+**Commands and results**
+- Tests first: unit tests written before the code failed (27 failed in 4 files: missing exports, stub without `stationStates`); the service seed test failed to load (`telemetryScenario` etc. missing). The new E2E spec before the page: 16 failed, 4 passed (the BFF/logged-out API tests, which already passed because contract, BFF and seed existed); after the page: all pass.
+- `npx playwright test tests/e2e/stations-state.spec.ts tests/e2e/portal.spec.ts tests/e2e/rollout.spec.ts`: 36 passed. Full `npx playwright test`: 244 passed (1.6 min; includes the 21 new tests and the setup test).
+- New E2E coverage: BFF contract and order, no English alert text or wire spelling in the response, 401 logged out; live column and alert region (text, order, translation by kind); link to `/portal/triage?station=st-003`; status filter and the single `role=status` live region; "Nicht gemeldet"; BFF 502 (stubbed) and really unreachable service: page renders 5 legacy rows plus the alert; queue filter incl. empty state and removal. axe (wcag2a, wcag2aa, wcag21a, wcag21aa, wcag22aa), `violations` equal `[]`, in: default, stadtwerke-demo, fleet-demo (all with the alert region visible), 320 px and 375 px (no sideways scroll), the unavailable state (stubbed and really unreachable), the empty filtered queue.
+- `npm run lint` exit 0. `npm run typecheck` exit 0. `npm run test:coverage` exit 0: 32 files, 617 tests; statements 97.18%, branches 92.13%, functions 99.13%, lines 97.69%. `npm run migration:status -- --check` exit 0. `npm run tokens -- --check` ok. Service: typecheck and lint exit 0, unit tests 23 files / 242 tests; `TRIAGE_DATABASE_URL=.../triage_wp09 npm run check:workspaces` exit 0 (integration 4 files / 79 tests).
+- `npm run budget` exit 1, only because of the pre-existing `/shop/wallbox-home-7-4` (128.242 KB, budget 128.0). Others PASS: `/portal/stations` 118.823 KB gz (budget 119.5, was 117.847; headroom 0.677 KB), `/portal/sessions` 118.823 (119.5), `/portal/invoices` and dispute 121.592 (122.4), `/portal/triage` and `/portal/triage/<id>` 125.757 (130.9), `/shop/c/wallboxes` 125.752 (126.0), `/shop/cart` 121.735 (123.0). Growth of about 0.98 KB gz on every portal route is the page chunk (prefetched by the nav) plus the larger catalogue. No budget or threshold was changed. No zod and no taxonomy tables in the client chunks (grep of `.output/public/_nuxt`; the page imports types only).
+- Not run: full `npm run check`.
+
+**Decisions / for the reviewer**
+- Files outside the package's edit list: `playwright.config.ts` (project, `TELEMETRY_INTERVAL_MS`, unreachable origin for the second app), `server/utils/triage.ts` (the operation lives next to the others), `scripts/lib/triage-stub.mjs` + `tests/unit/triage-stub.test.ts` (requested), `tests/unit/triage-bff.test.ts`, `tests/unit/triage-i18n.test.ts`, `services/triage/test/unit/seed.test.ts`.
+- The queue filter is client-side on the loaded tickets; a station with many tickets in other states needs the state filter changed (default is Entwurf, as before).
+- No auto-refresh of the live state: it is read once per page visit.
+- The `DsAlert` for the outage is the default `error` tone (`role=alert`): the `info` tone is `role=status` and would make the existing `main getByRole('status')` assertions ambiguous.
+- The stations-state spec does not touch fault tickets (triage.spec.ts resets and seeds them in parallel); the queue filter is tested against a stubbed `/api/triage/tickets` through client-side navigation.
+- Reading `stationStates` may write an `offline` alert in the service (WP-08); accepted.
+
+**Merge notes**: textual conflicts are possible in `playwright.config.ts` and `services/triage/src/seed/seed.ts` (WP-07 touched both; this branch only adds), `i18n/locales/*.json` (WP-10 may add keys near `stations`/`triage`), and the Status lines of this log.

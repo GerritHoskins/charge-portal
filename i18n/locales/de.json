@@ -33,8 +33,18 @@
     "loadError": "Die Stationen konnten nicht geladen werden.",
     "shown": "{n} Stationen angezeigt",
     "empty": "Keine Stationen für diesen Filter.",
-    "col": { "name": "Name", "city": "Ort", "status": "Status", "connectors": "Anschlüsse", "power": "Max. Leistung" },
-    "status": { "available": "Verfügbar", "charging": "Lädt", "faulted": "Störung", "offline": "Offline" }
+    "col": { "name": "Name", "city": "Ort", "status": "Status", "connectors": "Anschlüsse", "power": "Max. Leistung", "live": "Live-Zustand" },
+    "status": { "available": "Verfügbar", "charging": "Lädt", "faulted": "Störung", "offline": "Offline" },
+    "live": {
+      "attention": "Handlungsbedarf",
+      "state": { "ok": "In Ordnung", "degraded": "Eingeschränkt", "needs-visit": "Serviceeinsatz nötig", "offline": "Keine Verbindung" },
+      "alert": { "site_visit_fault": "Aktive Störung erfordert einen Serviceeinsatz", "recurring_fault": "Störung tritt wiederholt auf", "sustained_overheating": "Dauerhafte Überhitzung", "degraded_fault": "Störung mit eingeschränktem Betrieb", "high_temperature": "Erhöhte Temperatur", "offline": "Station meldet sich nicht mehr" },
+      "tickets": "Tickets zu {station}",
+      "loading": "Wird geladen …",
+      "unknown": "Nicht gemeldet",
+      "unavailableCell": "Nicht verfügbar",
+      "unavailable": "Der Live-Zustand ist derzeit nicht verfügbar. Die Stationsdaten sind davon nicht betroffen."
+    }
   },
   "sessions": {
     "title": "Ladevorgänge",
@@ -86,6 +96,9 @@
     "all": "Alle",
     "shown": "{n} Tickets angezeigt",
     "empty": "Keine Tickets für diesen Status.",
+    "emptyStation": "Keine Tickets für diese Station und diesen Status.",
+    "stationFilter": "Gefiltert nach Station {station}",
+    "stationFilterClear": "Filter entfernen",
     "loadError": "Die Tickets konnten nicht geladen werden.",
     "col": {
       "station": "Station",
