@@ -1,6 +1,6 @@
 # ADR 0010: Agent-in-the-loop triage with operator approval and an audit log
 
-**Status:** proposed
+**Status:** accepted (2026-10-25)
 
 ## Context
 

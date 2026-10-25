@@ -1,11 +1,15 @@
 # Fault Triage Progress
 
 ## Status
-Current step: WP-00..WP-06 and WP-08 merged into feat/fault-triage; WP-07 in Review (branch fault-triage/wp-07); WP-09 in Review (branch fault-triage/wp-09, based on the WP-07 commit); WP-10 in Review (branch fault-triage/wp-10, based on 4c284f8 = WP-07 + WP-09)
-Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-08 (orchestrator-reviewed; human acceptance waived per decision)
-Next step: merge WP-07, WP-09 and WP-10; run the full `npm run check`; human review of the integrated result
+Current step: all packages WP-00..WP-10 merged into feat/fault-triage (not pushed)
+Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10
+Next step: human review of the integrated branch; open follow-ups: shop product budget, live Claude drafter test
 
 ## Decisions
+- 2026-10-25: Human accepted ADRs 0008, 0009 and 0010 ("All accepted"); status set to accepted.
+- 2026-10-25: Human deferred the pre-existing `/shop/wallbox-home-7-4` JS budget failure ("Don't worry about it for now"). It fails on unchanged main (about 128.05 KB) and now measures 128.242 KB; no threshold changed. `npm run budget`, and therefore `npm run check`, exits 1 on this route only.
+- 2026-10-25: Human postponed a live test of the Claude draft provider against the Anthropic API. The non-forced tool choice for Sonnet 5.5 and similar models remains unverified.
+- 2026-10-25: Human chose to fix the shop E2E comparators after the integrated run showed 4 order-dependent failures: the Vite dev server links scoped styles of every compiled component, so triage pages compiled by parallel tests appeared between two shop requests. `shop-cache.spec.ts` and `shop-compression.spec.ts` now ignore only unused scoped styles under `pages/portal/**` and `components/triage/**` (never rendered by the public shop); every other dev style stays mandatory, as the earlier human-approved comparator rule requires, and production comparison stays byte-exact. Fixture assertions cover the new rule. Full `npx playwright test` afterwards: 244 passed. One earlier rerun also hit a one-off Storybook axe race ("Axe is already running") that did not recur.
 - 2026-10-25: Human chose a pluggable `DraftProvider`: deterministic rules provider by default,
   Claude provider only when `ANTHROPIC_API_KEY` is set (ADR 0010).
 - 2026-10-25: Human chose npm workspaces with Nuxt staying at the repo root

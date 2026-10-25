@@ -1,6 +1,6 @@
 # ADR 0008: Fault normalisation into one canonical taxonomy
 
-**Status:** proposed
+**Status:** accepted (2026-10-25)
 
 ## Context
 

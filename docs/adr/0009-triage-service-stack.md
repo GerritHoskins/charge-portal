@@ -1,6 +1,6 @@
 # ADR 0009: Triage service: NestJS, PostgreSQL, TypeORM and GraphQL behind the BFF
 
-**Status:** proposed
+**Status:** accepted (2026-10-25)
 
 ## Context
 
