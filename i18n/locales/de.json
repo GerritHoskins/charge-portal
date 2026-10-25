@@ -9,6 +9,7 @@
     "stations": "Stationen",
     "sessions": "Ladevorgänge",
     "invoices": "Rechnungen",
+    "triage": "Störungs-Triage",
     "signedInAs": "Angemeldet als {name}",
     "logout": "Abmelden",
     "language": "Sprache"
@@ -32,8 +33,18 @@
     "loadError": "Die Stationen konnten nicht geladen werden.",
     "shown": "{n} Stationen angezeigt",
     "empty": "Keine Stationen für diesen Filter.",
-    "col": { "name": "Name", "city": "Ort", "status": "Status", "connectors": "Anschlüsse", "power": "Max. Leistung" },
-    "status": { "available": "Verfügbar", "charging": "Lädt", "faulted": "Störung", "offline": "Offline" }
+    "col": { "name": "Name", "city": "Ort", "status": "Status", "connectors": "Anschlüsse", "power": "Max. Leistung", "live": "Live-Zustand" },
+    "status": { "available": "Verfügbar", "charging": "Lädt", "faulted": "Störung", "offline": "Offline" },
+    "live": {
+      "attention": "Handlungsbedarf",
+      "state": { "ok": "In Ordnung", "degraded": "Eingeschränkt", "needs-visit": "Serviceeinsatz nötig", "offline": "Keine Verbindung" },
+      "alert": { "site_visit_fault": "Aktive Störung erfordert einen Serviceeinsatz", "recurring_fault": "Störung tritt wiederholt auf", "sustained_overheating": "Dauerhafte Überhitzung", "degraded_fault": "Störung mit eingeschränktem Betrieb", "high_temperature": "Erhöhte Temperatur", "offline": "Station meldet sich nicht mehr" },
+      "tickets": "Tickets zu {station}",
+      "loading": "Wird geladen …",
+      "unknown": "Nicht gemeldet",
+      "unavailableCell": "Nicht verfügbar",
+      "unavailable": "Der Live-Zustand ist derzeit nicht verfügbar. Die Stationsdaten sind davon nicht betroffen."
+    }
   },
   "sessions": {
     "title": "Ladevorgänge",
@@ -76,6 +87,184 @@
     "submit": "Beanstandung senden",
     "submitting": "Wird gesendet …",
     "cancel": "Abbrechen"
+  },
+  "triage": {
+    "title": "Störungs-Triage",
+    "intro": "Zu jeder Störung entwirft der Agent ein Ticket. Sie entscheiden: freigeben, bearbeiten oder ablehnen.",
+    "caption": "Störungstickets mit Station, Fehlerklasse, Schweregrad, Serviceeinsatz, Quelle und Zeitpunkt",
+    "filter": "Status",
+    "all": "Alle",
+    "shown": "{n} Tickets angezeigt",
+    "empty": "Keine Tickets für diesen Status.",
+    "emptyStation": "Keine Tickets für diese Station und diesen Status.",
+    "stationFilter": "Gefiltert nach Station {station}",
+    "stationFilterClear": "Filter entfernen",
+    "loadError": "Die Tickets konnten nicht geladen werden.",
+    "col": {
+      "station": "Station",
+      "fault": "Störung",
+      "severity": "Schweregrad",
+      "siteVisit": "Serviceeinsatz",
+      "provider": "Quelle",
+      "created": "Erstellt",
+      "action": "Aktion"
+    },
+    "yes": "Ja",
+    "no": "Nein",
+    "none": "keine Angabe",
+    "open": "Prüfen",
+    "openFor": " Ticket für Station {station}, {fault}",
+    "state": {
+      "draft": "Entwurf",
+      "approved": "Freigegeben",
+      "edited": "Bearbeitet",
+      "rejected": "Abgelehnt"
+    },
+    "severity": {
+      "info": "Information",
+      "minor": "Gering",
+      "major": "Erheblich",
+      "critical": "Kritisch"
+    },
+    "component": {
+      "connector": "Ladeanschluss",
+      "power-electronics": "Leistungselektronik",
+      "metering": "Messtechnik",
+      "communication": "Kommunikation",
+      "rfid-reader": "RFID-Leser",
+      "firmware": "Firmware",
+      "thermal": "Thermik",
+      "grid-supply": "Netzversorgung",
+      "unknown": "Unbekannt"
+    },
+    "source": {
+      "vendor-table": "Herstellertabelle",
+      "ocpp-default": "OCPP-Standard",
+      "unclassified": "Nicht klassifiziert"
+    },
+    "taxonomy": {
+      "CON": {
+        "LOCK_FAILURE": "Verriegelung des Ladeanschlusses blockiert",
+        "CABLE_DAMAGE": "Ladekabel beschädigt"
+      },
+      "PWR": {
+        "OVERCURRENT": "Überstrom",
+        "MODULE_FAILURE": "Leistungsmodul ausgefallen",
+        "OVERVOLTAGE": "Überspannung",
+        "UNDERVOLTAGE": "Unterspannung"
+      },
+      "GRD": {
+        "GROUND_FAULT": "Erdschluss"
+      },
+      "MTR": {
+        "METER_FAILURE": "Messeinrichtung ausgefallen"
+      },
+      "COM": {
+        "EV_HANDSHAKE": "Kommunikation mit dem Fahrzeug gestört",
+        "BACKEND_LINK": "Verbindung zum Backend verloren",
+        "WEAK_SIGNAL": "Schwaches Mobilfunksignal"
+      },
+      "RFD": {
+        "READER_FAILURE": "RFID-Leser ausgefallen"
+      },
+      "FWR": {
+        "RESET_FAILURE": "Neustart fehlgeschlagen",
+        "CRASH": "Firmware-Absturz"
+      },
+      "THM": {
+        "OVER_TEMPERATURE": "Übertemperatur",
+        "FAN_FAILURE": "Lüfter ausgefallen"
+      },
+      "UNCLASSIFIED": "Nicht klassifiziert"
+    },
+    "field": {
+      "probableCause": "Wahrscheinliche Ursache",
+      "suggestedAction": "Empfohlene Maßnahme",
+      "taxonomyCode": "Fehlerklasse",
+      "requiresSiteVisit": "Serviceeinsatz erforderlich"
+    },
+    "error": {
+      "required": "Bitte füllen Sie das Feld „{field}“ aus.",
+      "tooShort": "Das Feld „{field}“ ist zu kurz (mindestens {min} Zeichen).",
+      "tooLong": "Das Feld „{field}“ ist zu lang (höchstens {max} Zeichen).",
+      "noChange": "Bitte ändern Sie mindestens ein Feld.",
+      "unknownClass": "Bitte wählen Sie eine Fehlerklasse aus der Liste.",
+      "invalid": "Das Feld „{field}“ ist ungültig."
+    },
+    "detail": {
+      "pageTitle": "Ticket prüfen",
+      "heading": "Ticket für Station {station}",
+      "back": "Zurück zur Warteschlange",
+      "loadError": "Das Ticket konnte nicht geladen werden.",
+      "notFound": "Ticket nicht gefunden"
+    },
+    "fault": {
+      "heading": "Gemeldete Störung",
+      "station": "Station",
+      "connector": "Anschluss",
+      "wholeStation": "Gesamte Station",
+      "ocppCode": "OCPP-Fehlercode",
+      "vendor": "Hersteller",
+      "vendorCode": "Hersteller-Fehlercode",
+      "class": "Normalisierte Klasse",
+      "component": "Komponente",
+      "severity": "Schweregrad",
+      "siteVisit": "Serviceeinsatz laut Klasse",
+      "source": "Zuordnung",
+      "occurred": "Aufgetreten",
+      "received": "Empfangen"
+    },
+    "draft": {
+      "heading": "Entwurf des Agenten",
+      "confidence": "Konfidenz",
+      "confidenceValue": "{percent} %",
+      "provider": "Erstellt von"
+    },
+    "decision": {
+      "heading": "Entscheidung",
+      "state": "Status",
+      "intro": "Prüfen Sie Störung und Entwurf. Ohne Ihre Entscheidung bleibt das Ticket ein Entwurf.",
+      "approve": "Freigeben",
+      "edit": "Bearbeiten",
+      "reject": "Ablehnen",
+      "cancel": "Abbrechen",
+      "submitting": "Wird gespeichert …",
+      "decidedBy": "Entschieden von",
+      "decidedAt": "Entschieden am",
+      "reason": "Begründung",
+      "done": {
+        "approved": "Ticket wurde freigegeben.",
+        "edited": "Ticket wurde mit Änderungen freigegeben.",
+        "rejected": "Ticket wurde abgelehnt."
+      },
+      "alreadyDecided": "Dieses Ticket wurde bereits entschieden. Die Seite zeigt den aktuellen Stand.",
+      "failed": "Die Entscheidung konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.",
+      "fixOne": "Bitte korrigieren Sie ein Feld",
+      "fixMany": "Bitte korrigieren Sie {n} Felder"
+    },
+    "editForm": {
+      "heading": "Ticket bearbeiten",
+      "hint": "Ändern Sie, was nicht stimmt. Das Ticket wird danach mit Ihren Änderungen freigegeben.",
+      "textHint": "Höchstens {max} Zeichen.",
+      "submit": "Mit Änderungen freigeben"
+    },
+    "rejectForm": {
+      "heading": "Ticket ablehnen",
+      "reason": "Begründung der Ablehnung",
+      "hint": "Mindestens {min}, höchstens {max} Zeichen. Die Begründung wird im Verlauf gespeichert.",
+      "submit": "Ablehnung bestätigen"
+    },
+    "audit": {
+      "heading": "Verlauf",
+      "empty": "Noch keine Einträge.",
+      "changed": "Geändert: {fields}",
+      "action": {
+        "draft-created": "Entwurf erstellt",
+        "approved": "Freigegeben",
+        "edited": "Bearbeitet",
+        "rejected": "Abgelehnt"
+      }
+    }
   },
   "shop": {
     "title": "Shop",

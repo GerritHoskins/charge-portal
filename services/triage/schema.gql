@@ -1,0 +1,215 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type AuditEntry {
+  """draft-created, approved, edited or rejected."""
+  action: String!
+
+  """The operator from the session, or agent:<provider> for drafts."""
+  actor: String!
+
+  """Ticket snapshot after the change."""
+  after: JSON!
+  at: DateTime!
+
+  """Ticket snapshot before the change; null for draft-created."""
+  before: JSON
+  id: ID!
+  ticketId: ID!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type Fault {
+  component: String!
+  connectorId: Int!
+  id: ID!
+
+  """The timestamp the station reported."""
+  occurredAt: DateTime!
+  ocppErrorCode: String!
+
+  """The validated OCPP StatusNotification as received."""
+  raw: JSON!
+  receivedAt: DateTime!
+  requiresSiteVisit: Boolean!
+  severity: String!
+
+  """vendor-table, ocpp-default or unclassified."""
+  source: String!
+  stationId: String!
+
+  """Canonical class, AREA.NAME or UNCLASSIFIED (ADR 0008)."""
+  taxonomyCode: String!
+  vendorErrorCode: String
+  vendorId: String
+}
+
+type Health {
+  database: Boolean!
+  status: HealthStatus!
+}
+
+enum HealthStatus {
+  degraded
+  ok
+}
+
+type IngestResult {
+  """
+  True for a notification that reports no fault (NoError): acknowledged, not stored.
+  """
+  ignored: Boolean!
+
+  """The draft ticket; null when the notification was ignored."""
+  ticket: Ticket
+}
+
+"""
+Arbitrary JSON value. Inputs are validated by the resolver that receives them.
+"""
+scalar JSON
+
+type Mutation {
+  """
+  Accept a draft ticket as drafted (state approved). The operator is taken from x-actor. Errors (extensions.code): FORBIDDEN, TICKET_NOT_FOUND, TICKET_ALREADY_DECIDED.
+  """
+  approveTicket(id: ID!): Ticket!
+
+  """
+  Change some fields of a draft ticket and approve it (state edited); the audit entry lists changedFields. Errors: FORBIDDEN, BAD_USER_INPUT (no field, invalid field, nothing differs), TICKET_NOT_FOUND, TICKET_ALREADY_DECIDED.
+  """
+  editTicket(id: ID!, input: TicketEditInput!): Ticket!
+
+  """
+  Ingest one raw OCPP 1.6 StatusNotification: normalise it, store the fault and draft a ticket. Invalid notifications fail with BAD_USER_INPUT and the validation issues.
+  """
+  ingestFault(notification: JSON!): IngestResult!
+
+  """
+  Rolls one station telemetry sample ({ stationId, at, status, temperatureC, powerKw, faultClass? }) into its state. Invalid samples are rejected with a message that names the invalid fields.
+  """
+  ingestTelemetry(sample: JSON!): StationState!
+
+  """
+  Reject a draft ticket with a reason of 3 to 500 characters after trimming (state rejected). Errors: FORBIDDEN, BAD_USER_INPUT, TICKET_NOT_FOUND, TICKET_ALREADY_DECIDED.
+  """
+  rejectTicket(id: ID!, reason: String!): Ticket!
+}
+
+type Query {
+  """Liveness plus database connectivity."""
+  health: Health!
+
+  """Null when the station never reported."""
+  stationState(stationId: ID!): StationState
+
+  """Every station that reported, with its active alerts."""
+  stationStates: [StationState!]!
+
+  """One ticket, or null when the id is unknown."""
+  ticket(id: ID!): Ticket
+
+  """Tickets, newest first; all states unless `state` is given."""
+  tickets(state: TicketState): [Ticket!]!
+}
+
+type StationAlert {
+  clearedAt: DateTime
+  id: ID!
+  kind: StationAlertKind!
+  message: String!
+  raisedAt: DateTime!
+  stationId: ID!
+}
+
+"""
+Why an alert was raised. The UI translates by kind; `message` is a short English fallback.
+"""
+enum StationAlertKind {
+  degraded_fault
+  high_temperature
+  offline
+  recurring_fault
+  site_visit_fault
+  sustained_overheating
+}
+
+"""A canonical fault class (ADR 0008) a station currently reports."""
+type StationFault {
+  component: String!
+  requiresSiteVisit: Boolean!
+  severity: String!
+  taxonomyCode: String!
+}
+
+"""
+Rolled-up station level. `offline` is computed at read time (no sample for 3 x the interval).
+"""
+enum StationHealth {
+  degraded
+  needs_visit
+  offline
+  ok
+}
+
+type StationState {
+  activeFault: StationFault
+  alerts: [StationAlert!]!
+  lastReceivedAt: DateTime!
+  lastSampleAt: DateTime!
+  lastStatus: String!
+  powerKw: Float!
+  state: StationHealth!
+  stationId: ID!
+  temperatureC: Float!
+}
+
+type Ticket {
+  """The decision history, oldest first."""
+  audit: [AuditEntry!]!
+
+  """Between 0 and 1."""
+  confidence: Float!
+  createdAt: DateTime!
+  decidedAt: DateTime
+  decidedBy: String
+
+  """The fault the ticket was drafted for, with its raw codes."""
+  fault: Fault!
+  faultId: ID!
+  id: ID!
+  probableCause: String!
+
+  """Who produced the draft, for example rules."""
+  provider: String!
+  rejectReason: String
+  requiresSiteVisit: Boolean!
+  state: TicketState!
+  stationId: String!
+  suggestedAction: String!
+  taxonomyCode: String!
+}
+
+input TicketEditInput {
+  """1 to 2000 characters after trimming."""
+  probableCause: String
+  requiresSiteVisit: Boolean
+
+  """1 to 2000 characters after trimming."""
+  suggestedAction: String
+
+  """A taxonomy class such as PWR.OVERCURRENT, or UNCLASSIFIED."""
+  taxonomyCode: String
+}
+
+enum TicketState {
+  approved
+  draft
+  edited
+  rejected
+}

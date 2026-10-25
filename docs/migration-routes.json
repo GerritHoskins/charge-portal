@@ -12,6 +12,8 @@
     { "path": "/shop/c/:category", "status": "nuxt-native", "adr": "0007", "files": ["app/pages/shop/c/[category].vue"] },
     { "path": "/shop/cart", "status": "nuxt-native", "adr": "0007", "files": ["app/pages/shop/cart.vue"] },
     { "path": "/shop/:slug", "status": "nuxt-native", "adr": "0007", "files": ["app/pages/shop/[slug].vue"] },
+    { "path": "/portal/triage", "status": "nuxt-native", "adr": "0010", "files": ["app/pages/portal/triage/index.vue", "server/api/triage/tickets.get.ts"] },
+    { "path": "/portal/triage/:id", "status": "nuxt-native", "adr": "0010", "files": ["app/pages/portal/triage/[id].vue", "server/api/triage/tickets/[id].get.ts", "server/api/triage/tickets/[id]/decision.post.ts"] },
     { "path": "/api/v1/*", "status": "stays-legacy", "adr": "0002", "note": "Session owner and system of record. The BFF consumes it through shared/contracts." }
   ]
 }

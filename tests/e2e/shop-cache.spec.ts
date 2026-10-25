@@ -20,8 +20,17 @@ const compareShopHtmlWithKnownDevNoise = (actual: string, expected: string) => {
     return
   }
 
+  // Dev SSR also links scoped styles of every component the dev server has compiled so far,
+  // so a portal page compiled by a parallel test (e.g. /portal/triage) can appear between two
+  // requests. Ignore only unused scoped portal/triage styles, which the public shop never
+  // renders; every other style stays mandatory.
   const stylePattern = /<link rel="stylesheet" href="\/_nuxt\/[^"]+\.vue\?vue&type=style[^"]*"[^>]*>/g
-  const styleTags = (html: string) => html.match(stylePattern) ?? []
+  const isUsedStyle = (tag: string, html: string) => {
+    const scope = tag.match(/scoped=([a-f0-9]{8})/)?.[1]
+    const portalOnly = /href="\/_nuxt\/(?:pages\/portal|components\/triage)\//.test(tag)
+    return !portalOnly || scope === undefined || html.includes(`data-v-${scope}`)
+  }
+  const styleTags = (html: string) => (html.match(stylePattern) ?? []).filter(tag => isUsedStyle(tag, html))
   const actualStyles = styleTags(actual).sort()
   const expectedStyles = styleTags(expected).sort()
   expect(actualStyles).toEqual(expectedStyles)

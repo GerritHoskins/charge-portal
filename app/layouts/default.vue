@@ -16,6 +16,9 @@ useState<string[]>('rollout-legacy', () =>
         <li><NuxtLink to="/portal/stations">{{ t('nav.stations') }}</NuxtLink></li>
         <li><NuxtLink to="/portal/sessions">{{ t('nav.sessions') }}</NuxtLink></li>
         <li><NuxtLink to="/portal/invoices">{{ t('nav.invoices') }}</NuxtLink></li>
+        <!-- No prefetch: the back-office screens are not on every operator's path, and prefetching them would add
+             their chunks to the initial JavaScript of every portal page (route budgets, ADR 0007). -->
+        <li><NuxtLink to="/portal/triage" :prefetch="false">{{ t('nav.triage') }}</NuxtLink></li>
       </ul>
       <div class="tools">
         <AppLocaleSwitcher />

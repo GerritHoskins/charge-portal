@@ -1,8 +1,12 @@
+import { STUB_TICKET_ID } from './triage-stub.mjs'
+
 export const REQUIRED_ROUTES = Object.freeze([
   '/portal/stations',
   '/portal/sessions',
   '/portal/invoices',
   '/portal/invoices/inv-0042/dispute',
+  '/portal/triage',
+  `/portal/triage/${STUB_TICKET_ID}`,
   '/shop/c/wallboxes',
   '/shop/wallbox-home-7-4',
   '/shop/cart',

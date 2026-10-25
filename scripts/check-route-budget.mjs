@@ -11,6 +11,7 @@ import {
   REQUIRED_ROUTES,
   validateBudgetCoverage,
 } from './lib/route-budget.mjs'
+import { startTriageStub } from './lib/triage-stub.mjs'
 
 const LEGACY_PORT = parseLegacyPort(process.env.ROUTE_BUDGET_LEGACY_PORT)
 const LEGACY = `http://localhost:${LEGACY_PORT}`
@@ -127,6 +128,7 @@ const measureRoute = async (browser, route, cookies) => {
 }
 
 let browser
+let triageStub
 let exitCode = 1
 try {
   const budgets = parseBudgets(readFileSync(BUDGET_FILE, 'utf8'))
@@ -138,11 +140,15 @@ try {
     }
   }
 
+  // The triage pages render against a stand-in service, so the measurement needs neither Postgres nor
+  // the real service (and cannot be disturbed by one that is running).
+  triageStub = await startTriageStub()
   start('legacy/server.mjs', { LEGACY_PORT: String(LEGACY_PORT) })
   start('.output/server/index.mjs', {
     PORT: '3000',
     NITRO_PORT: '3000',
     NUXT_LEGACY_ORIGIN: LEGACY,
+    NUXT_TRIAGE_ORIGIN: triageStub.origin,
   })
   await Promise.all([waitFor(`${LEGACY}/login`), waitFor(`${APP}/login`)])
 
@@ -166,6 +172,7 @@ try {
 } finally {
   if (browser) await browser.close()
   stop()
+  await triageStub?.close()
 }
 
 process.exit(exitCode)

@@ -18,3 +18,36 @@ services:
     environment:
       LEGACY_ORIGIN: http://legacy:8080
     depends_on: [legacy]
+  # Fault triage service (ADR 0009). Credentials and the token are synthetic development values.
+  #   docker compose up postgres triage        # GraphQL on 127.0.0.1:4100, Postgres on :5432
+  # Internal service behind the BFF: it is published on loopback only and must never be exposed publicly.
+  postgres:
+    image: postgres:16-alpine
+    ports: ["5432:5432"]
+    environment:
+      POSTGRES_USER: triage
+      POSTGRES_PASSWORD: triage
+      POSTGRES_DB: triage
+    volumes: ["triage-pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U triage -d triage"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  triage:
+    image: node:24-alpine
+    working_dir: /app
+    # Builds the bundle (workspace TypeScript packages are compiled into it) and runs it; migrations run at startup.
+    command: sh -c "npm ci && npm run build -w @charge-portal/triage && npm run start -w @charge-portal/triage"
+    ports: ["127.0.0.1:4100:4100"]
+    volumes: [".:/app", "/app/node_modules", "/app/.nuxt", "/app/services/triage/node_modules"]
+    environment:
+      TRIAGE_HOST: 0.0.0.0
+      TRIAGE_PORT: "4100"
+      TRIAGE_DATABASE_URL: postgres://triage:triage@postgres:5432/triage
+      TRIAGE_INTERNAL_TOKEN: synthetic-dev-internal-token
+    depends_on:
+      postgres:
+        condition: service_healthy
+volumes:
+  triage-pgdata:

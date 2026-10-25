@@ -86,12 +86,14 @@ describe('required route budget coverage', () => {
     REQUIRED_ROUTES.map((route: string) => [route, { budgetKb: 120, provisional: false }]),
   )
 
-  it('defines the seven representative routes independently of threshold configuration', () => {
+  it('defines the nine representative routes independently of threshold configuration', () => {
     expect(REQUIRED_ROUTES).toEqual([
       '/portal/stations',
       '/portal/sessions',
       '/portal/invoices',
       '/portal/invoices/inv-0042/dispute',
+      '/portal/triage',
+      '/portal/triage/3f0c2a8e-6a55-4a5e-9a3c-0d1f6f1d2b10',
       '/shop/c/wallboxes',
       '/shop/wallbox-home-7-4',
       '/shop/cart',

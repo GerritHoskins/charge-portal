@@ -88,7 +88,15 @@ const expectSameHtml = (actual: Buffer, expected: Buffer) => {
     return text.replace(unusedErrorStyle, '')
   })
   expect(errorStyleTags.size, `Distinct Nuxt development error styles (checkout prefixes redacted): ${JSON.stringify(errorStyleDetails)}`).toBeLessThanOrEqual(1)
-  expect((texts[0]!.match(vueStyles) ?? []).sort()).toEqual((texts[1]!.match(vueStyles) ?? []).sort())
+  // Dev SSR also links scoped styles of every component compiled so far, so a portal page compiled
+  // by a parallel test (e.g. /portal/triage) can appear between two requests. Ignore only unused
+  // scoped portal/triage styles, which the public shop never renders; every other style stays mandatory.
+  const usedVueStyles = (text: string) => (text.match(vueStyles) ?? []).filter((tag) => {
+    const scope = tag.match(/scoped=([a-f0-9]{8})/)?.[1]
+    const portalOnly = /href="\/_nuxt\/(?:pages\/portal|components\/triage)\//.test(tag)
+    return !portalOnly || scope === undefined || text.includes(`data-v-${scope}`)
+  })
+  expect(usedVueStyles(texts[0]!).sort()).toEqual(usedVueStyles(texts[1]!).sort())
   for (const text of texts) {
     expect((text.match(globals) ?? []).sort()).toEqual([
       '<link rel="stylesheet" href="/_nuxt/assets/css/base.css" crossorigin>',
@@ -188,6 +196,10 @@ test('HTML comparison only normalizes an unused Nuxt development error styleshee
   expect(() => expectSameHtml(fixture(errorStyle.replace('index=0', 'index=1')), fixture())).toThrow()
   expect(() => expectSameHtml(fixture(errorStyle.replace(' crossorigin>', ' media="all" crossorigin>')), fixture())).toThrow()
   expect(() => expectSameHtml(fixture(errorStyle.replace('&lang.css', '&lang.scss')), fixture())).toThrow()
+  const portalStyle = '<link rel="stylesheet" href="/_nuxt/pages/portal/triage/index.vue?vue&type=style&index=0&scoped=3640eff6&lang.css" crossorigin>'
+  expectSameHtml(fixture(portalStyle), fixture())
+  expect(() => expectSameHtml(fixture(portalStyle, '<main data-v-3640eff6>synthetic storefront</main>'), fixture('', '<main data-v-3640eff6>synthetic storefront</main>'))).toThrow()
+  expect(() => expectSameHtml(fixture(portalStyle.replace('pages/portal/triage', 'pages/shop')), fixture())).toThrow()
   const production = (extra = '') => Buffer.from(fixture(extra).toString().replace('/_nuxt/@vite/client', '/_nuxt/entry.js'))
   expect(() => expectSameHtml(production(errorStyle), production())).toThrow()
 })
