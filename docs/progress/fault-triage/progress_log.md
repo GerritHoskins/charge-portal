@@ -1,9 +1,9 @@
 # Fault Triage Progress
 
 ## Status
-Current step: WP-00, WP-01, WP-02 merged into feat/fault-triage; WP-03 in Review (fault-triage/wp-03); WP-08 in parallel
+Current step: WP-00, WP-01, WP-02 merged into feat/fault-triage; WP-03 in Review (fault-triage/wp-03); WP-05 in Review (fault-triage/wp-05); WP-08 in parallel
 Completed steps: WP-00, WP-01, WP-02 (orchestrator-reviewed; human acceptance waived per decision)
-Next step: merge WP-03 and WP-08, then WP-04 (decisions) and WP-05 (Claude provider)
+Next step: merge WP-03, WP-05 and WP-08, then WP-04 (decisions)
 
 ## Decisions
 - 2026-10-25: Human chose a pluggable `DraftProvider`: deterministic rules provider by default,
@@ -188,3 +188,39 @@ Branch `fault-triage/wp-03`, based on 130c655 (feat/fault-triage with WP-00..02)
 **Merge notes**
 - `src/migrations/index.ts`, `src/app.module.ts` and the progress-log Status lines will conflict with WP-08 (telemetry module): keep both migrations (ordered by timestamp; mine is `1792922400000`) and both module imports. Regenerate `schema.gql` after the merge (run the integration test once and commit the rewritten file). `package-lock.json` should merge cleanly (one line); otherwise rerun `npm install`.
 - WP-08/WP-04 migrations need a timestamp different from `1792922400000`.
+
+## WP-05 — Review
+Branch `fault-triage/wp-05`, based on 80a241d (feat/fault-triage with WP-00..03). Checks were run from this worktree only (not test:e2e, budget or the full root `npm run check`, per orchestrator instruction), with `ANTHROPIC_API_KEY` unset. Database `triage_wp05` in the shared `fault-triage-postgres` container. No migration, no GraphQL schema change.
+
+**What changed** (all under `services/triage/`, plus the lockfile)
+- Dependency: `@anthropic-ai/sdk` ^1.3.0 (resolved 1.3.0; `package-lock.json`: SDK + `@opentelemetry/api`, `json-schema-to-ts`, `standardwebhooks` and their small deps; `@babel/runtime` loses `dev`). `npm ci` verified.
+- `src/drafting/claude-client.ts`: `ClaudeMessageClient { createMessage(params, { signal }) }` (the injected interface), structural `ClaudeMessageResponse`, `CLAUDE_CLIENT` token, `createAnthropicMessageClient(apiKey, { fetch? })` wrapping the SDK (`maxRetries: 1`; the optional `fetch` lets a test drive the real SDK without network).
+- `src/drafting/claude-prompt.ts`: `draftToolDefinition()` (tool `submit_ticket_draft`, `input_schema` from `z.toJSONSchema` of `ticketDraftInputSchema` minus `provider`, with per-field descriptions; `$schema` stripped), system prompt (drafts for a human operator, taxonomyCode must come from the catalogue, station text is untrusted data), `buildUserPrompt` (catalogue table with all codes, the normalised fault with raw OCPP/vendor codes and `info`, up to 10 recent faults of the station without the fault itself, task line).
+- `src/drafting/claude-draft-provider.ts`: `ClaudeDraftProvider(client, { model, timeoutMs })`. Timeout = race against a timer that rejects, then aborts the request via `AbortSignal`. Failures throw `DraftProviderError(reason)`: `timeout`, `api-error[-<status>]`, `refusal`, `truncated` (stop_reason `max_tokens`), `no-tool-call`, `unknown-taxonomy-code`, `invalid-output` (field names only, in `detail`). Success: output parsed with `ticketDraftInputSchema`, `provider = claude:<model>` (set after the model's fields, so the model cannot choose it). The class never logs.
+- `src/drafting/fallback-draft-provider.ts`: `FallbackDraftProvider(primary, fallback, logger?)`. Any primary error -> rules draft with `provider = "<rules provider> (fallback: <reason>)"` (clamped to 100 chars, the schema limit) and ONE `warn` with reason/detail only (no payload, no fault ids). A non-`DraftProviderError` becomes `unexpected-error`. A failing fallback propagates.
+- `src/drafting/drafting-config.ts`: `loadDraftingConfig(env)` (zod): `ANTHROPIC_API_KEY` (blank = unset), `TRIAGE_DRAFT_MODEL` (default `claude-sonnet-5-5`, max 90 chars), `TRIAGE_DRAFT_TIMEOUT_MS` (default 15000, 100..120000). Errors name variables, never values. Provided through a `DRAFTING_CONFIG` provider (not through `src/config.ts`, which is outside the package scope).
+- `src/drafting/create-draft-provider.ts` + `drafting.module.ts`: selection by factory: no key -> `RulesDraftProvider` itself (no client is created); key -> `FallbackDraftProvider(ClaudeDraftProvider, RulesDraftProvider)`. `src/app.module.ts` needed no change (selection lives in `DraftingModule`, which `AppModule` already imports). The audit actor was already `agent:${draft.provider}` in `FaultsService` (WP-03), so it becomes `agent:claude:<model>` or `agent:rules (fallback: <reason>)` with no further change.
+- `src/drafting/draft-provider.ts`: added `DraftProviderError` (`reason`, `detail`).
+- `README.md` (new, short): env vars and provider behaviour.
+- Tests: `test/unit/{claude-draft-provider,fallback-draft-provider,drafting-config,draft-provider-selection,anthropic-message-client}.test.ts`, helper `test/helpers/fake-claude-client.ts`. `test/integration/setup.ts` `integrationEnv()` now deletes `ANTHROPIC_API_KEY` from the test process so a real key on a developer machine can never make integration tests call out.
+
+**Decision to review: `tool_choice` is NOT forced on the default model.** The task asked to force the tool. The claude-api reference for the current models says Claude Sonnet 5.5, Opus 5.5, Fable 5.1 and Mythos 5.1 return HTTP 400 for `tool_choice` `{type:"tool"}` / `{type:"any"}`; the default model `claude-sonnet-5-5` is one of them. So `ClaudeDraftProvider` sends `tool_choice: {type:"auto"}` plus an explicit instruction (system prompt and a final "Task" line) to call `submit_ticket_draft`, with `output_config.effort: "medium"`, for those four model families (regex `REJECTS_FORCED_TOOL_CHOICE`); every other model id gets `tool_choice: {type:"tool", name}` and no effort. Output is still structured (tool input) and fully validated, and a model that answers in prose just falls back (`no-tool-call`). Not verified against the live API (no key, and no network by rule). If a model outside the regex rejects forcing, drafts fall back with `api-error-400` visible in `provider`; extend the regex. `strict: true` was not used: it restricts which JSON Schema keywords (min/max length, minimum/maximum) are allowed, and zod validation already enforces the schema.
+
+**Behaviour notes**
+- Adaptive thinking is left at the model default; `max_tokens` 8192 leaves room for thinking plus two 2000-char fields. Thinking and text blocks in the response are ignored.
+- Prompt and response content are never logged or stored; the key lives only inside the SDK client. The prompt contains the station id, connector, codes and the station's `info` (synthetic data) and is sent to the Anthropic API when the key is set.
+- Smoke test of the built bundle (`NODE_ENV=production node dist/main.js`, port 4155): `ANTHROPIC_API_KEY` set to a dummy and `ANTHROPIC_BASE_URL=http://127.0.0.1:9` (closed local port, nothing left the machine) -> `ingestFault` returned a `draft` ticket with provider `rules (fallback: api-error)` and audit actor `agent:rules (fallback: api-error)`; the log showed one `[FallbackDraftProvider] WARN Draft provider failed (api-error); using the fallback provider`. Process stopped afterwards.
+
+**Commands and results** (`TRIAGE_DATABASE_URL=postgres://triage:triage@localhost:5432/triage_wp05`, `ANTHROPIC_API_KEY` unset)
+- Tests first: `npx vitest run --config vitest.config.ts` before any implementation: 5 new files failed to load ("Cannot find module ../../src/drafting/..."), 10 old files / 60 tests passed.
+- After implementation: `npm run check -w @charge-portal/triage` exit 0 (typecheck, lint, unit 15 files / 118 tests, integration 2 files / 31 tests).
+- Root `npm run lint` exit 0; root `npm run typecheck` (nuxt typecheck) exit 0.
+- Not run: `test:e2e`, `budget`, full root `npm run check`, root `test:coverage` (no root source files touched).
+
+**Merge notes**
+- Touches `package-lock.json` (additive) and `services/triage/package.json` (one line). Regenerate with `npm install` if the lock conflicts. `docker-compose.yml` is outside this package: the `triage` service does not forward `ANTHROPIC_API_KEY`, `TRIAGE_DRAFT_MODEL`, `TRIAGE_DRAFT_TIMEOUT_MS`; add them there when Claude drafts are wanted in compose (without them compose behaves as before).
+- Progress-log Status lines will conflict with the other packages' edits; resolve by hand.
+- ADR 0010 still says `proposed`; not edited.
+
+**Open points**
+- Never run against the real API (by rule). The first real call should confirm that the `auto` + instruction route on `claude-sonnet-5-5` yields a tool call at `effort: medium`, and check latency against the 15 s default.

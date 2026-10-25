@@ -10,6 +10,8 @@ export function integrationEnv() {
   }
   const internalToken = process.env.TRIAGE_INTERNAL_TOKEN ?? 'synthetic-test-internal-token'
   process.env.TRIAGE_INTERNAL_TOKEN = internalToken
+  // Integration tests run the rules provider; a developer's real key must never make them call the network.
+  delete process.env.ANTHROPIC_API_KEY
   return { databaseUrl, internalToken }
 }
 
