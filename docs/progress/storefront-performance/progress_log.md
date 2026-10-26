@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-02 reopened; Review (required gates pass in main CI run 39153035298 on `f0de55a`; awaiting human acceptance)
-Completed steps: WP-00, WP-01, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-21, WP-22, WP-23, WP-24, WP-25, WP-25a, WP-25b, WP-25c, WP-25d, WP-26
-Next step: Human review/acceptance of WP-02 against its package Done-when and approved reopened extension; only that acceptance moves it to Done. Passing CI and the merge are not acceptance. WP-25 stays Done; WP-27 remains optional/deferred, not implemented or marked Done.
+Current step: None in progress; WP-02 Done (human accepted 2026-10-26)
+Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-21, WP-22, WP-23, WP-24, WP-25, WP-25a, WP-25b, WP-25c, WP-25d, WP-26
+Next step: All mandatory packages are Done. Any further work needs a new human decision. WP-25 stays Done; WP-27 remains optional/deferred, not implemented or marked Done.
 
 ## Decisions
 - 2026-10-18: Human declined the proposed `playwright.config.ts` worker override and explicitly
@@ -1931,3 +1931,14 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
   erased or waived; no causal claim is made. The run's artifact listing returned none
   unauthenticated, so per-audit CI LCP values were not inspected here.
 - WP-02 moves to Review (implementation and required checks complete), not Done.
+
+## WP-02 — Human acceptance (Done; 2026-10-26)
+- Human explicitly accepted WP-02 in chat ("Accept now") on 2026-10-26, after the Review
+  reconciliation above (`2761e64`) and a passing main CI run on that commit
+  (https://github.com/GerritHoskins/charge-portal/actions/runs/40200768193).
+- Accepted source: `f0de55a` (tree identical to repair `4d1fdda`); CI run 39153035298 passed
+  every required gate on it. A file-by-file diff walkthrough was offered and declined.
+- Accepted with the known local Windows limitations recorded above unchanged: the unedited
+  telemetry pagehide timing test under eight default workers and three shop LCP assertions
+  failed locally but pass in CI. No waiver, threshold or config change was made.
+- WP-02 is Done. WP-25 stays Done; WP-27 remains optional/deferred, not implemented.
