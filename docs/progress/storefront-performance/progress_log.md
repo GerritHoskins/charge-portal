@@ -3,9 +3,10 @@
 ## Status
 Current step: None in progress; WP-28 Done (human accepted 2026-10-26)
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-21, WP-22, WP-23, WP-24, WP-25, WP-25a, WP-25b, WP-25c, WP-25d, WP-26, WP-28
-Next step: Separate open issue, not a WP-28 task: shop Lighthouse fails on main because the CCS listing LCP exceeds its 2600 ms gate; it needs a human decision before any package or threshold change. WP-25 stays Done; WP-27 remains optional/deferred, not implemented or marked Done.
+Next step: WP-29 is Ready (keep portal-only translations out of the shop locale payload; fixes the CCS listing LCP gate failure on main). Its 4,400 B payload cap is proposed and needs human confirmation when the package starts. WP-25 stays Done; WP-27 remains optional/deferred, not implemented or marked Done.
 
 ## Decisions
+- 2026-10-26: Human chose option 1 of the CCS listing LCP diagnosis (code-side: move `triage.*` and `stations.live.*` out of the global locale) and asked for WP-29 to be added. Compression of `/_i18n/**` (option 2) and a re-baselined CCS gate (option 3) were not chosen. The proposed 4,400 B cap on the shop's locale body is not yet confirmed.
 - 2026-10-26: Human accepted WP-28 (merged as PR #7, `1243c22`) with the shop Lighthouse CCS listing LCP failure recorded as a separate limitation that predates WP-28; the CCS A/B shows no WP-28 effect. The CCS LCP is a separate open issue; no threshold, budget or Lighthouse-config change is made or implied.
 - 2026-10-18: Human declined the proposed `playwright.config.ts` worker override and explicitly
   chose "Keep scope unchanged; report the check limitation". Do not modify that config,
@@ -2022,3 +2023,32 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
   passing CI were not treated as acceptance; this entry records the explicit decision.
 - The WP-28 worktree `C:\Users\Gerrit\job-search\charge-portal-nuxt-wp28` remains for the human
   to remove; the throwaway Postgres container was already stopped and removed.
+
+## CCS listing LCP diagnosis (Done; read-only; 2026-10-26)
+- Correction to the WP-28 entry: the last green CI shop Lighthouse run is `2761e64` (run
+  `40200768193`, 2026-10-25, docs-only on top of `f0de55a`), not `f0de55a`. It ran after the
+  2026-10-19 `ubuntu-latest` migration, so the runner image is very unlikely to be the cause
+  (image version not read: job logs return 403). Lockfile `2761e64` → `0f9c48f` changes one
+  unrelated package; nuxt/vue/vite/lighthouse/lhci/playwright are identical.
+- Method: clean `git archive` builds of `f0de55a` and `0f9c48f`, interleaved on one Windows
+  machine, 20 runs per arm, CCS URL only. Lighthouse 12.6.1 CLI with the shop collect settings
+  and `--save-assets`. Offline `LanternLargestContentfulPaint` replay reproduced 40/40 report LCPs exactly.
+- LCP element `img.product-card__image` in all runs (observed LCP 204–418 ms). In 39/40 runs the
+  terminal simulated node is `/_i18n/<hash>/de/messages.json` (document → entry JS → messages.json).
+  PR #6 grew it from 4,385 B to 10,023 B transfer (body 4,133 → 9,771 B, uncompressed):
+  `triage` 4,806 B, `stations.live` ~730 B. In Lantern's TCP model the larger file often needs
+  one more simulated 150 ms round trip. Entry-chunk growth has no effect (entry ends 2,253–2,254 ms in both arms).
+- Medians: `f0de55a` 2,705.7 ms (8/20 runs under 2,600), `main` 2,705.1 ms (4/20). Windows already
+  lands the old build on the ~2,705 ms level most of the time; CI used to land on ~2,556 ms.
+  Same-trace counterfactual (only the locale size swapped): `main` traces with the old size have median
+  2,649 ms and 10/20 under 2,600 ms. `f0de55a` traces with the new size have 5/20. No run moved the other way.
+  The exact CI value (2,632.331 ms) was not reproduced: CI artifacts are not readable unauthenticated.
+- Route budgets on clean `main`: `/portal/triage*` 122.882 of 130.9 KB, `/portal/stations`
+  115.949 of 119.5 KB; all routes pass.
+- No product code, threshold, budget or config changed. Raw reports stayed in a session scratch directory (not in the repo).
+
+## WP-29 — Keep portal-only translations out of the shop locale (Ready; 2026-10-26)
+- Package `docs/instructions/storefront-performance/packages/WP-29-shop-locale-scope.md` added on
+  branch `docs/wp-29-shop-locale-scope` from `origin/main` `0f9c48f` (separate worktree; primary
+  checkout untouched). Prerequisites WP-28 and WP-02 are Done. Not started.
+- Open at start: human confirmation of the 4,400 B cap for the shop's `de`/`en` locale body.
