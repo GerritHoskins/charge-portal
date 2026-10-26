@@ -68,6 +68,7 @@ Unmet dependencies stay pending. Load only the selected package and prerequisite
 | 25d | [Experiment: HTML gzip and startup telemetry](WP-25d-opt-compression-telemetry.md) | accepted 25c | model, human review | optimize, measure |
 | 26 | [SEO basics](WP-26-seo.md) | 11 | model | code + unit + E2E |
 | 27 | [Storefront ADR and README (optional)](WP-27-docs.md) | all | model, human review | optional docs |
+| 28 | [Do not prefetch chunks the shop never runs](WP-28-prefetch-budget.md) | 13, accepted 02 | model, human review | config + unit + E2E, measure |
 
 Human scope decision, 2026-10-18: WP-27 may be omitted as optional if its prerequisites
 are not clear at the final time-boxed WP-25 closeout. Execution status and the CI caveat

@@ -1,9 +1,9 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: None in progress; WP-02 Done (human accepted 2026-10-26)
+Current step: WP-28 Review (PR to main open; awaiting CI and human acceptance)
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-21, WP-22, WP-23, WP-24, WP-25, WP-25a, WP-25b, WP-25c, WP-25d, WP-26
-Next step: All mandatory packages are Done. Any further work needs a new human decision. WP-25 stays Done; WP-27 remains optional/deferred, not implemented or marked Done.
+Next step: Human review of the WP-28 PR (fix/shop-prefetch-budget) after its CI run; only acceptance moves it to Done. WP-25 stays Done; WP-27 remains optional/deferred, not implemented or marked Done.
 
 ## Decisions
 - 2026-10-18: Human declined the proposed `playwright.config.ts` worker override and explicitly
@@ -1942,3 +1942,54 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
   telemetry pagehide timing test under eight default workers and three shop LCP assertions
   failed locally but pass in CI. No waiver, threshold or config change was made.
 - WP-02 is Done. WP-25 stays Done; WP-27 remains optional/deferred, not implemented.
+
+## WP-28 — Do not prefetch chunks the shop never runs (Review; 2026-10-26)
+- Human approved option A and its bounded package: tests first, `nuxt.config.ts` hook,
+  full `npm run check` and both Lighthouse runs; branch `fix/shop-prefetch-budget` from
+  `origin/main` `1c7eb8f` in a separate worktree (primary checkout and triage branch
+  untouched); open a PR to main when checks pass, do not merge.
+- Diagnosis (clean scratch builds, unchanged budget script): `f0de55a` product 128.044 KB
+  passes; `2ffe207` 128.243 KB fails (+172 B gz entry chunk from two triage routes, +19 B
+  portal layout); old locale files 128.241 KB, so locales are not the cause. 3.68 KB of the
+  product measurement is prefetch-only: error-404 1,743 B, error-500 1,202 B, default layout
+  723 B, CSRF helper 103 B. Scratch prefetch-off build: product 124.661 KB, all routes pass.
+- Note for review: the fault-triage log calls the failure pre-existing on unchanged main
+  ("about 128.05 KB"); the clean `f0de55a` build measured 128.044 KB and passed CI.
+- Worktree `C:\Users\Gerrit\job-search\charge-portal-nuxt-wp28`, `npm ci` exit 0.
+- Throwaway Postgres container `wp28-postgres` (local `postgres:16-alpine` image, `--rm`, no named
+  volume, compose credentials) for the triage E2E service and a dedicated `triage_test` database
+  for the triage integration tests. CI sets `TRIAGE_DATABASE_URL` for the whole job; the local
+  run passes it as an environment variable only. No repo config changed for this.
+- Tests first: `npx vitest run tests/unit/prefetch-policy.test.ts` exited 1 (module missing).
+  Production build of unchanged code + serial `--project=shop` run of `shop-prefetch.spec.ts`:
+  1 failed (prefetched `error-404`, `error-500`, `default`), the 404 guard passed (guard by
+  design, not a RED case). Unchanged `npm run budget` exit 1: product 128.239 KB.
+- Baseline on unchanged code (local Windows): `npm run lighthouse` exit 0 (no failed assertions).
+  `npm run lighthouse:shop` exit 1, three LCP failures: listing 2,781/2,500, product 2,631/2,500,
+  cart 2,555/2,500 ms (median-run); CCS listing 2,556/2,600 passed. Accessibility 1.0, CLS 0.
+  A first baseline attempt could not build (EPERM in `.output`): two of this package's own
+  production servers had survived a Git Bash `kill`; verified by loaded modules/ports, stopped.
+- Implemented `scripts/lib/prefetch-policy.mjs` (`prefetch = false` for Nuxt's error-404/500 and
+  `layouts/default.vue`, path-separator safe) and a `build:manifest` hook in `nuxt.config.ts`.
+  Unit test 5/5. Lint and typecheck pass.
+- After: production build + `npx playwright test --project=shop --project=auth --workers=1`
+  against it passed 107/107, including both new tests. `npm run budget` exit 0, all routes:
+  stations/sessions 115.945/119.5, invoices/dispute 118.716/122.4, triage 122.881/130.9,
+  listing 122.169/126.0, product 124.658/128.045, cart 118.151/123.0 KB (product headroom 3.387 KB,
+  the tightest). No budget, threshold, budget-script or Lighthouse-config change.
+- Full `TRIAGE_DATABASE_URL=…/triage_test npm run check` exit 0: lint, typecheck, workspaces
+  (fault-taxonomy 192, triage 242 + 79 integration), tokens, migration status, 622 root unit tests
+  (97.23% statements, 92.18% branches), default E2E 245 passed / 1 skipped (the production-only
+  prefetch test under `nuxt dev`, by design), budget as above. The earlier run without the
+  variable stopped at the triage integration tests (environment only). The telemetry timing test
+  did not fail this time.
+- After (local Windows): `npm run lighthouse` exit 0. `npm run lighthouse:shop` exit 1, three LCP
+  failures: listing 2,783/2,500, CCS listing 2,706/2,600, product 2,634/2,500 ms; cart now
+  2,403/2,500 passes. Samples fall in the same discrete simulated-LCP buckets before and after
+  (e.g. CCS 2/5 at ~2,708 before, 3/5 after); TBT, CLS, accessibility and performance scores are
+  unchanged. Read as local noise, not a causal effect or a pass; PR CI on Linux is authoritative.
+  Reports preserved outside the repo; the upload folder accumulates runs, so before/after were
+  separated by fetch time.
+- README budget sentence updated. Each E2E run rewrites `services/triage/schema.gql` with LF line
+  endings only (no content change); restored, never staged.
+- Status: Review once PR CI passes. Human acceptance moves WP-28 to Done; do not merge from here.
