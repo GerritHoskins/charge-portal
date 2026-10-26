@@ -1,11 +1,12 @@
 # Storefront Performance Progress
 
 ## Status
-Current step: WP-28 Review (PR to main open; awaiting CI and human acceptance)
-Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-21, WP-22, WP-23, WP-24, WP-25, WP-25a, WP-25b, WP-25c, WP-25d, WP-26
-Next step: Human review of the WP-28 PR (fix/shop-prefetch-budget) after its CI run; only acceptance moves it to Done. WP-25 stays Done; WP-27 remains optional/deferred, not implemented or marked Done.
+Current step: None in progress; WP-28 Done (human accepted 2026-10-26)
+Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16, WP-17, WP-18, WP-19, WP-20, WP-21, WP-22, WP-23, WP-24, WP-25, WP-25a, WP-25b, WP-25c, WP-25d, WP-26, WP-28
+Next step: Separate open issue, not a WP-28 task: shop Lighthouse fails on main because the CCS listing LCP exceeds its 2600 ms gate; it needs a human decision before any package or threshold change. WP-25 stays Done; WP-27 remains optional/deferred, not implemented or marked Done.
 
 ## Decisions
+- 2026-10-26: Human accepted WP-28 (merged as PR #7, `1243c22`) with the shop Lighthouse CCS listing LCP failure recorded as a separate limitation that predates WP-28; the CCS A/B shows no WP-28 effect. The CCS LCP is a separate open issue; no threshold, budget or Lighthouse-config change is made or implied.
 - 2026-10-18: Human declined the proposed `playwright.config.ts` worker override and explicitly
   chose "Keep scope unchanged; report the check limitation". Do not modify that config,
   telemetry tests/transport, assertions, thresholds or dependencies. Preserve the actual
@@ -1993,3 +1994,31 @@ Notes: medians from `.lighthouseci/` (portal) and `.lighthouseci-shop/` (shop) r
 - README budget sentence updated. Each E2E run rewrites `services/triage/schema.gql` with LF line
   endings only (no content change); restored, never staged.
 - Status: Review once PR CI passes. Human acceptance moves WP-28 to Done; do not merge from here.
+
+## WP-28 — CI results, CCS A/B and human acceptance (Done; 2026-10-26)
+- Branch push run `40286864420` on `e528c91`: `npm ci`, `npm run check`
+  (including `npm run budget`) and portal Lighthouse succeeded. `npm run lighthouse:shop` failed
+  on one assertion only: `/shop/c/wallboxes?connector=ccs` LCP 2,632.331 ms against 2,600
+  (median-run; log excerpt supplied by the human, the job log is not readable unauthenticated).
+  Every other shop assertion passed in CI, including the listing, product and cart LCP that fail
+  locally on Windows.
+- PR #7 was opened by the human at 09:35:15Z and merged at 09:36:40Z (merge `1243c22`), before
+  its `pull_request` run `40300719627` completed (09:47:49Z): check and portal Lighthouse success,
+  shop Lighthouse failure. Main push run `40300891468` on `1243c22`: same result. The failing
+  assertion of these two runs was not read (no authenticated log access).
+- CCS A/B, local Windows, same unchanged runner (`scripts/lighthouse.mjs --public`) and shop
+  collect settings, CCS URL only, four interleaved rounds of five runs per arm. Before arm: clean
+  export of `2ffe207` (code identical to `1c7eb8f`), 5 prefetch script hints on the CCS page;
+  after arm: WP-28 build, 2 hints; both 18 modulepreloads.
+  LCP median/mean 2,707/2,692 ms before vs 2,708/2,687 ms after; runs above 2,600 ms 17/20 vs
+  16/20; FCP median 2,035 vs 2,037 ms; requests 46 vs 43 (the three removed prefetches).
+  Mean difference -5 ms, permutation p = 0.99: no measurable WP-28 effect on CCS LCP.
+- CCS LCP, separate open issue (not resolved by WP-28): the last CI shop Lighthouse pass was
+  `f0de55a` (run `39153035298`, 2026-10-18). Between the PR #6 merge `2ffe207` and `1243c22`
+  shop Lighthouse never ran on main because `npm run check` failed first. Candidate causes, not
+  confirmed: the PR #6 entry-chunk growth and GitHub's `ubuntu-latest` image migration announced
+  from 2026-10-19. The 2,600 ms CCS gate is already the 2026-10-18 human-accepted exception.
+- Human accepted WP-28 on 2026-10-26 with that limitation recorded. WP-28 is Done. Merge and
+  passing CI were not treated as acceptance; this entry records the explicit decision.
+- The WP-28 worktree `C:\Users\Gerrit\job-search\charge-portal-nuxt-wp28` remains for the human
+  to remove; the throwaway Postgres container was already stopped and removed.
