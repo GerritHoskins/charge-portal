@@ -1,3 +1,5 @@
+import { applyPrefetchPolicy } from './scripts/lib/prefetch-policy.mjs'
+
 const LEGACY_ORIGIN = process.env.LEGACY_ORIGIN ?? 'http://localhost:8080'
 const shopCacheVaries = ['cookie', 'accept-language', 'host', 'x-forwarded-proto']
 
@@ -79,6 +81,14 @@ export default defineNuxtConfig({
   // "uses-text-compression" on throttled mobile before this; behind a real CDN/proxy
   // this is usually done there instead.
   nitro: { compressPublicAssets: true },
+
+  // No prefetch hints for chunks a shop view never runs (error pages, portal layout); route
+  // budgets count every JS file a page loads (ADR 0007, WP-28). They still load on demand.
+  hooks: {
+    'build:manifest': (manifest) => {
+      applyPrefetchPolicy(manifest)
+    },
+  },
 
   typescript: { strict: true },
 })
