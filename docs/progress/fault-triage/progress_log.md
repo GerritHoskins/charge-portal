@@ -1,11 +1,12 @@
 # Fault Triage Progress
 
 ## Status
-Current step: all packages WP-00..WP-10 merged into feat/fault-triage (not pushed)
+Current step: follow-up "live Claude drafter test" in Review on branch `feat/triage-live-drafter-test`. WP-00..WP-10 were pushed and merged into main through PR #6 (`2ffe207`, 2026-10-25).
 Completed steps: WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10
-Next step: human review of the integrated branch; open follow-ups: shop product budget, live Claude drafter test
+Next step: human review of the live drafter test change. An actual live run (`npm run test:live -w @charge-portal/triage` with `ANTHROPIC_API_KEY` set) costs money and needs the human's go-ahead; until it passes, ADR 0010's non-forced `tool_choice` path stays unverified. Shop product budget: resolved by storefront WP-28 (PR #7). Still open from WP-10: duplicate `@charge-portal/fault-taxonomy` dependency entry, `TELEMETRY_INTERVAL_MS` missing from `services/triage/README.md`.
 
 ## Decisions
+- 2026-10-28: Correction to the 2026-10-25 budget entry below: clean builds show the accepted storefront commit `f0de55a` at 128.044 KB, which passes the 128.045 KB budget (and passed CI); the failure arrived with this PR #6 merge (`2ffe207`, 128.243 KB: two triage routes in the shared entry chunk plus the triage nav link). Storefront WP-28 (PR #7) fixed it without a threshold change. The original entry is kept as written.
 - 2026-10-25: Human asked to fix the intermittent Storybook E2E failure "Axe is already running" (also seen earlier in the storefront log). Cause: `@storybook/addon-a11y` 10.6.1 runs axe in its `afterEach` after every story render in `viewMode=story` unless `a11y.manual` is set, racing the spec's own `AxeBuilder.analyze()`. Fix (test-only): `tests/e2e/storybook.spec.ts` adds the URL global `a11y.manual:!true`; the Storybook UI panel and `a11y.test: 'error'` are unchanged. A probe showed the addon no longer loads axe on the page with the global. Evidence: `--project=storybook --repeat-each=10` three times (1260 runs) with zero axe-race errors; two of those runs (8 default workers) had 1 and 5 unrelated failures from the Storybook `vite preview` server refusing connections under that stress load, and the same loop with `--workers=4` passed 420/420. Full `npx playwright test` twice: 244/244 each. The preview-server stress refusals are not fixed and were not seen in normal suite runs.
 - 2026-10-25: Human accepted ADRs 0008, 0009 and 0010 ("All accepted"); status set to accepted.
 - 2026-10-25: Human deferred the pre-existing `/shop/wallbox-home-7-4` JS budget failure ("Don't worry about it for now"). It fails on unchanged main (about 128.05 KB) and now measures 128.242 KB; no threshold changed. `npm run budget`, and therefore `npm run check`, exits 1 on this route only.
@@ -438,3 +439,50 @@ Branch `fault-triage/wp-10`, based on 4c284f8 (WP-00..09 integrated). Documentat
 - `scripts/route-budgets.json` has `/shop/wallbox-home-7-4` at 128.045 KB while the WP-07/09 entries and ADR 0007 say 128.0; the figure on main was recorded as 128.049 in WP-07 and as 128.047 in the WP-10 brief.
 - `services/triage/README.md` does not mention `TELEMETRY_INTERVAL_MS` (documented in the root README table instead).
 - `ADR 0007` is not edited; the shop budget remains a separate matter.
+
+## Follow-up — Live Claude drafter test (Review; 2026-10-28)
+
+Branch `feat/triage-live-drafter-test` from `origin/main` `41f141b`, worktree
+`C:\Users\Gerrit\job-search\charge-portal-nuxt-live-drafter`. The human asked to finish and push the
+live drafter test and to correct this log's stale status, with implementation by a GPT-6.1 Sol agent
+at high reasoning effort.
+
+**Starting point.** The human's uncommitted work from the primary checkout was copied in unchanged (the
+primary checkout was left as it was): `services/triage/vitest.live.config.ts` (opt-in, `test/live/**`,
+never part of `check`), the `test:live` script in `services/triage/package.json`, and
+`services/triage/test/live/claude-draft.live.test.ts` (drafts every `ALL_FIXTURES` entry through the real
+Messages API when `ANTHROPIC_API_KEY` is set, skips otherwise). Its `assessRun` was an empty
+`TODO(human)` stub.
+
+**Pass criteria (chosen by the coordinating agent from ADR 0010, for human review).** `assessRun`
+passes only with no problems:
+- no outcomes is a problem;
+- every fallback to rules is a problem naming fixture and reason, and `api-error-400` adds that it
+  contradicts ADR 0010's non-forced `tool_choice` assumption;
+- a Claude outcome needs a finite `confidence` in [0, 1] and a `taxonomyCode`;
+- taxonomy agreement with the fixtures' expected class over Claude outcomes must be at least
+  `MIN_TAXONOMY_AGREEMENT = 0.8` (the model may pick a neighbouring class; systematic disagreement
+  points at the prompt or catalogue); mismatches are listed;
+- `requiresSiteVisit` and duration are reported, not judged.
+
+**Implementation.** `codex exec -m gpt-6.1-sol -c model_reasoning_effort="high" -s workspace-write`
+(model confirmed in its log) moved the types and `assessRun` to `services/triage/test/live/assess-run.ts`,
+imported them in the live test (plus one `no-console` disable for its existing field-only table) and
+added `services/triage/test/unit/live-assess-run.test.ts` (19 cases). Its sandbox could not start Vitest
+on Windows (`spawn EPERM`), so it ran only typecheck and lint. Review change by the coordinator: the
+missing-taxonomy message no longer prints a literal `undefined`.
+
+**Verification (coordinator, outside the sandbox).**
+- Failing first, reconstructed: with `assess-run.ts` moved aside,
+  `npm run test -w @charge-portal/triage -- test/unit/live-assess-run.test.ts` exit 1,
+  `Cannot find module '../live/assess-run'`. Restored: 19/19.
+- `npm run test -w @charge-portal/triage`: 24 files, 261 tests passed (242 before). Typecheck and lint
+  exit 0.
+- `npm run test:live -w @charge-portal/triage` with `ANTHROPIC_API_KEY` unset: 1 test skipped, no API call.
+- Full `TRIAGE_DATABASE_URL=…/triage_test npm run check` (throwaway `postgres:16-alpine` container,
+  removed afterwards): exit 0. Triage 261 unit + 79 integration, root 622 unit (97.23% statements),
+  E2E 245 passed / 1 production-only skip, all route budgets pass.
+
+**Not done.** No live run against the Anthropic API: it costs money and needs the human's go-ahead
+(`ANTHROPIC_API_KEY=… npm run test:live -w @charge-portal/triage`). Until it passes, ADR 0010's
+non-forced `tool_choice` path stays unverified and the ADR text is unchanged.
